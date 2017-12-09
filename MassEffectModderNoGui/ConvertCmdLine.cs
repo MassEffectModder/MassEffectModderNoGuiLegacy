@@ -27,12 +27,65 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Windows.Forms;
 
 namespace MassEffectModder
 {
     static public class CmdLineConverter
     {
+        public const uint textureMapBinTag = 0x5054454D;
+        public const uint textureMapBinVersion = 2;
+        public const uint TextureModTag = 0x444F4D54;
+        public const uint FileTextureTag = 0x53444446;
+        public const uint FileBinTag = 0x4E494246;
+        public const uint TextureModVersion = 2;
+        const uint MEMI_TAG = 0x494D454D;
+
+        public struct BinaryMod
+        {
+            public string packagePath;
+            public int exportId;
+            public byte[] data;
+            public bool binaryMod;
+            public string textureName;
+            public uint textureCrc;
+        };
+
         static List<FoundTexture> textures;
+
+        static public bool applyModTag(int gameId, int MeuitmV, int AlotV)
+        {
+            string path = "";
+            if (gameId == (int)MeType.ME1_TYPE)
+            {
+                path = GameData.GamePath + @"\BioGame\CookedPC\testVolumeLight_VFX.upk";
+            }
+            if (gameId == (int)MeType.ME2_TYPE)
+            {
+                path = GameData.GamePath + @"\BioGame\CookedPC\BIOC_Materials.pcc";
+            }
+            if (gameId == (int)MeType.ME3_TYPE)
+            {
+                path = GameData.GamePath + @"\BIOGame\CookedPCConsole\adv_combat_tutorial_xbox_D_Int.afc";
+            }
+            try
+            {
+                using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Write))
+                {
+                    fs.SeekEnd();
+                    fs.WriteInt32(MeuitmV);
+                    fs.WriteInt32(AlotV);
+                    fs.WriteInt32(int.Parse(Application.ProductVersion));
+                    fs.WriteUInt32(MEMI_TAG);
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
+            return true;
+        }
 
         static private void loadTexturesMap(MeType gameId)
         {
@@ -103,7 +156,7 @@ namespace MassEffectModder
             {
                 uint tag = fs.ReadUInt32();
                 uint version = fs.ReadUInt32();
-                if (tag != TexExplorer.textureMapBinTag || version != TexExplorer.textureMapBinVersion)
+                if (tag != textureMapBinTag || version != textureMapBinVersion)
                 {
                     Console.WriteLine("Detected wrong or old version of textures scan file!" + Environment.NewLine);
                     return false;
@@ -161,7 +214,7 @@ namespace MassEffectModder
         }
 
         static public bool convertDataModtoMem(string inputDir, string memFilePath,
-            MeType gameId, MainWindow mainWindow, ref string errors, bool onlyIndividual = false, bool ipc = false)
+            MeType gameId, ref string errors, bool onlyIndividual = false, bool ipc = false)
         {
             string[] files = null;
 
@@ -201,24 +254,19 @@ namespace MassEffectModder
             ulong numEntries = 0;
             FileStream outFs;
 
-            List<TexExplorer.BinaryMod> mods = new List<TexExplorer.BinaryMod>();
+            List<BinaryMod> mods = new List<BinaryMod>();
             List<MipMaps.FileMod> modFiles = new List<MipMaps.FileMod>();
 
             if (File.Exists(memFilePath))
                 File.Delete(memFilePath);
             outFs = new FileStream(memFilePath, FileMode.Create, FileAccess.Write);
-            outFs.WriteUInt32(TexExplorer.TextureModTag);
-            outFs.WriteUInt32(TexExplorer.TextureModVersion);
+            outFs.WriteUInt32(TextureModTag);
+            outFs.WriteUInt32(TextureModVersion);
             outFs.WriteInt64(0); // filled later
 
             for (int n = 0; n < files.Count(); n++)
             {
                 string file = files[n];
-                if (mainWindow != null)
-                {
-                    mainWindow.updateStatusLabel("Creating MEM: " + Path.GetFileName(memFilePath));
-                    mainWindow.updateStatusLabel2("File " + (n + 1) + " of " + files.Count() + ", " + Path.GetFileName(file));
-                }
                 Console.WriteLine("File: " + Path.GetFileName(file));
                 if (ipc)
                 {
@@ -233,9 +281,9 @@ namespace MassEffectModder
                     {
                         uint tag = fs.ReadUInt32();
                         uint version = fs.ReadUInt32();
-                        if (tag != TexExplorer.TextureModTag || version != TexExplorer.TextureModVersion)
+                        if (tag != TextureModTag || version != TextureModVersion)
                         {
-                            if (version != TexExplorer.TextureModVersion)
+                            if (version != TextureModVersion)
                             {
                                 errors += "File " + file + " was made with an older version of MEM, skipping..." + Environment.NewLine;
                                 Console.WriteLine("File " + file + " was made with an older version of MEM, skipping...");
@@ -306,7 +354,7 @@ namespace MassEffectModder
                             numEntries = fs.ReadUInt32();
                             for (uint i = 0; i < numEntries; i++)
                             {
-                                TexExplorer.BinaryMod mod = new TexExplorer.BinaryMod();
+                                BinaryMod mod = new BinaryMod();
                                 len = fs.ReadInt32();
                                 string desc = fs.ReadStringASCII(len); // description
                                 len = fs.ReadInt32();
@@ -408,7 +456,7 @@ namespace MassEffectModder
                 }
                 else if (file.EndsWith(".bin", StringComparison.OrdinalIgnoreCase))
                 {
-                    TexExplorer.BinaryMod mod = new TexExplorer.BinaryMod();
+                    BinaryMod mod = new BinaryMod();
                     try
                     {
                         string filename = Path.GetFileNameWithoutExtension(file);
@@ -509,7 +557,7 @@ namespace MassEffectModder
                                 result = zip.GoToNextFile(handle);
                                 continue;
                             }
-                            TexExplorer.BinaryMod mod = new TexExplorer.BinaryMod();
+                            BinaryMod mod = new BinaryMod();
                             try
                             {
                                 uint crc = 0;
@@ -620,7 +668,7 @@ namespace MassEffectModder
                 }
                 else if (file.EndsWith(".dds", StringComparison.OrdinalIgnoreCase))
                 {
-                    TexExplorer.BinaryMod mod = new TexExplorer.BinaryMod();
+                    BinaryMod mod = new BinaryMod();
                     string filename = Path.GetFileNameWithoutExtension(file).ToLowerInvariant();
                     if (!filename.Contains("0x"))
                     {
@@ -709,7 +757,7 @@ namespace MassEffectModder
                     file.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
                     file.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase))
                 {
-                    TexExplorer.BinaryMod mod = new TexExplorer.BinaryMod();
+                    BinaryMod mod = new BinaryMod();
                     string filename = Path.GetFileNameWithoutExtension(file).ToLowerInvariant();
                     if (!filename.Contains("0x"))
                     {
@@ -824,15 +872,13 @@ namespace MassEffectModder
                 outFs.Close();
                 if (File.Exists(memFilePath))
                     File.Delete(memFilePath);
-                if (mainWindow == null)
-                    Console.WriteLine("Mods conversion failed - nothing converted!");
                 return false;
             }
 
             long pos = outFs.Position;
             outFs.SeekBegin();
-            outFs.WriteUInt32(TexExplorer.TextureModTag);
-            outFs.WriteUInt32(TexExplorer.TextureModVersion);
+            outFs.WriteUInt32(TextureModTag);
+            outFs.WriteUInt32(TextureModVersion);
             outFs.WriteInt64(pos);
             outFs.JumpTo(pos);
             outFs.WriteUInt32((uint)gameId);
@@ -846,8 +892,6 @@ namespace MassEffectModder
             }
 
             outFs.Close();
-            if (mainWindow == null)
-                Console.WriteLine("Mods conversion process completed");
 
             return true;
         }
@@ -855,7 +899,7 @@ namespace MassEffectModder
         static public bool ConvertToMEM(MeType gameId, string inputDir, string memFile, bool ipc)
         {
             string errors = "";
-            bool status = convertDataModtoMem(inputDir, memFile, gameId, null, ref errors, false, ipc);
+            bool status = convertDataModtoMem(inputDir, memFile, gameId, ref errors, false, ipc);
             if (errors != "")
                 Console.WriteLine("Error: Some errors have occured");
 
@@ -1242,78 +1286,6 @@ namespace MassEffectModder
             return status;
         }
 
-        static public bool extractAllTextures(MeType gameId, string outputDir, bool png, string textureTfcFilter)
-        {
-            ConfIni configIni = new ConfIni();
-            GameData gameData = new GameData(gameId, configIni);
-            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
-            {
-                Console.WriteLine("Error: Could not found the game!");
-                    return false;
-            }
-
-            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                Assembly.GetExecutingAssembly().GetName().Name);
-            string mapFile = Path.Combine(path, "me" + gameId + "map.bin");
-            if (!loadTexturesMapFile(mapFile))
-                return false;
-
-            Console.WriteLine("Extracting textures started...");
-
-            if (!Directory.Exists(outputDir))
-                Directory.CreateDirectory(outputDir);
-
-            for (int i = 0; i < textures.Count; i++)
-            {
-                if (png)
-                {
-                    new MipMaps().extractTextureToPng(Path.Combine(outputDir, textures[i].name +
-                        string.Format("_0x{0:X8}", textures[i].crc) + ".png"), GameData.GamePath +
-                        textures[i].list[0].path, textures[i].list[0].exportID);
-                }
-                else
-                {
-                    string outputFile = Path.Combine(outputDir, textures[i].name +
-                        string.Format("_0x{0:X8}", textures[i].crc) + ".dds");
-                    string packagePath = GameData.GamePath + textures[i].list[0].path;
-                    int exportID = textures[i].list[0].exportID;
-                    Package package = new Package(packagePath);
-                    Texture texture = new Texture(package, exportID, package.getExportData(exportID));
-                    if (textureTfcFilter != "" && texture.properties.exists("TextureFileCacheName"))
-                    {
-                        string archive = texture.properties.getProperty("TextureFileCacheName").valueName;
-                        if (archive != textureTfcFilter)
-                            continue;
-                    }
-                    while (texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
-                    {
-                        texture.mipMapsList.Remove(texture.mipMapsList.First(s => s.storageType == Texture.StorageTypes.empty));
-                    }
-                    List<MipMap> mipmaps = new List<MipMap>();
-                    PixelFormat pixelFormat = Image.getEngineFormatType(texture.properties.getProperty("Format").valueName);
-                    for (int k = 0; k < texture.mipMapsList.Count; k++)
-                    {
-                        byte[] data = texture.getMipMapDataByIndex(k);
-                        if (data == null)
-                        {
-                            continue;
-                        }
-                        mipmaps.Add(new MipMap(data, texture.mipMapsList[k].width, texture.mipMapsList[k].height, pixelFormat));
-                    }
-                    Image image = new Image(mipmaps, pixelFormat);
-                    if (File.Exists(outputFile))
-                        File.Delete(outputFile);
-                    using (FileStream fs = new FileStream(outputFile, FileMode.CreateNew, FileAccess.Write))
-                    {
-                        image.StoreImageToDDS(fs);
-                    }
-                }
-            }
-
-            Console.WriteLine("Extracting textures completed.");
-            return true;
-        }
-
         public static bool ApplyModTag(MeType gameId, int alotV, int meuitmV)
         {
             ConfIni configIni = new ConfIni();
@@ -1324,7 +1296,7 @@ namespace MassEffectModder
                 return false;
             }
 
-            return Installer.applyModTag((int)gameId, meuitmV, alotV);
+            return applyModTag((int)gameId, meuitmV, alotV);
         }
 
         public static bool ApplyME1LAAPatch()
@@ -1337,7 +1309,7 @@ namespace MassEffectModder
                 return false;
             }
 
-            return Misc.VerifyME1Exe(gameData, false);
+            return Misc.VerifyME1Exe(gameData);
         }
 
         public static bool ApplyLODAndGfxSettings(MeType gameId, bool Limit2K = false)
@@ -1416,24 +1388,24 @@ namespace MassEffectModder
                 return false;
             }
 
-            gameData.getPackages(true, true);
+            gameData.getPackages(true);
             if (gameId != MeType.ME1_TYPE)
                 gameData.getTfcTextures();
 
             TreeScan treeScan = new TreeScan();
-            errors += treeScan.PrepareListOfTextures(null, null, null, null, ipc, ref log, true);
+            errors += treeScan.PrepareListOfTextures(null, ipc, ref log, true);
             textures = treeScan.treeScan;
 
             MipMaps mipMaps = new MipMaps();
             Console.WriteLine("Remove mipmaps started..." + Environment.NewLine);
             if (GameData.gameType == MeType.ME1_TYPE)
             {
-                errors += mipMaps.removeMipMapsME1(1, textures, null, null, null, ipc, repack);
-                errors += mipMaps.removeMipMapsME1(2, textures, null, null, null, ipc, repack);
+                errors += mipMaps.removeMipMapsME1(1, textures, null, ipc, repack);
+                errors += mipMaps.removeMipMapsME1(2, textures, null, ipc, repack);
             }
             else
             {
-                errors += mipMaps.removeMipMapsME2ME3(textures, null, null, null, ipc, repack);
+                errors += mipMaps.removeMipMapsME2ME3(textures, null, ipc, repack);
             }
             Console.WriteLine("Remove mipmaps finished" + Environment.NewLine + Environment.NewLine);
 
@@ -1450,7 +1422,7 @@ namespace MassEffectModder
                 return false;
             }
 
-            ME3DLC.unpackAllDLC(null, null, ipc);
+            ME3DLC.unpackAllDLC(ipc);
 
             return true;
         }
@@ -1465,7 +1437,7 @@ namespace MassEffectModder
                 return false;
             }
 
-            gameData.getPackages(true, true);
+            gameData.getPackages(true);
 
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
@@ -1543,7 +1515,7 @@ namespace MassEffectModder
             }
             string errors = "";
             List<string> modList = new List<string>();
-            bool vanilla = Misc.checkGameFiles(gameId, ref errors, ref modList, null, null, ipc,
+            bool vanilla = Misc.checkGameFiles(gameId, ref errors, ref modList, ipc,
                 wihtoutSfars, onlyVanilla, backupMode, Misc.generateModsMd5Entries);
             Console.WriteLine(errors);
             if (modList.Count != 0)
@@ -1612,7 +1584,7 @@ namespace MassEffectModder
             if (!loadTexturesMapFile(mapFile))
                 return false;
 
-            gameData.getPackages(true, true);
+            gameData.getPackages(true);
             if (gameId != MeType.ME1_TYPE)
                 gameData.getTfcTextures();
 
@@ -1621,38 +1593,10 @@ namespace MassEffectModder
             return status;
         }
 
-        static public bool applyMEMSpecialModME3(string memFile, string tfcName, byte[] guid)
-        {
-            textures = new List<FoundTexture>();
-            ConfIni configIni = new ConfIni();
-            GameData gameData = new GameData(MeType.ME3_TYPE, configIni);
-            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
-            {
-                Console.WriteLine("Error: Could not found the game!");
-                return false;
-            }
-
-            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    Assembly.GetExecutingAssembly().GetName().Name);
-            string mapFile = Path.Combine(path, "me" + 3 + "map.bin");
-            if (!loadTexturesMapFile(mapFile))
-                return false;
-
-            gameData.getPackages(true, true);
-            gameData.getTfcTextures();
-
-            List<string> memFiles = new List<string>();
-            memFiles.Add(memFile);
-
-            applyMEMs(memFiles, false, false, true, tfcName, guid);
-
-            return true;
-        }
-
-        static public bool applyMEMs(List<string> memFiles, bool ipc, bool repack = false, bool special = false, string tfcName = "", byte[] guid = null)
+        static public bool applyMEMs(List<string> memFiles, bool ipc, bool repack = false)
         {
             bool status = true;
-            CachePackageMgr cachePackageMgr = new CachePackageMgr(null, null);
+            CachePackageMgr cachePackageMgr = new CachePackageMgr();
 
             for (int i = 0; i < memFiles.Count; i++)
             {
@@ -1667,9 +1611,9 @@ namespace MassEffectModder
                 {
                     uint tag = fs.ReadUInt32();
                     uint version = fs.ReadUInt32();
-                    if (tag != TexExplorer.TextureModTag || version != TexExplorer.TextureModVersion)
+                    if (tag != TextureModTag || version != TextureModVersion)
                     {
-                        if (version != TexExplorer.TextureModVersion)
+                        if (version != TextureModVersion)
                         {
                             Console.WriteLine("File " + memFiles[i] + " was made with an older version of MEM, skipping..." + Environment.NewLine);
                         }
@@ -1749,11 +1693,7 @@ namespace MassEffectModder
                                     Console.WriteLine("Error in texture: " + name + string.Format("_0x{0:X8}", crc) + " Texture skipped. This texture has not all the required mipmaps" + Environment.NewLine);
                                     continue;
                                 }
-                                string errors = "";
-                                if (special)
-                                    errors = replaceTextureSpecialME3Mod(image, foundTexture.list, cachePackageMgr, foundTexture.name, crc, tfcName, guid);
-                                else
-                                    errors = new MipMaps().replaceTexture(image, foundTexture.list, cachePackageMgr, foundTexture.name, crc, false);
+                                string errors = new MipMaps().replaceTexture(image, foundTexture.list, cachePackageMgr, foundTexture.name, crc, false);
                                 if (errors != "")
                                 {
                                     if (ipc)

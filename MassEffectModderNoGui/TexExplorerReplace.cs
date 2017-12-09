@@ -25,7 +25,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Windows.Forms;
 
 namespace MassEffectModder
 {
@@ -114,7 +113,8 @@ namespace MassEffectModder
             },
         };
 
-        public string replaceTexture(Image image, List<MatchedTexture> list, CachePackageMgr cachePackageMgr, string textureName, uint crc, bool verify)
+        public string replaceTexture(Image image, List<MatchedTexture> list, CachePackageMgr cachePackageMgr,
+            string textureName, uint crc, bool verify)
         {
             var masterTextures = new Dictionary<Texture, int>();
             Texture arcTexture = null, cprTexture = null;
@@ -554,77 +554,6 @@ namespace MassEffectModder
             arcTexture = cprTexture = null;
 
             return errors;
-        }
-    }
-
-    public partial class TexExplorer : Form
-    {
-        private void replaceTexture()
-        {
-            if (listViewTextures.SelectedItems.Count == 0)
-                return;
-
-            using (OpenFileDialog selectDDS = new OpenFileDialog())
-            {
-                selectDDS.Title = "Please select Texture file";
-                selectDDS.Filter = "Texture (DDS PNG BMP TGA)|*.dds;*.png;*.bmp;*.tga";
-                if (selectDDS.ShowDialog() != DialogResult.OK)
-                    return;
-
-                Image image = new Image(selectDDS.FileName);
-
-                bool loadMod = loadMODsToolStripMenuItem.Enabled;
-                bool clearMod = clearMODsToolStripMenuItem.Enabled;
-                bool packMod = packMODToolStripMenuItem.Enabled;
-                EnableMenuOptions(false);
-
-                PackageTreeNode node = (PackageTreeNode)treeViewPackages.SelectedNode;
-                ListViewItem item = listViewTextures.FocusedItem;
-                int index = Convert.ToInt32(item.Name);
-
-                string errors = "";
-                MipMaps mipMaps = new MipMaps();
-                errors = mipMaps.replaceTexture(image, node.textures[index].list, cachePackageMgr,  node.textures[index].name, node.textures[index].crc, true);
-
-                cachePackageMgr.CloseAllWithSave();
-
-                for (int t = 0; t < node.textures[index].list.Count; t++)
-                {
-                    MatchedTexture matchedTexture = node.textures[index].list[t];
-                    _mainWindow.updateStatusLabel("Verify: " + node.textures[index].name + " in " + matchedTexture.path);
-                    Package pkg = new Package(GameData.GamePath + matchedTexture.path);
-                    Texture texture = new Texture(pkg, matchedTexture.exportID, pkg.getExportData(matchedTexture.exportID));
-                    for (int m = 0; m < matchedTexture.crcs.Count(); m++)
-                    {
-                        if (matchedTexture.crcs[m] != texture.getCrcData(texture.getMipMapDataByIndex(m)))
-                        {
-                            errors += "CRC does not match: Texture: " + node.textures[index].name + ", instance: " + t + ", mipmap: " +
-                                m + Environment.NewLine;
-                        }
-                    }
-                    matchedTexture.crcs = null;
-                    node.textures[index].list[t] = matchedTexture;
-                }
-                _mainWindow.updateStatusLabel("");
-                _mainWindow.updateStatusLabel2("Texture replacing finished.");
-
-                if (errors != "")
-                {
-                    richTextBoxInfo.Text = errors;
-                    richTextBoxInfo.Show();
-                    pictureBoxPreview.Hide();
-                    MessageBox.Show("WARNING: Some errors have occured!");
-                }
-
-                EnableMenuOptions(true);
-                loadMODsToolStripMenuItem.Enabled = loadMod;
-                clearMODsToolStripMenuItem.Enabled = clearMod;
-                packMODToolStripMenuItem.Enabled = packMod;
-                listViewTextures.Focus();
-                item.Selected = false;
-                item.Selected = true;
-                item.Focused = true;
-            }
         }
     }
 }

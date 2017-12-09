@@ -21,23 +21,16 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Windows.Forms;
 
 namespace MassEffectModder
 {
     public class CachePackageMgr
     {
         public List<Package> packages;
-        MainWindow mainWindow;
-        static Installer _installer;
 
-        public CachePackageMgr(MainWindow main, Installer installer)
+        public CachePackageMgr()
         {
             packages = new List<Package>();
-            mainWindow = main;
-            _installer = installer;
         }
 
         public Package OpenPackage(string path, bool memMode = false, bool headerOnly = false)
@@ -75,10 +68,6 @@ namespace MassEffectModder
             for (int i = 0; i < packages.Count; i++)
             {
                 Package pkg = packages[i];
-                if (mainWindow != null)
-                    mainWindow.updateStatusLabel2("Saving package " + (i + 1) + " of " + packages.Count);
-                if (_installer != null)
-                    _installer.updateStatusStore("Progress... " + (i * 100 / packages.Count) + " % ");
                 if (ipc)
                 {
                     Console.WriteLine("[IPC]PROCESSING_FILE " + packages[i]);
@@ -92,8 +81,6 @@ namespace MassEffectModder
             if (GameData.gameType == MeType.ME3_TYPE)
                 TOCBinFile.UpdateAllTOCBinFiles();
 
-            if (mainWindow != null)
-                mainWindow.updateStatusLabel2("");
             packages.Clear();
         }
     }

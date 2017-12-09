@@ -26,12 +26,53 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Security.Principal;
 using System.Text.RegularExpressions;
-using System.Windows.Forms;
 
 namespace MassEffectModder
 {
+    public enum MeType
+    {
+        ME1_TYPE = 1,
+        ME2_TYPE,
+        ME3_TYPE
+    }
+
+    struct TFCTexture
+    {
+        public byte[] guid;
+        public string name;
+    }
+
+    struct TextureGroup
+    {
+        public string name;
+        public int value;
+    }
+
+    public struct MatchedTexture
+    {
+        public int exportID;
+        public string packageName; // only used while texture scan for ME1
+        public string basePackageName; // only used while texture scan for ME1
+        public bool weakSlave;
+        public bool slave;
+        public string path;
+        public int linkToMaster;
+        public uint mipmapOffset;
+        public List<uint> crcs;
+    }
+
+    public struct FoundTexture
+    {
+        public string name;
+        public uint crc;
+        public List<MatchedTexture> list;
+        public PixelFormat pixfmt;
+        public bool alphadxt1;
+        public int width, height;
+        public int numMips;
+    }
+
     static class LODSettings
     {
         static public void readLOD(MeType gameId, ConfIni engineConf, ref string log)
@@ -401,7 +442,7 @@ namespace MassEffectModder
             public string modName;
         }
 
-        static public bool VerifyME1Exe(GameData gameData, bool gui = true)
+        static public bool VerifyME1Exe(GameData gameData)
         {
             if (File.Exists(GameData.GameExePath))
             {
@@ -413,8 +454,6 @@ namespace MassEffectModder
                     ushort flag = fs.ReadUInt16(); // read flags
                     if ((flag & 0x20) != 0x20) // check for LAA flag
                     {
-                        if (gui)
-                            MessageBox.Show("Large Aware Address flag is not enabled on Mass Effect executable file. Correcting...");
                         flag |= 0x20;
                         fs.Skip(-2);
                         fs.WriteUInt16(flag); // write LAA flag
@@ -424,95 +463,6 @@ namespace MassEffectModder
             }
 
             return false;
-        }
-
-        static public bool checkWriteAccessDir(string path)
-        {
-            try
-            {
-                using (FileStream fs = File.Create(Path.Combine(path, Path.GetRandomFileName()), 1, FileOptions.DeleteOnClose)) { }
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        static public bool checkWriteAccessFile(string path)
-        {
-            try
-            {
-                using (FileStream fs = File.OpenWrite(path)) { }
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        static public bool isRunAsAdministrator()
-        {
-            return (new WindowsPrincipal(WindowsIdentity.GetCurrent())).IsInRole(WindowsBuiltInRole.Administrator);
-        }
-
-        static public long getDiskFreeSpace(string path)
-        {
-            string drive = path.Substring(0, 3);
-            foreach (DriveInfo drv in DriveInfo.GetDrives())
-            {
-                if (string.Compare(drv.Name, drive, true) == 0)
-                    return drv.TotalFreeSpace;
-            }
-
-            return -1;
-        }
-
-        public static long getDirectorySize(string dir)
-        {
-            return new DirectoryInfo(dir).GetFiles("*", SearchOption.AllDirectories).Sum(file => file.Length);
-        }
-
-        public static string getBytesFormat(long size)
-        {
-            if (size / 1024 == 0)
-                return string.Format("{0:0.00} Bytes", size);
-            else if (size / 1024 / 1024 == 0)
-                return string.Format("{0:0.00} KB", size / 1024.0);
-            else if (size / 1024 / 1024 / 1024 == 0)
-                return string.Format("{0:0.00} MB", size / 1024 / 1024.0);
-            else
-                return string.Format("{0:0.00} GB", size / 1024/ 1024 / 1024.0);
-        }
-
-        static System.Diagnostics.Stopwatch timer;
-        public static void startTimer()
-        {
-            timer = System.Diagnostics.Stopwatch.StartNew();
-        }
-
-        public static long stopTimer()
-        {
-            timer.Stop();
-            return timer.ElapsedMilliseconds;
-        }
-
-        public static string getTimerFormat(long time)
-        {
-            if (time / 1000 == 0)
-                return string.Format("{0} milliseconds", time);
-            else if (time / 1000 / 60 == 0)
-                return string.Format("{0} seconds", time / 1000);
-            else if (time / 1000 / 60 / 60 == 0)
-                return string.Format("{0} min - {1} sec", time / 1000 / 60, time / 1000 % 60);
-            else
-            {
-                long hours = time / 1000 / 60 / 60;
-                long minutes = (time - (hours * 1000 * 60 * 60)) / 1000 / 60;
-                long seconds = (time - (hours * 1000 * 60 * 60) - (minutes * 1000 * 60)) / 1000 / 60;
-                return string.Format("{0} hours - {1} min - {2} sec", hours, minutes, seconds);
-            }
         }
 
         static public FoundTexture ParseLegacyMe3xScriptMod(List<FoundTexture> textures, string script, string textureName)
@@ -726,8 +676,7 @@ namespace MassEffectModder
         }
 
         static public bool checkGameFiles(MeType gameType, ref string errors, ref List<string> mods,
-            MainWindow mainWindow = null, Installer installer = null, bool ipc = false, bool withoutSfars = false,
-            bool onlyVanilla = false, bool backupMode = false, bool generateMd5Entries = false)
+            bool ipc = false, bool withoutSfars = false, bool onlyVanilla = false, bool backupMode = false, bool generateMd5Entries = false)
         {
             bool vanilla = true;
             List<string> packageMainFiles = null;
@@ -735,8 +684,6 @@ namespace MassEffectModder
             List<string> sfarFiles = null;
             List<string> tfcFiles = null;
             MD5FileEntry[] entries = null;
-
-            startTimer();
 
             if (gameType == MeType.ME1_TYPE)
             {
@@ -815,14 +762,6 @@ namespace MassEffectModder
 
             for (int l = 0; l < packageMainFiles.Count; l++)
             {
-                if (mainWindow != null)
-                {
-                    mainWindow.updateStatusLabel("Checking main PCC files - " + (l + 1) + " of " + packageMainFiles.Count);
-                }
-                if (installer != null)
-                {
-                    installer.updateLabelPreVanilla("Progress (PCC) ... " + (l * 100 / packageMainFiles.Count) + "%");
-                }
                 if (ipc)
                 {
                     Console.WriteLine("[IPC]PROCESSING_FILE " + packageMainFiles[l]);
@@ -925,14 +864,6 @@ namespace MassEffectModder
             {
                 for (int l = 0; l < packageDLCFiles.Count; l++)
                 {
-                    if (mainWindow != null)
-                    {
-                        mainWindow.updateStatusLabel("Checking DLC PCC files - " + (l + 1) + " of " + packageDLCFiles.Count);
-                    }
-                    if (installer != null)
-                    {
-                        installer.updateLabelPreVanilla("Progress (DLC PCC) ... " + (l * 100 / packageDLCFiles.Count) + "%");
-                    }
                     if (ipc)
                     {
                         Console.WriteLine("[IPC]PROCESSING_FILE " + packageDLCFiles[l]);
@@ -1036,14 +967,6 @@ namespace MassEffectModder
             {
                 for (int l = 0; l < sfarFiles.Count; l++)
                 {
-                    if (mainWindow != null)
-                    {
-                        mainWindow.updateStatusLabel("Checking DLC archive files - " + (l + 1) + " of " + sfarFiles.Count);
-                    }
-                    if (installer != null)
-                    {
-                        installer.updateLabelPreVanilla("Progress (DLC Archives) ... " + (l * 100 / sfarFiles.Count) + "%");
-                    }
                     if (ipc)
                     {
                         Console.WriteLine("[IPC]PROCESSING_FILE " + sfarFiles[l]);
@@ -1107,14 +1030,6 @@ namespace MassEffectModder
             {
                 for (int l = 0; l < tfcFiles.Count; l++)
                 {
-                    if (mainWindow != null)
-                    {
-                        mainWindow.updateStatusLabel("Checking TFC archive files - " + (l + 1) + " of " + tfcFiles.Count);
-                    }
-                    if (installer != null)
-                    {
-                        installer.updateLabelPreVanilla("Progress (TFC Archives) ... " + (l * 100 / tfcFiles.Count) + "%");
-                    }
                     if (ipc)
                     {
                         Console.WriteLine("[IPC]PROCESSING_FILE " + tfcFiles[l]);
@@ -1175,10 +1090,6 @@ namespace MassEffectModder
             }
             if (generateMd5Entries)
                 fs.Close();
-
-            var time = stopTimer();
-            if (mainWindow != null)
-                mainWindow.updateStatusLabel("Checking game files. Process total time: " + Misc.getTimerFormat(time));
 
             return vanilla;
         }

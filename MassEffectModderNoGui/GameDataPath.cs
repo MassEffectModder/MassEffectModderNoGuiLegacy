@@ -24,7 +24,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Windows.Forms;
 
 namespace MassEffectModder
 {
@@ -80,36 +79,6 @@ namespace MassEffectModder
                 }
                 else
                     _path = null;
-            }
-
-            if (!installerMode)
-            {
-                OpenFileDialog selectExe = new OpenFileDialog();
-                selectExe.Title = "Please select the Mass Effect " + (int)gameType + " executable file";
-                if (_path != null)
-                    selectExe.FileName = _path;
-                switch (gameType)
-                {
-                    case MeType.ME1_TYPE:
-                        selectExe.Filter = "ME1 exe file|MassEffect.exe";
-                        selectExe.FileName = "MassEffect.exe";
-                        break;
-                    case MeType.ME2_TYPE:
-                        selectExe.Filter = "ME2 exe file|MassEffect2.exe";
-                        selectExe.FileName = "MassEffect2.exe";
-                        break;
-                    case MeType.ME3_TYPE:
-                        selectExe.Filter = "ME3 exe file|MassEffect3.exe";
-                        selectExe.FileName = "MassEffect3.exe";
-                        break;
-                }
-                if (selectExe.ShowDialog() == DialogResult.OK)
-                {
-                    if (gameType == MeType.ME3_TYPE)
-                        _path = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(selectExe.FileName)));
-                    else
-                        _path = Path.GetDirectoryName(Path.GetDirectoryName(selectExe.FileName));
-                }
             }
             if (_path != null)
                 _configIni.Write(key, _path, "GameDataPath");
@@ -273,55 +242,7 @@ namespace MassEffectModder
             return true;
         }
 
-        static public string lastLoadMODPath
-        {
-            get
-            {
-                return _configIni.Read("LastLoadMODPath", "Paths");
-            }
-            set
-            {
-                _configIni.Write("LastLoadMODPath", value, "Paths");
-            }
-        }
-
-        public string lastSaveMODPath
-        {
-            get
-            {
-                return _configIni.Read("LastSaveMODPath", "Paths");
-            }
-            set
-            {
-                _configIni.Write("LastSaveMODPath", value, "Paths");
-            }
-        }
-
-        public string lastCreateMODPath
-        {
-            get
-            {
-                return _configIni.Read("LastCreateMODPath", "Paths");
-            }
-            set
-            {
-                _configIni.Write("LastCreateMODPath", value, "Paths");
-            }
-        }
-
-        static public string lastExtractMODPath
-        {
-            get
-            {
-                return _configIni.Read("LastExtractMODPath", "Paths");
-            }
-            set
-            {
-                _configIni.Write("LastExtractMODPath", value, "Paths");
-            }
-        }
-
-        public bool getPackages(bool force = false, bool installerMode = false)
+        public bool getPackages(bool force = false)
         {
             if (packageFiles != null && (packageFiles.Count != 0 && !force))
                 return true;
@@ -356,30 +277,12 @@ namespace MassEffectModder
                 if (Directory.Exists(DLCData))
                 {
                     pccs = Directory.GetFiles(DLCData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
-                    if (pccs.Count() == 0)
-                    {
-                        if (!installerMode)
-                        {
-                            MessageBox.Show("You need to extract the DLC files first.");
-                            return false;
-                        }
-                    }
                     List<string> DLCs = Directory.GetDirectories(DLCData).ToList();
                     for (int i = 0; i < DLCs.Count; i++)
                     {
                         List<string> sfars = Directory.GetFiles(DLCs[i], "Default.sfar", SearchOption.AllDirectories).ToList();
                         if (sfars.Count == 0)
                             continue;
-                        List<string> dlcs = Directory.GetFiles(DLCs[i], "Mount.dlc", SearchOption.AllDirectories).ToList();
-                        if (dlcs.Count() == 0)
-                        {
-                            if (!installerMode)
-                            {
-                                MessageBox.Show("Detected compressed DLCs in DLC folder." +
-                                "\nYou need to extract the DLC files first.");
-                                return false;
-                            }
-                        }
                     }
                 }
 

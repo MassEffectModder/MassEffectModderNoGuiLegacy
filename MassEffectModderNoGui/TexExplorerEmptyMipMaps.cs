@@ -38,22 +38,13 @@ namespace MassEffectModder
         }
 
         public string removeMipMapsME1(int phase, List<FoundTexture> textures, CachePackageMgr cachePackageMgr,
-            MainWindow mainWindow, Installer installer, bool ipc, bool forceZlib = false)
+            bool ipc, bool forceZlib = false)
         {
             string errors = "";
 
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
                 bool modified = false;
-                if (mainWindow != null)
-                {
-                    mainWindow.updateStatusLabel("Removing empty mipmaps (" + phase + ") - package " + (i + 1) + " of " + GameData.packageFiles.Count + " - " + GameData.packageFiles[i]);
-                    mainWindow.updateStatusLabel2("");
-                }
-                if (installer != null)
-                {
-                    installer.updateStatusMipMaps("Progress (" + phase + ") ... " + (i * 100 / GameData.packageFiles.Count) + " % ");
-                }
                 Package package = null;
 
                 try
@@ -185,22 +176,13 @@ skip:
         }
 
         public string removeMipMapsME2ME3(List<FoundTexture> textures, CachePackageMgr cachePackageMgr,
-            MainWindow mainWindow, Installer installer, bool ipc, bool forceZlib = false)
+            bool ipc, bool forceZlib = false)
         {
             string errors = "";
 
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
                 bool modified = false;
-                if (mainWindow != null)
-                {
-                    mainWindow.updateStatusLabel("Removing empty mipmaps - package " + (i + 1) + " of " + GameData.packageFiles.Count + " - " + GameData.packageFiles[i]);
-                    mainWindow.updateStatusLabel2("");
-                }
-                if (installer != null)
-                {
-                    installer.updateStatusMipMaps("Progress ... " + (i * 100 / GameData.packageFiles.Count) + " % ");
-                }
                 Package package = null;
 
                 try

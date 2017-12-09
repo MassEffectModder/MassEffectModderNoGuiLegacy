@@ -24,17 +24,18 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Windows.Forms;
 
 namespace MassEffectModder
 {
     public partial class TreeScan
     {
+        public const uint textureMapBinTag = 0x5054454D;
+        public const uint textureMapBinVersion = 2;
+
         public List<FoundTexture> treeScan = null;
         private bool generateBuiltinMapFiles = false; // change to true to enable map files generation
 
-        public string PrepareListOfTextures(TexExplorer texEplorer, CachePackageMgr cachePackageMgr,
-            MainWindow mainWindow, Installer installer, bool ipc, ref string log, bool force = false)
+        public string PrepareListOfTextures(CachePackageMgr cachePackageMgr, bool ipc, ref string log, bool force = false)
         {
             string errors = "";
             treeScan = null;
@@ -54,17 +55,8 @@ namespace MassEffectModder
                 {
                     uint tag = fs.ReadUInt32();
                     uint version = fs.ReadUInt32();
-                    if (tag != TexExplorer.textureMapBinTag || version != TexExplorer.textureMapBinVersion)
+                    if (tag != textureMapBinTag || version != textureMapBinVersion)
                     {
-                        if (mainWindow != null)
-                        {
-                            MessageBox.Show("Detected wrong or old version of textures scan file!" +
-                            "\n\nYou need to restore the game to vanilla state then reinstall optional DLC/PCC mods." +
-                            "\n\nThen from the main menu, select 'Remove Textures Scan File' and start Texture Manager again.");
-                            mainWindow.updateStatusLabel("");
-                            mainWindow.updateStatusLabel2("");
-                            texEplorer.Close();
-                        }
                         fs.Close();
                         log += "Detected wrong or old version of textures scan file!" + Environment.NewLine;
                         log += "You need to restore the game to vanilla state then reinstall optional DLC/PCC mods." + Environment.NewLine;
@@ -108,14 +100,7 @@ namespace MassEffectModder
                     {
                         if (GameData.packageFiles.Find(s => s.Equals(packages[i], StringComparison.OrdinalIgnoreCase)) == null)
                         {
-                            if (mainWindow != null)
-                            {
-                                MessageBox.Show("Detected removal of game files since last game data scan." +
-                                "\n\nYou need to restore the game to vanilla state then reinstall optional DLC/PCC mods." +
-                                "\n\nThen from the main menu, select 'Remove Textures Scan File' and start Texture Manager again.");
-                                return "";
-                            }
-                            else if (!force)
+                            if (!force)
                             {
                                 errors += "Detected removal of game files since last game data scan." + Environment.NewLine + Environment.NewLine +
                                 "You need to restore the game to vanilla state then reinstall optional DLC/PCC mods.";
@@ -127,14 +112,7 @@ namespace MassEffectModder
                     {
                         if (packages.Find(s => s.Equals(GameData.packageFiles[i], StringComparison.OrdinalIgnoreCase)) == null)
                         {
-                            if (mainWindow != null)
-                            {
-                                MessageBox.Show("Detected additional game files not present in latest game data scan." +
-                                "\n\nYou need to restore the game to vanilla state then reinstall optional DLC/PCC mods." +
-                                "\n\nThen from the main menu, select 'Remove Textures Scan File' and start Texture Manager again.");
-                                return "";
-                            }
-                            else if (!force)
+                            if (!force)
                             {
                                 errors += "Detected additional game files not present in latest game data scan." + Environment.NewLine + Environment.NewLine +
                                 "You need to restore the game to vanilla state then reinstall optional DLC/PCC mods.";
@@ -144,11 +122,6 @@ namespace MassEffectModder
                     }
 
                     treeScan = textures;
-                    if (mainWindow != null)
-                    {
-                        mainWindow.updateStatusLabel("");
-                        mainWindow.updateStatusLabel2("");
-                    }
                     return errors;
                 }
             }
@@ -157,31 +130,9 @@ namespace MassEffectModder
             if (File.Exists(filename))
                 File.Delete(filename);
 
-            if (mainWindow != null)
-            {
-                List<string> badMods = Misc.detectBrokenMod(GameData.gameType);
-                if (badMods.Count != 0)
-                {
-                    errors = "";
-                    for (int l = 0; l < badMods.Count; l++)
-                    {
-                        errors += badMods[l] + Environment.NewLine;
-                    }
-                    MessageBox.Show("Detected not compatible mods: \n\n" + errors);
-                    return "";
-                }
-            }
-
             if (MipMaps.checkGameDataModded(cachePackageMgr))
             {
-                if (mainWindow != null)
-                {
-                    MessageBox.Show("Detected modded game. Can not continue." +
-                    "\n\nYou need to restore the game to vanilla state then reinstall optional DLC/PCC mods." +
-                    "\n\nThen start Texture Manager again.");
-                    return "";
-                }
-                else if (!force)
+                if (!force)
                 {
                     errors += "Detected modded game. Can not continue." + Environment.NewLine + Environment.NewLine +
                     "You need to restore the game to vanilla state then reinstall optional DLC/PCC mods.";
@@ -189,32 +140,9 @@ namespace MassEffectModder
                 }
             }
 
-            if (mainWindow != null)
-            {
-                DialogResult result = MessageBox.Show("Replacing textures and creating mods requires generating a map of the game's textures.\n" +
-                "You only need to do it once.\n\n" +
-                "IMPORTANT! Your game needs to be in vanilla state and have optional DLC/PCC mods installed.\n\n" +
-                "Are you sure you want to proceed?", "Textures mapping", MessageBoxButtons.YesNo);
-                if (result == DialogResult.No)
-                {
-                    texEplorer.Close();
-                    return "";
-                }
-            }
-
             GameData.packageFiles.Sort();
-            if (mainWindow != null)
-                Misc.startTimer();
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
-                if (mainWindow != null)
-                {
-                    mainWindow.updateStatusLabel("Finding textures in package " + (i + 1) + " of " + GameData.packageFiles.Count + " - " + GameData.packageFiles[i]);
-                }
-                if (installer != null)
-                {
-                    installer.updateStatusScan("Progress... " + (i * 100 / GameData.packageFiles.Count) + " % ");
-                }
                 if (ipc)
                 {
                     Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
@@ -305,8 +233,8 @@ namespace MassEffectModder
             using (FileStream fs = new FileStream(filename, FileMode.Create, FileAccess.Write))
             {
                 MemoryStream mem = new MemoryStream();
-                mem.WriteUInt32(TexExplorer.textureMapBinTag);
-                mem.WriteUInt32(TexExplorer.textureMapBinVersion);
+                mem.WriteUInt32(textureMapBinTag);
+                mem.WriteUInt32(textureMapBinVersion);
                 mem.WriteInt32(textures.Count);
                 for (int i = 0; i < textures.Count; i++)
                 {
@@ -356,26 +284,6 @@ namespace MassEffectModder
                 }
             }
 
-            if (mainWindow != null)
-            {
-                if (!generateBuiltinMapFiles)
-                {
-                    MipMaps mipmaps = new MipMaps();
-                    if (GameData.gameType == MeType.ME1_TYPE)
-                    {
-                        errors += mipmaps.removeMipMapsME1(1, textures, null, mainWindow, null, ipc);
-                        errors += mipmaps.removeMipMapsME1(2, textures, null, mainWindow, null, ipc);
-                    }
-                    else
-                    {
-                        errors += mipmaps.removeMipMapsME2ME3(textures, null, mainWindow, null, ipc);
-                    }
-                }
-
-                var time = Misc.stopTimer();
-                mainWindow.updateStatusLabel("Done. Process total time: " + Misc.getTimerFormat(time));
-                mainWindow.updateStatusLabel2("");
-            }
             treeScan = textures;
             return errors;
         }
@@ -491,41 +399,6 @@ namespace MassEffectModder
             }
 
             return errors;
-        }
-    }
-
-    public partial class TexExplorer : Form
-    {
-        private void PrepareTreeList()
-        {
-            nodeList = new List<PackageTreeNode>();
-            PackageTreeNode rootNode = new PackageTreeNode("All Packages");
-            for (int l = 0; l < _textures.Count; l++)
-            {
-                bool found = false;
-                for (int i = 0; i < nodeList.Count; i++)
-                {
-                    if (nodeList[i].Name.ToLowerInvariant() == Path.GetFileNameWithoutExtension(_textures[l].list[0].path).ToLowerInvariant())
-                    {
-                        nodeList[i].textures.Add(_textures[l]);
-                        found = true;
-                    }
-                }
-                if (!found)
-                {
-                    PackageTreeNode treeNode = new PackageTreeNode(Path.GetFileNameWithoutExtension(_textures[l].list[0].path).ToUpperInvariant());
-                    treeNode.textures.Add(_textures[l]);
-                    rootNode.Nodes.Add(treeNode);
-                    nodeList.Add(treeNode);
-                }
-            }
-
-            treeViewPackages.Nodes.Clear();
-            treeViewPackages.BeginUpdate();
-            treeViewPackages.Sort();
-            treeViewPackages.Nodes.Add(rootNode);
-            treeViewPackages.EndUpdate();
-            treeViewPackages.Nodes[0].Expand();
         }
     }
 }

@@ -28,7 +28,6 @@ using System.Security.Cryptography;
 using System.Text;
 using StreamHelpers;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace MassEffectModder
 {
@@ -41,7 +40,6 @@ namespace MassEffectModder
         const uint EntryHeaderSize = 0x1e;
         byte[] FileListHash = new byte[] { 0xb5, 0x50, 0x19, 0xcb, 0xf9, 0xd3, 0xda, 0x65, 0xd5, 0x5b, 0x32, 0x1c, 0x00, 0x19, 0x69, 0x7c };
         const long MaxBlockSize = 0x00010000;
-        MainWindow mainWindow;
         FileStream sfarFile;
         int filenamesIndex;
         uint filesCount;
@@ -65,11 +63,6 @@ namespace MassEffectModder
             {
                 return StructuralComparisons.StructuralComparer.Compare(x.filenameHash, y.filenameHash);
             }
-        }
-
-        public ME3DLC(MainWindow main)
-        {
-            mainWindow = main;
         }
 
         public void Dispose()
@@ -248,9 +241,6 @@ namespace MassEffectModder
                 if (filesList[i].filenamePath == null)
                     throw new Exception("filename missing");
 
-                if (mainWindow != null)
-                    mainWindow.updateStatusLabel2("File " + (i + 1) + " of " + filesList.Count() + " - " + Path.GetFileName(filesList[i].filenamePath));
-
                 int pos = filesList[i].filenamePath.IndexOf("\\BIOGame\\DLC\\", StringComparison.OrdinalIgnoreCase);
                 string filename = filesList[i].filenamePath.Substring(pos + ("\\BIOGame\\DLC\\").Length).Replace('/', '\\');
                 string dir = Path.GetDirectoryName(outPath);
@@ -310,14 +300,10 @@ namespace MassEffectModder
             sfarFile = null;
         }
 
-        static public void unpackAllDLC(MainWindow mainWindow, Installer installer, bool ipc = false)
+        static public void unpackAllDLC(bool ipc = false)
         {
             if (!Directory.Exists(GameData.DLCData))
-            {
-                if (mainWindow != null)
-                    MessageBox.Show("No DLCs need to be extracted.");
                 return;
-            }
 
             List<string> sfarFiles = Directory.GetFiles(GameData.DLCData, "Default.sfar", SearchOption.AllDirectories).ToList();
             for (int i = 0; i < sfarFiles.Count; i++)
@@ -326,26 +312,7 @@ namespace MassEffectModder
                     sfarFiles.RemoveAt(i--);
             }
             if (sfarFiles.Count() == 0)
-            {
-                if (mainWindow != null)
-                    MessageBox.Show("No DLCs need to be extracted.");
                 return;
-            }
-
-            long diskFreeSpace = Misc.getDiskFreeSpace(GameData.GamePath);
-            long diskUsage = 0;
-            for (int i = 0; i < sfarFiles.Count; i++)
-            {
-                diskUsage += new FileInfo(sfarFiles[i]).Length;
-            }
-            diskUsage = (long)(diskUsage * 2.5);
-            if (diskUsage > diskFreeSpace)
-            {
-                if (mainWindow != null)
-                    MessageBox.Show("You have not enough disk space remaining. You need about " + Misc.getBytesFormat(diskUsage) + " free.");
-                if (!ipc)
-                    return;
-            }
 
             string tmpDlcDir = Path.Combine(GameData.GamePath, "BIOGame", "DLCTemp");
             if (Directory.Exists(tmpDlcDir))
@@ -359,15 +326,7 @@ namespace MassEffectModder
                 string DLCname = Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(sfarFiles[i])));
                 string outPath = Path.Combine(tmpDlcDir, DLCname);
                 Directory.CreateDirectory(outPath);
-                ME3DLC dlc = new ME3DLC(mainWindow);
-                if (mainWindow != null)
-                {
-                    mainWindow.updateStatusLabel("SFAR extracting - DLC " + (i + 1) + " of " + sfarFiles.Count);
-                }
-                if (installer != null)
-                {
-                    installer.updateStatusPrepare("Extracting DLC ... " + (i + 1) + " of " + sfarFiles.Count);
-                }
+                ME3DLC dlc = new ME3DLC();
                 if (ipc)
                 {
                     Console.WriteLine("[IPC]PROCESSING_FILE " + sfarFiles[i]);
@@ -387,49 +346,30 @@ namespace MassEffectModder
                 }
             }
 
-            bool success = true;
-            do
+            try
             {
-                try
+                Directory.Delete(GameData.DLCData, true);
+            }
+            catch
+            {
+                if (ipc)
                 {
-                    Directory.Delete(GameData.DLCData, true);
-                    success = true;
-                }
-                catch
-                {
-                    if (mainWindow != null)
-                    {
-                        MessageBox.Show("Unable old DLC directory: " + GameData.DLCData + " !");
-                        success = false;
-                    }
+                    Console.WriteLine("[IPC]ERROR Failed move DLCTemp!");
+                    Console.Out.Flush();
                 }
             }
-            while (success == false);
-
-            success = true;
-            do
+            try
             {
-                try
+                Directory.Move(tmpDlcDir, GameData.DLCData);
+            }
+            catch
+            {
+                if (ipc)
                 {
-                    Directory.Move(tmpDlcDir, GameData.DLCData);
-                    success = true;
-                }
-                catch
-                {
-                    if (mainWindow != null)
-                    {
-                        MessageBox.Show("Unable move temporary DLC directory: " + tmpDlcDir + " !");
-                        success = false;
-                    }
-                    if (ipc)
-                    {
-                        Console.WriteLine("[IPC]ERROR Failed move DLCTemp!");
-                        Console.Out.Flush();
-                    }
+                    Console.WriteLine("[IPC]ERROR Failed move DLCTemp!");
+                    Console.Out.Flush();
                 }
             }
-            while (success == false);
-
         }
     }
 }
