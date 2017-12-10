@@ -207,8 +207,8 @@ namespace MassEffectModder
             Console.WriteLine("  -check-game-data-for-backup <game id> [-ipc]\n");
             Console.WriteLine("     Check game data with md5 database for backup purpose.\n");
             Console.WriteLine("");
-            Console.WriteLine("  -install-mems <game id> <input dir> [-repack] [-ipc]\n");
-            Console.WriteLine("     Install MEM mods from input directory.\n");
+            Console.WriteLine("  -install-mods <game id> <input dir> [-repack] [-ipc]\n");
+            Console.WriteLine("     Install MEM/TPF mods from input directory.\n");
             Console.WriteLine("");
             Console.WriteLine("  -unpack-dlcs [-ipc]\n");
             Console.WriteLine("     Unpack ME3 DLCs.\n");
@@ -436,7 +436,7 @@ namespace MassEffectModder
                     }
                 }
             }
-            else if (cmd.Equals("-install-mems", StringComparison.OrdinalIgnoreCase))
+            else if (cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase))
             {
                 if (args.Length != 2 && args.Length != 3 && args.Length != 4 && args.Length != 5)
                 {
@@ -486,7 +486,7 @@ namespace MassEffectModder
                 }
 
                 loadEmbeddedDlls();
-                if (!CmdLineConverter.InstallMEMs(gameId, inputDir, ipc, repack))
+                if (!CmdLineConverter.InstallMods(gameId, inputDir, ipc, repack))
                 {
                     goto fail;
                 }
@@ -987,24 +987,6 @@ namespace MassEffectModder
                     goto fail;
                 }
             }
-            else if (cmd.Equals("-extract-mod", StringComparison.OrdinalIgnoreCase))
-            {
-                inputDir = args[2];
-                outputDir = args[3];
-                if (!Directory.Exists(inputDir))
-                {
-                    Console.WriteLine("Error: input dir not exists: " + inputDir);
-                    goto fail;
-                }
-                else
-                {
-                    loadEmbeddedDlls();
-                    if (!CmdLineConverter.extractMOD(gameId, inputDir, outputDir))
-                    {
-                        goto fail;
-                    }
-                }
-            }
             else if (cmd.Equals("-convert-game-image", StringComparison.OrdinalIgnoreCase))
             {
                 inputFile = args[2];
@@ -1066,6 +1048,24 @@ namespace MassEffectModder
                 {
                     loadEmbeddedDlls();
                     if (!CmdLineConverter.extractTPF(inputDir, outputDir))
+                    {
+                        goto fail;
+                    }
+                }
+            }
+            else if (cmd.Equals("-extract-mod", StringComparison.OrdinalIgnoreCase))
+            {
+                inputDir = args[2];
+                outputDir = args[3];
+                if (!Directory.Exists(inputDir))
+                {
+                    Console.WriteLine("Error: input dir not exists: " + inputDir);
+                    goto fail;
+                }
+                else
+                {
+                    loadEmbeddedDlls();
+                    if (!CmdLineConverter.extractMOD(gameId, inputDir, outputDir))
                     {
                         goto fail;
                     }
