@@ -180,8 +180,6 @@ namespace MassEffectModder
 
         static void DisplayHelp()
         {
-            Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
             Console.WriteLine("Help:\n");
             Console.WriteLine("  -help\n");
             Console.WriteLine("     This help");
@@ -326,22 +324,21 @@ namespace MassEffectModder
             bool ipc = false;
 
             if (args.Length > 0)
-            {
                 cmd = args[0];
-                loadEmbeddedDlls();
-            }
+
+            Console.WriteLine(Environment.NewLine + Environment.NewLine +
+                "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
+            for (int i = 0; i < args.Length; i++)
+                Console.Write(args[i] + " ");
+            Console.WriteLine(Environment.NewLine);
 
             if (cmd.Equals("-help", StringComparison.OrdinalIgnoreCase))
             {
                 DisplayHelp();
-                unloadEmbeddedDlls();
                 Environment.Exit(0);
             }
             if (cmd.Equals("-version", StringComparison.OrdinalIgnoreCase))
             {
-                Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                    "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
-                unloadEmbeddedDlls();
                 Environment.Exit(0);
             }
 
@@ -359,7 +356,6 @@ namespace MassEffectModder
                 if (GameData.GamePath != null && Directory.Exists(GameData.GamePath) && gameData.getPackages(true))
                     gameMask |= 4;
 
-                unloadEmbeddedDlls();
                 Environment.Exit(gameMask);
             }
 
@@ -419,8 +415,7 @@ namespace MassEffectModder
                 }
                 else
                 {
-                    Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                        "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
+                    loadEmbeddedDlls();
                     if (!CmdLineConverter.ConvertToMEM(gameId, inputDir, outputFile, ipc))
                     {
                         goto fail;
@@ -476,9 +471,7 @@ namespace MassEffectModder
                     goto fail;
                 }
 
-                Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                     "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
-
+                loadEmbeddedDlls();
                 if (!CmdLineConverter.InstallMEMs(gameId, inputDir, ipc, repack))
                 {
                     goto fail;
@@ -499,9 +492,7 @@ namespace MassEffectModder
                         ipc = true;
                 }
 
-                Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                     "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
-
+                loadEmbeddedDlls();
                 if (!CmdLineConverter.UnpackDLCs(ipc))
                 {
                     goto fail;
@@ -515,9 +506,6 @@ namespace MassEffectModder
                     DisplayHelp();
                     goto fail;
                 }
-
-                Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                     "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
 
                 if (!CmdLineConverter.ApplyME1LAAPatch())
                 {
@@ -555,9 +543,7 @@ namespace MassEffectModder
                     goto fail;
                 }
 
-                Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                     "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
-
+                loadEmbeddedDlls();
                 if (!CmdLineConverter.RepackGameData(gameId, ipc))
                 {
                     goto fail;
@@ -604,9 +590,7 @@ namespace MassEffectModder
                     goto fail;
                 }
 
-                Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                     "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
-
+                loadEmbeddedDlls();
                 if (!CmdLineConverter.ScanAndMipMapsRemoval(gameId, ipc, repack))
                 {
                     goto fail;
@@ -661,9 +645,6 @@ namespace MassEffectModder
                     goto fail;
                 }
 
-                Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                     "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
-
                 if (!CmdLineConverter.ApplyModTag(gameId, alotV, meuitmV))
                 {
                     goto fail;
@@ -700,9 +681,7 @@ namespace MassEffectModder
                     goto fail;
                 }
 
-                Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                     "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
-
+                loadEmbeddedDlls();
                 if (!CmdLineConverter.VerifyGameDataEmptyMipMapsRemoval(gameId, ipc))
                 {
                     goto fail;
@@ -739,9 +718,7 @@ namespace MassEffectModder
                     goto fail;
                 }
 
-                Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                     "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
-
+                loadEmbeddedDlls();
                 if (!CmdLineConverter.VerifyGameDataEmptyMipMapsRemoval(gameId, ipc))
                 {
                     goto fail;
@@ -779,9 +756,6 @@ namespace MassEffectModder
                     goto fail;
                 }
 
-                Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                     "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
-
                 if (!CmdLineConverter.ApplyLODAndGfxSettings(gameId, limit2k))
                 {
                     goto fail;
@@ -812,9 +786,6 @@ namespace MassEffectModder
                     goto fail;
                 }
 
-                Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                     "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
-
                 if (!CmdLineConverter.RemoveLODSettings(gameId))
                 {
                     goto fail;
@@ -844,9 +815,6 @@ namespace MassEffectModder
                     DisplayHelp();
                     goto fail;
                 }
-
-                Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                     "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
 
                 if (!CmdLineConverter.PrintLODSettings(gameId))
                 {
@@ -884,11 +852,8 @@ namespace MassEffectModder
                     goto fail;
                 }
 
-                Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                     "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
-
+                loadEmbeddedDlls();
                 loadMD5Tables();
-
                 if (!CmdLineConverter.CheckGameData(gameId, false, false, false, ipc))
                 {
                     goto fail;
@@ -926,12 +891,7 @@ namespace MassEffectModder
                 }
 
                 loadMD5Tables();
-
-                Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                     "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
-
-                loadMD5Tables();
-
+                loadEmbeddedDlls();
                 if (!CmdLineConverter.CheckGameData(gameId, true, false, false, ipc))
                 {
                     goto fail;
@@ -969,9 +929,7 @@ namespace MassEffectModder
                 }
 
                 loadMD5Tables();
-
-                Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                     "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
+                loadEmbeddedDlls();
                 if (!CmdLineConverter.CheckGameData(gameId, false, true, false, ipc))
                 {
                     goto fail;
@@ -1009,9 +967,7 @@ namespace MassEffectModder
                 }
 
                 loadMD5Tables();
-
-                Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                     "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
+                loadEmbeddedDlls();
                 if (!CmdLineConverter.CheckGameData(gameId, false, true, true, ipc))
                 {
                     goto fail;
@@ -1028,8 +984,7 @@ namespace MassEffectModder
                 }
                 else
                 {
-                    Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                        "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
+                    loadEmbeddedDlls();
                     if (!CmdLineConverter.extractMOD(gameId, inputDir, outputDir))
                     {
                         goto fail;
@@ -1052,8 +1007,7 @@ namespace MassEffectModder
                         Console.WriteLine("Error: output file is not dds: " + outputFile);
                         goto fail;
                     }
-                    Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                        "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
+                    loadEmbeddedDlls();
                     if (!CmdLineConverter.convertGameImage(gameId, inputFile, outputFile))
                     {
                         goto fail;
@@ -1071,8 +1025,7 @@ namespace MassEffectModder
                 }
                 else
                 {
-                    Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                        "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
+                    loadEmbeddedDlls();
                     if (!CmdLineConverter.convertGameImages(gameId, inputDir, outputDir))
                     {
                         goto fail;
@@ -1097,8 +1050,7 @@ namespace MassEffectModder
                 }
                 else
                 {
-                    Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                        "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
+                    loadEmbeddedDlls();
                     if (!CmdLineConverter.extractTPF(inputDir, outputDir))
                     {
                         goto fail;
@@ -1148,8 +1100,7 @@ namespace MassEffectModder
                         Console.WriteLine("Error: output file is not dds: " + outputFile);
                         goto fail;
                     }
-                    Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                        "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
+                    loadEmbeddedDlls();
                     if (!CmdLineConverter.convertImage(inputFile, outputFile, format, threshold))
                     {
                         goto fail;
@@ -1184,15 +1135,17 @@ namespace MassEffectModder
                 {
                     guid = Guid.NewGuid().ToByteArray();
                 }
-                Console.WriteLine(Environment.NewLine + Environment.NewLine +
-                        "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
+                loadEmbeddedDlls();
                 if (!CmdLineConverter.applyMEMSpecialModME3(inputFile, tfcName, guid))
                 {
                     goto fail;
                 }
             }
+            else
+            {
+                DisplayHelp();
+            }
 
-            DisplayHelp();
             unloadEmbeddedDlls();
             Environment.Exit(0);
 
