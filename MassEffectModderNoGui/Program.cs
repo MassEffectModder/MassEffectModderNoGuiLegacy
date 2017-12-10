@@ -230,9 +230,6 @@ namespace MassEffectModder
             Console.WriteLine("  -detect-empty-mipmaps <game id> [-ipc]>\n");
             Console.WriteLine("     Detect if empty mipmaps were removed.\n");
             Console.WriteLine("");
-            Console.WriteLine("  -apply-lods-gfx <game id>\n");
-            Console.WriteLine("     Update LODs and GFX settings.\n");
-            Console.WriteLine("");
             Console.WriteLine("  -apply-lods-gfx <game id> [-limit2k]\n");
             Console.WriteLine("     Update LODs and GFX settings.\n");
             Console.WriteLine("");
