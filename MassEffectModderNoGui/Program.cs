@@ -1159,6 +1159,41 @@ namespace MassEffectModder
                     }
                 }
             }
+            else if (cmd.Equals("-me3dlcmod-for-mgamerz", StringComparison.OrdinalIgnoreCase))
+            {
+                if (args.Length != 3 && args.Length != 4)
+                {
+                    Console.WriteLine("Error: wrong arguments!");
+                    DisplayHelp();
+                    goto fail;
+                }
+
+                inputFile = args[1];
+                string tfcName = args[2];
+                byte[] guid;
+                if (args.Length == 4)
+                {
+                    if (args[3].Length != 32)
+                    {
+                        Console.WriteLine("Error: wrong guid!");
+                        DisplayHelp();
+                        goto fail;
+                    }
+                    guid = new byte[16];
+                    for (int i = 0; i < 32; i += 2)
+                        guid[i / 2] = Convert.ToByte(args[3].Substring(i, 2), 16);
+                }
+                else
+                {
+                    guid = Guid.NewGuid().ToByteArray();
+                }
+                Console.WriteLine(Environment.NewLine + Environment.NewLine +
+                        "--- MEM no GUI v" + Application.ProductVersion + " command line --- " + Environment.NewLine);
+                if (!CmdLineConverter.applyMEMSpecialModME3(inputFile, tfcName, guid))
+                {
+                    goto fail;
+                }
+            }
 
             DisplayHelp();
             unloadEmbeddedDlls();

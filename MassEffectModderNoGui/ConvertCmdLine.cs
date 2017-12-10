@@ -1593,7 +1593,35 @@ namespace MassEffectModder
             return status;
         }
 
-        static public bool applyMEMs(List<string> memFiles, bool ipc, bool repack = false)
+        static public bool applyMEMSpecialModME3(string memFile, string tfcName, byte[] guid)
+        {
+            textures = new List<FoundTexture>();
+            ConfIni configIni = new ConfIni();
+            GameData gameData = new GameData(MeType.ME3_TYPE, configIni);
+            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
+            {
+                Console.WriteLine("Error: Could not found the game!");
+                return false;
+            }
+
+            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    Assembly.GetExecutingAssembly().GetName().Name);
+            string mapFile = Path.Combine(path, "me" + 3 + "map.bin");
+            if (!loadTexturesMapFile(mapFile))
+                return false;
+
+            gameData.getPackages(true);
+            gameData.getTfcTextures();
+
+            List<string> memFiles = new List<string>();
+            memFiles.Add(memFile);
+
+            applyMEMs(memFiles, false, false, true, tfcName, guid);
+
+            return true;
+        }
+
+        static public bool applyMEMs(List<string> memFiles, bool repack, bool ipc, bool special = false, string tfcName = "", byte[] guid = null)
         {
             bool status = true;
             CachePackageMgr cachePackageMgr = new CachePackageMgr();
@@ -1693,7 +1721,11 @@ namespace MassEffectModder
                                     Console.WriteLine("Error in texture: " + name + string.Format("_0x{0:X8}", crc) + " Texture skipped. This texture has not all the required mipmaps" + Environment.NewLine);
                                     continue;
                                 }
-                                string errors = new MipMaps().replaceTexture(image, foundTexture.list, cachePackageMgr, foundTexture.name, crc, false);
+                                string errors = "";
+                                if (special)
+                                    errors = replaceTextureSpecialME3Mod(image, foundTexture.list, cachePackageMgr, foundTexture.name, crc, tfcName, guid);
+                                else
+                                    errors = new MipMaps().replaceTexture(image, foundTexture.list, cachePackageMgr, foundTexture.name, crc, false);
                                 if (errors != "")
                                 {
                                     if (ipc)
