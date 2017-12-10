@@ -2026,5 +2026,77 @@ namespace MassEffectModder
 
             return errors;
         }
+
+        static public bool extractAllTextures(MeType gameId, string outputDir, bool png, string textureTfcFilter)
+        {
+            ConfIni configIni = new ConfIni();
+            GameData gameData = new GameData(gameId, configIni);
+            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
+            {
+                Console.WriteLine("Error: Could not found the game!");
+                return false;
+            }
+
+            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                Assembly.GetExecutingAssembly().GetName().Name);
+            string mapFile = Path.Combine(path, "me" + gameId + "map.bin");
+            if (!loadTexturesMapFile(mapFile))
+                return false;
+
+            Console.WriteLine("Extracting textures started...");
+
+            if (!Directory.Exists(outputDir))
+                Directory.CreateDirectory(outputDir);
+
+            for (int i = 0; i < textures.Count; i++)
+            {
+                if (png)
+                {
+                    new MipMaps().extractTextureToPng(Path.Combine(outputDir, textures[i].name +
+                        string.Format("_0x{0:X8}", textures[i].crc) + ".png"), GameData.GamePath +
+                        textures[i].list[0].path, textures[i].list[0].exportID);
+                }
+                else
+                {
+                    string outputFile = Path.Combine(outputDir, textures[i].name +
+                        string.Format("_0x{0:X8}", textures[i].crc) + ".dds");
+                    string packagePath = GameData.GamePath + textures[i].list[0].path;
+                    int exportID = textures[i].list[0].exportID;
+                    Package package = new Package(packagePath);
+                    Texture texture = new Texture(package, exportID, package.getExportData(exportID));
+                    if (textureTfcFilter != "" && texture.properties.exists("TextureFileCacheName"))
+                    {
+                        string archive = texture.properties.getProperty("TextureFileCacheName").valueName;
+                        if (archive != textureTfcFilter)
+                            continue;
+                    }
+                    while (texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
+                    {
+                        texture.mipMapsList.Remove(texture.mipMapsList.First(s => s.storageType == Texture.StorageTypes.empty));
+                    }
+                    List<MipMap> mipmaps = new List<MipMap>();
+                    PixelFormat pixelFormat = Image.getEngineFormatType(texture.properties.getProperty("Format").valueName);
+                    for (int k = 0; k < texture.mipMapsList.Count; k++)
+                    {
+                        byte[] data = texture.getMipMapDataByIndex(k);
+                        if (data == null)
+                        {
+                            continue;
+                        }
+                        mipmaps.Add(new MipMap(data, texture.mipMapsList[k].width, texture.mipMapsList[k].height, pixelFormat));
+                    }
+                    Image image = new Image(mipmaps, pixelFormat);
+                    if (File.Exists(outputFile))
+                        File.Delete(outputFile);
+                    using (FileStream fs = new FileStream(outputFile, FileMode.CreateNew, FileAccess.Write))
+                    {
+                        image.StoreImageToDDS(fs);
+                    }
+                }
+            }
+
+            Console.WriteLine("Extracting textures completed.");
+            return true;
+        }
     }
 }

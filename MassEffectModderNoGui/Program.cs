@@ -193,7 +193,7 @@ namespace MassEffectModder
             Console.WriteLine("     bit 1 - ME2");
             Console.WriteLine("     bit 2 - ME3");
             Console.WriteLine("");
-            Console.WriteLine("  -check-game-data <game id>  [-ipc]\n");
+            Console.WriteLine("  -check-game-data <game id> [-ipc]\n");
             Console.WriteLine("     Check game data with md5 database.\n");
             Console.WriteLine("     Scan detect mods");
             Console.WriteLine("");
@@ -306,7 +306,21 @@ namespace MassEffectModder
             Console.WriteLine("     output pixel format: DXT1 (no alpha), DXT1a (alpha), DXT3, DXT5, ATI2, V8U8, G8, RGBA, RGB");
             Console.WriteLine("     For DXT1a you have to set the alpha threshold (0-255). 128 is suggested as a default value.");
             Console.WriteLine("");
-
+            Console.WriteLine("  -extract-all-dds <game id> <output dir> [TFC filter name]\n");
+            Console.WriteLine("     game id: 1 for ME1, 2 for ME2, 3 for ME3");
+            Console.WriteLine("     output dir: directory where textures converted to DDS are placed");
+            Console.WriteLine("     TFC filter name: it will filter only textures stored in specific TFC file.");
+            Console.WriteLine("     Textures are extracted as they are in game data, only DDS header is added.");
+            Console.WriteLine("");
+            Console.WriteLine("  -extract-all-png <game id> <output dir>\n");
+            Console.WriteLine("     game id: 1 for ME1, 2 for ME2, 3 for ME3");
+            Console.WriteLine("     output dir: directory where textures converted to PNG are placed");
+            Console.WriteLine("     Textures are extracted with only top mipmap.");
+            Console.WriteLine("");
+            Console.WriteLine("  -me3dlcmod-for-mgamerz <mem file> <tfc name> [<guid in 16 hex digits>]\n");
+            Console.WriteLine("     Replace textures from <mem file> and store in new <tfc name> file.");
+            Console.WriteLine("     New TFC name must be added earlier to PCC files.");
+            Console.WriteLine("");
             Console.WriteLine("\n");
         }
 
@@ -1106,6 +1120,48 @@ namespace MassEffectModder
                         goto fail;
                     }
                 }
+            }
+            else if (cmd.Equals("-extract-all-dds", StringComparison.OrdinalIgnoreCase) ||
+                     cmd.Equals("-extract-all-png", StringComparison.OrdinalIgnoreCase))
+            {
+                if (args.Length != 3 && args.Length != 4)
+                {
+                    Console.WriteLine("Error: wrong arguments!");
+                    DisplayHelp();
+                    goto fail;
+                }
+
+                game = args[1];
+                try
+                {
+                    gameId = (MeType)int.Parse(game);
+                }
+                catch
+                {
+                    gameId = 0;
+                }
+                if (gameId != MeType.ME1_TYPE && gameId != MeType.ME2_TYPE && gameId != MeType.ME3_TYPE)
+                {
+                    Console.WriteLine("Error: wrong game id!");
+                    DisplayHelp();
+                    goto fail;
+                }
+                outputDir = args[2];
+                string tfcFilter = "";
+                if (args.Length > 3)
+                    tfcFilter = args[3];
+
+                loadEmbeddedDlls();
+                if (cmd.Equals("-extract-all-dds", StringComparison.OrdinalIgnoreCase))
+                    if (!CmdLineConverter.extractAllTextures(gameId, outputDir, false, tfcFilter))
+                    {
+                        goto fail;
+                    }
+                if (cmd.Equals("-extract-all-png", StringComparison.OrdinalIgnoreCase))
+                    if (!CmdLineConverter.extractAllTextures(gameId, outputDir, true, ""))
+                    {
+                        goto fail;
+                    }
             }
             else if (cmd.Equals("-me3dlcmod-for-mgamerz", StringComparison.OrdinalIgnoreCase))
             {

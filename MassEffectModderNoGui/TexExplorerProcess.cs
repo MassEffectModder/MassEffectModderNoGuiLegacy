@@ -24,6 +24,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using System.Windows.Media.Imaging;
 
 namespace MassEffectModder
 {
@@ -138,5 +139,24 @@ namespace MassEffectModder
 
             return data;
         }
+
+        public void extractTextureToPng(string outputFile, string packagePath, int exportID)
+        {
+            Package package = new Package(packagePath);
+            Texture texture = new Texture(package, exportID, package.getExportData(exportID));
+            PixelFormat format = Image.getEngineFormatType(texture.properties.getProperty("Format").valueName);
+            Texture.MipMap mipmap = texture.getTopMipmap();
+            byte[] data = texture.getTopImageData();
+            if (data == null)
+                return;
+            PngBitmapEncoder image = Image.convertToPng(data, mipmap.width, mipmap.height, format);
+            if (File.Exists(outputFile))
+                File.Delete(outputFile);
+            using (FileStream fs = new FileStream(outputFile, FileMode.CreateNew, FileAccess.Write))
+            {
+                image.Save(fs);
+            }
+        }
+
     }
 }
