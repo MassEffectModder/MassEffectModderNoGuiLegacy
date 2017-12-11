@@ -330,12 +330,11 @@ namespace MassEffectModder
         {
             string cmd = "";
             string game;
-            string inputDir;
-            string outputDir;
-            string inputFile;
-            string outputFile;
+            string input = "";
+            string output = "";
             MeType gameId = 0;
             bool ipc = false;
+            bool repack = false;
 
             if (args.Length > 0)
                 cmd = args[0];
@@ -376,31 +375,28 @@ namespace MassEffectModder
             if (cmd.Equals("-convert-to-mem", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-convert-game-image", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-convert-game-images", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-extract-mod", StringComparison.OrdinalIgnoreCase))
+                cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-extract-mod", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-repack", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-scan-with-remove", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-apply-mod-tag", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-apply-lods-gfx", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-remove-lods", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-print-lods", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-check-game-data", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-check-game-data-without-sfars", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-check-game-data-only-vanilla", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-check-game-data-for-backup", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-extract-all-dds", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-extract-all-png", StringComparison.OrdinalIgnoreCase))
             {
-                if (cmd.Equals("-convert-to-mem", StringComparison.OrdinalIgnoreCase))
+                if (args.Length < 1)
                 {
-                    if (args.Length == 5)
-                    {
-                        if (args[4].ToLowerInvariant() == "-ipc")
-                            ipc = true;
-                    }
-                    else if (args.Length != 4 && args.Length != 5)
-                    {
-                        {
-                            Console.WriteLine("Error: wrong arguments!");
-                            DisplayHelp();
-                            goto fail;
-                        }
-                    }
-                }
-                else if (args.Length != 4)
-                {
-                    Console.WriteLine("Error: wrong arguments!");
+                    Console.WriteLine("Error: wrong game id!");
                     DisplayHelp();
                     goto fail;
                 }
-
                 game = args[1];
                 try
                 {
@@ -415,200 +411,105 @@ namespace MassEffectModder
                     Console.WriteLine("Error: wrong game id!");
                     DisplayHelp();
                     goto fail;
+                }
+            }
+
+            if (cmd.Equals("-convert-to-mem", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-convert-game-image", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-convert-game-images", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-extract-mod", StringComparison.OrdinalIgnoreCase))
+            {
+                if (args.Length < 3)
+                {
+                    Console.WriteLine("Error: missing input argument!");
+                    DisplayHelp();
+                    goto fail;
+                }
+                input = args[2];
+                if (!Directory.Exists(input) && !File.Exists(input))
+                {
+                    Console.WriteLine("Error: input file/directory doesnt exists: " + input);
+                    goto fail;
+                }
+            }
+
+            if (cmd.Equals("-convert-to-mem", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-convert-game-image", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-convert-game-images", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-extract-mod", StringComparison.OrdinalIgnoreCase))
+            {
+                if (args.Length < 4)
+                {
+                    Console.WriteLine("Error: missing output argument!");
+                    DisplayHelp();
+                    goto fail;
+                }
+                output = args[3];
+            }
+
+            if (cmd.Equals("-convert-to-mem", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-unpack-dlcs", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-repack", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-scan-with-remove", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-check-game-data", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-check-game-data-without-sfars", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-check-game-data-for-backup", StringComparison.OrdinalIgnoreCase))
+            {
+                for (int l = 0; l < args.Length; l++)
+                {
+                    if (args[l].ToLowerInvariant() == "-ipc")
+                        ipc = true;
+                }
+            }
+
+            if (cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-convert-to-mem", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-scan-with-remove", StringComparison.OrdinalIgnoreCase))
+            {
+                for (int l = 0; l < args.Length; l++)
+                {
+                    if (args[l].ToLowerInvariant() == "-repack")
+                        repack = true;
                 }
             }
 
             if (cmd.Equals("-convert-to-mem", StringComparison.OrdinalIgnoreCase))
             {
-                inputDir = args[2];
-                outputFile = args[3];
-                if (!Directory.Exists(inputDir))
-                {
-                    Console.WriteLine("Error: input path not exists: " + inputDir);
+                loadEmbeddedDlls();
+                if (!CmdLineTools.ConvertToMEM(gameId, input, output, ipc))
                     goto fail;
-                }
-                else
-                {
-                    loadEmbeddedDlls();
-                    if (!CmdLineConverter.ConvertToMEM(gameId, inputDir, outputFile, ipc))
-                    {
-                        goto fail;
-                    }
-                }
             }
             else if (cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase))
             {
-                if (args.Length != 2 && args.Length != 3 && args.Length != 4 && args.Length != 5)
-                {
-                    Console.WriteLine("Error: wrong arguments!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
-                bool repack = false;
-                if (args.Length == 4)
-                {
-                    if (args[3].ToLowerInvariant() == "-ipc")
-                        ipc = true;
-                    if (args[3].ToLowerInvariant() == "-repack")
-                        repack = true;
-                }
-
-                if (args.Length == 5)
-                {
-                    if (args[3].ToLowerInvariant() == "-ipc")
-                        ipc = true;
-                    if (args[3].ToLowerInvariant() == "-repack")
-                        repack = true;
-                }
-
-                game = args[1];
-                try
-                {
-                    gameId = (MeType)int.Parse(game);
-                }
-                catch
-                {
-                    gameId = 0;
-                }
-                if (gameId != MeType.ME1_TYPE && gameId != MeType.ME2_TYPE && gameId != MeType.ME3_TYPE)
-                {
-                    Console.WriteLine("Error: wrong game id!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
-                inputDir = args[2];
-                if (!Directory.Exists(inputDir))
-                {
-                    Console.WriteLine("Error: input dir not exists: " + inputDir);
-                    goto fail;
-                }
-
                 loadEmbeddedDlls();
-                if (!CmdLineConverter.InstallMods(gameId, inputDir, ipc, repack))
-                {
+                if (!CmdLineTools.InstallMods(gameId, input, ipc, repack))
                     goto fail;
-                }
             }
             else if (cmd.Equals("-unpack-dlcs", StringComparison.OrdinalIgnoreCase))
             {
-                if (args.Length != 1 && args.Length != 2)
-                {
-                    Console.WriteLine("Error: wrong arguments!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
-                if (args.Length == 2)
-                {
-                    if (args[2].ToLowerInvariant() == "-ipc")
-                        ipc = true;
-                }
-
                 loadEmbeddedDlls();
-                if (!CmdLineConverter.UnpackDLCs(ipc))
-                {
+                if (!CmdLineTools.UnpackDLCs(ipc))
                     goto fail;
-                }
             }
             else if (cmd.Equals("-apply-me1-laa", StringComparison.OrdinalIgnoreCase))
             {
-                if (args.Length != 1)
-                {
-                    Console.WriteLine("Error: wrong arguments!");
-                    DisplayHelp();
+                if (!CmdLineTools.ApplyME1LAAPatch())
                     goto fail;
-                }
-
-                if (!CmdLineConverter.ApplyME1LAAPatch())
-                {
-                    goto fail;
-                }
             }
             else if (cmd.Equals("-repack", StringComparison.OrdinalIgnoreCase))
             {
-                if (args.Length != 2 && args.Length != 3)
-                {
-                    Console.WriteLine("Error: wrong arguments!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
-                if (args.Length == 3)
-                {
-                    if (args[2].ToLowerInvariant() == "-ipc")
-                        ipc = true;
-                }
-
-                game = args[1];
-                try
-                {
-                    gameId = (MeType)int.Parse(game);
-                }
-                catch
-                {
-                    gameId = 0;
-                }
-                if (gameId != MeType.ME1_TYPE && gameId != MeType.ME2_TYPE && gameId != MeType.ME3_TYPE)
-                {
-                    Console.WriteLine("Error: wrong game id!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
                 loadEmbeddedDlls();
-                if (!CmdLineConverter.RepackGameData(gameId, ipc))
-                {
+                if (!CmdLineTools.RepackGameData(gameId, ipc))
                     goto fail;
-                }
             }
             else if (cmd.Equals("-scan-with-remove", StringComparison.OrdinalIgnoreCase))
             {
-                if (args.Length != 2 && args.Length != 3 && args.Length != 4)
-                {
-                    Console.WriteLine("Error: wrong arguments!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
-                bool repack = false;
-                if (args.Length == 3)
-                {
-                    if (args[2].ToLowerInvariant() == "-repack")
-                        repack = true;
-                    if (args[2].ToLowerInvariant() == "-ipc")
-                        ipc = true;
-                }
-                if (args.Length == 4)
-                {
-                    if (args[3].ToLowerInvariant() == "-repack")
-                        repack = true;
-                    if (args[3].ToLowerInvariant() == "-ipc")
-                        ipc = true;
-                }
-
-                game = args[1];
-                try
-                {
-                    gameId = (MeType)int.Parse(game);
-                }
-                catch
-                {
-                    gameId = 0;
-                }
-                if (gameId != MeType.ME1_TYPE && gameId != MeType.ME2_TYPE && gameId != MeType.ME3_TYPE)
-                {
-                    Console.WriteLine("Error: wrong game id!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
                 loadEmbeddedDlls();
-                if (!CmdLineConverter.ScanAndMipMapsRemoval(gameId, ipc, repack))
-                {
+                if (!CmdLineTools.ScanAndMipMapsRemoval(gameId, ipc, repack))
                     goto fail;
-                }
             }
             else if (cmd.Equals("-apply-mod-tag", StringComparison.OrdinalIgnoreCase))
             {
@@ -643,110 +544,17 @@ namespace MassEffectModder
                     goto fail;
                 }
 
-                game = args[1];
-                try
-                {
-                    gameId = (MeType)int.Parse(game);
-                }
-                catch
-                {
-                    gameId = 0;
-                }
-                if (gameId != MeType.ME1_TYPE && gameId != MeType.ME2_TYPE && gameId != MeType.ME3_TYPE)
-                {
-                    Console.WriteLine("Error: wrong game id!");
-                    DisplayHelp();
+                if (!CmdLineTools.ApplyModTag(gameId, alotV, meuitmV))
                     goto fail;
-                }
-
-                if (!CmdLineConverter.ApplyModTag(gameId, alotV, meuitmV))
-                {
-                    goto fail;
-                }
             }
             else if (cmd.Equals("-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase))
             {
-                if (args.Length != 2 && args.Length != 3)
-                {
-                    Console.WriteLine("Error: wrong arguments!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
-                if (args.Length == 3)
-                {
-                    if (args[2].ToLowerInvariant() == "-ipc")
-                        ipc = true;
-                }
-
-                game = args[1];
-                try
-                {
-                    gameId = (MeType)int.Parse(game);
-                }
-                catch
-                {
-                    gameId = 0;
-                }
-                if (gameId != MeType.ME1_TYPE && gameId != MeType.ME2_TYPE && gameId != MeType.ME3_TYPE)
-                {
-                    Console.WriteLine("Error: wrong game id!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
                 loadEmbeddedDlls();
-                if (!CmdLineConverter.VerifyGameDataEmptyMipMapsRemoval(gameId, ipc))
-                {
+                if (!CmdLineTools.VerifyGameDataEmptyMipMapsRemoval(gameId, ipc))
                     goto fail;
-                }
-            }
-            else if (cmd.Equals("-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase))
-            {
-                if (args.Length != 2 && args.Length != 3)
-                {
-                    Console.WriteLine("Error: wrong arguments!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
-                if (args.Length == 3)
-                {
-                    if (args[2].ToLowerInvariant() == "-ipc")
-                        ipc = true;
-                }
-
-                game = args[1];
-                try
-                {
-                    gameId = (MeType)int.Parse(game);
-                }
-                catch
-                {
-                    gameId = 0;
-                }
-                if (gameId != MeType.ME1_TYPE && gameId != MeType.ME2_TYPE && gameId != MeType.ME3_TYPE)
-                {
-                    Console.WriteLine("Error: wrong game id!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
-                loadEmbeddedDlls();
-                if (!CmdLineConverter.VerifyGameDataEmptyMipMapsRemoval(gameId, ipc))
-                {
-                    goto fail;
-                }
             }
             else if (cmd.Equals("-apply-lods-gfx", StringComparison.OrdinalIgnoreCase))
             {
-                if (args.Length != 2 && args.Length != 3)
-                {
-                    Console.WriteLine("Error: wrong arguments!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
                 bool limit2k = false;
                 if (args.Length == 3)
                 {
@@ -754,279 +562,63 @@ namespace MassEffectModder
                         limit2k = true;
                 }
 
-                game = args[1];
-                try
-                {
-                    gameId = (MeType)int.Parse(game);
-                }
-                catch
-                {
-                    gameId = 0;
-                }
-                if (gameId != MeType.ME1_TYPE && gameId != MeType.ME2_TYPE && gameId != MeType.ME3_TYPE)
-                {
-                    Console.WriteLine("Error: wrong game id!");
-                    DisplayHelp();
+                if (!CmdLineTools.ApplyLODAndGfxSettings(gameId, limit2k))
                     goto fail;
-                }
-
-                if (!CmdLineConverter.ApplyLODAndGfxSettings(gameId, limit2k))
-                {
-                    goto fail;
-                }
             }
             else if (cmd.Equals("-remove-lods", StringComparison.OrdinalIgnoreCase))
             {
-                if (args.Length != 2)
-                {
-                    Console.WriteLine("Error: wrong arguments!");
-                    DisplayHelp();
+                if (!CmdLineTools.RemoveLODSettings(gameId))
                     goto fail;
-                }
-
-                game = args[1];
-                try
-                {
-                    gameId = (MeType)int.Parse(game);
-                }
-                catch
-                {
-                    gameId = 0;
-                }
-                if (gameId != MeType.ME1_TYPE && gameId != MeType.ME2_TYPE && gameId != MeType.ME3_TYPE)
-                {
-                    Console.WriteLine("Error: wrong game id!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
-                if (!CmdLineConverter.RemoveLODSettings(gameId))
-                {
-                    goto fail;
-                }
             }
             else if (cmd.Equals("-print-lods", StringComparison.OrdinalIgnoreCase))
             {
-                if (args.Length != 2)
-                {
-                    Console.WriteLine("Error: wrong arguments!");
-                    DisplayHelp();
+                if (!CmdLineTools.PrintLODSettings(gameId))
                     goto fail;
-                }
-
-                game = args[1];
-                try
-                {
-                    gameId = (MeType)int.Parse(game);
-                }
-                catch
-                {
-                    gameId = 0;
-                }
-                if (gameId != MeType.ME1_TYPE && gameId != MeType.ME2_TYPE && gameId != MeType.ME3_TYPE)
-                {
-                    Console.WriteLine("Error: wrong game id!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
-                if (!CmdLineConverter.PrintLODSettings(gameId))
-                {
-                    goto fail;
-                }
             }
             else if (cmd.Equals("-check-game-data", StringComparison.OrdinalIgnoreCase))
             {
-                if (args.Length != 2 && args.Length != 3)
-                {
-                    Console.WriteLine("Error: wrong arguments!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
-                if (args.Length == 3)
-                {
-                    if (args[2].ToLowerInvariant() == "-ipc")
-                        ipc = true;
-                }
-
-                game = args[1];
-                try
-                {
-                    gameId = (MeType)int.Parse(game);
-                }
-                catch
-                {
-                    gameId = 0;
-                }
-                if (gameId != MeType.ME1_TYPE && gameId != MeType.ME2_TYPE && gameId != MeType.ME3_TYPE)
-                {
-                    Console.WriteLine("Error: wrong game id!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
                 loadEmbeddedDlls();
                 loadMD5Tables();
-                if (!CmdLineConverter.CheckGameData(gameId, false, false, false, ipc))
-                {
+                if (!CmdLineTools.CheckGameData(gameId, false, false, false, ipc))
                     goto fail;
-                }
             }
             else if (cmd.Equals("-check-game-data-without-sfars", StringComparison.OrdinalIgnoreCase))
             {
-                if (args.Length != 2 && args.Length != 3)
-                {
-                    Console.WriteLine("Error: wrong arguments!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
-                if (args.Length == 3)
-                {
-                    if (args[2].ToLowerInvariant() == "-ipc")
-                        ipc = true;
-                }
-
-                game = args[1];
-                try
-                {
-                    gameId = (MeType)int.Parse(game);
-                }
-                catch
-                {
-                    gameId = 0;
-                }
-                if (gameId != MeType.ME1_TYPE && gameId != MeType.ME2_TYPE && gameId != MeType.ME3_TYPE)
-                {
-                    Console.WriteLine("Error: wrong game id!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
                 loadMD5Tables();
                 loadEmbeddedDlls();
-                if (!CmdLineConverter.CheckGameData(gameId, true, false, false, ipc))
-                {
+                if (!CmdLineTools.CheckGameData(gameId, true, false, false, ipc))
                     goto fail;
-                }
             }
             else if (cmd.Equals("-check-game-data-only-vanilla", StringComparison.OrdinalIgnoreCase))
             {
-                if (args.Length != 2 && args.Length != 3)
-                {
-                    Console.WriteLine("Error: wrong arguments!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
-                if (args.Length == 3)
-                {
-                    if (args[2].ToLowerInvariant() == "-ipc")
-                        ipc = true;
-                }
-
-                game = args[1];
-                try
-                {
-                    gameId = (MeType)int.Parse(game);
-                }
-                catch
-                {
-                    gameId = 0;
-                }
-                if (gameId != MeType.ME1_TYPE && gameId != MeType.ME2_TYPE && gameId != MeType.ME3_TYPE)
-                {
-                    Console.WriteLine("Error: wrong game id!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
                 loadMD5Tables();
                 loadEmbeddedDlls();
-                if (!CmdLineConverter.CheckGameData(gameId, false, true, false, ipc))
-                {
+                if (!CmdLineTools.CheckGameData(gameId, false, true, false, ipc))
                     goto fail;
-                }
             }
             else if (cmd.Equals("-check-game-data-for-backup", StringComparison.OrdinalIgnoreCase))
             {
-                if (args.Length != 2 && args.Length != 3)
-                {
-                    Console.WriteLine("Error: wrong arguments!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
-                if (args.Length == 3)
-                {
-                    if (args[2].ToLowerInvariant() == "-ipc")
-                        ipc = true;
-                }
-
-                game = args[1];
-                try
-                {
-                    gameId = (MeType)int.Parse(game);
-                }
-                catch
-                {
-                    gameId = 0;
-                }
-                if (gameId != MeType.ME1_TYPE && gameId != MeType.ME2_TYPE && gameId != MeType.ME3_TYPE)
-                {
-                    Console.WriteLine("Error: wrong game id!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
                 loadMD5Tables();
                 loadEmbeddedDlls();
-                if (!CmdLineConverter.CheckGameData(gameId, false, true, true, ipc))
-                {
+                if (!CmdLineTools.CheckGameData(gameId, false, true, true, ipc))
                     goto fail;
-                }
             }
             else if (cmd.Equals("-convert-game-image", StringComparison.OrdinalIgnoreCase))
             {
-                inputFile = args[2];
-                outputFile = args[3];
-                if (!File.Exists(inputFile))
+                if (Path.GetExtension(output).ToLowerInvariant() != ".dds")
                 {
-                    Console.WriteLine("Error: input file not exists: " + inputFile);
+                    Console.WriteLine("Error: output file is not dds: " + output);
                     goto fail;
                 }
-                else
-                {
-                    if (Path.GetExtension(outputFile).ToLowerInvariant() != ".dds")
-                    {
-                        Console.WriteLine("Error: output file is not dds: " + outputFile);
-                        goto fail;
-                    }
-                    loadEmbeddedDlls();
-                    if (!CmdLineConverter.convertGameImage(gameId, inputFile, outputFile))
-                    {
-                        goto fail;
-                    }
-                }
+                loadEmbeddedDlls();
+                if (!CmdLineTools.convertGameImage(gameId, input, output))
+                    goto fail;
             }
             else if (cmd.Equals("-convert-game-images", StringComparison.OrdinalIgnoreCase))
             {
-                inputDir = args[2];
-                outputDir = args[3];
-                if (!Directory.Exists(inputDir))
-                {
-                    Console.WriteLine("Error: input dir not exists: " + inputDir);
+                loadEmbeddedDlls();
+                if (!CmdLineTools.convertGameImages(gameId, input, output))
                     goto fail;
-                }
-                else
-                {
-                    loadEmbeddedDlls();
-                    if (!CmdLineConverter.convertGameImages(gameId, inputDir, outputDir))
-                    {
-                        goto fail;
-                    }
-                }
             }
             else if (cmd.Equals("-extract-tpf", StringComparison.OrdinalIgnoreCase))
             {
@@ -1037,39 +629,25 @@ namespace MassEffectModder
                     goto fail;
                 }
 
-                inputDir = args[1];
-                outputDir = args[2];
-                if (!Directory.Exists(inputDir))
+                input = args[1];
+                output = args[2];
+                if (!Directory.Exists(input))
                 {
-                    Console.WriteLine("Error: input dir not exists: " + inputDir);
+                    Console.WriteLine("Error: input dir not exists: " + input);
                     goto fail;
                 }
                 else
                 {
                     loadEmbeddedDlls();
-                    if (!CmdLineConverter.extractTPF(inputDir, outputDir))
-                    {
+                    if (!CmdLineTools.extractTPF(input, output))
                         goto fail;
-                    }
                 }
             }
             else if (cmd.Equals("-extract-mod", StringComparison.OrdinalIgnoreCase))
             {
-                inputDir = args[2];
-                outputDir = args[3];
-                if (!Directory.Exists(inputDir))
-                {
-                    Console.WriteLine("Error: input dir not exists: " + inputDir);
+                loadEmbeddedDlls();
+                if (!CmdLineTools.extractMOD(gameId, input, output))
                     goto fail;
-                }
-                else
-                {
-                    loadEmbeddedDlls();
-                    if (!CmdLineConverter.extractMOD(gameId, inputDir, outputDir))
-                    {
-                        goto fail;
-                    }
-                }
             }
             else if (cmd.Equals("-convert-image", StringComparison.OrdinalIgnoreCase))
             {
@@ -1087,38 +665,36 @@ namespace MassEffectModder
                     if (args.Length == 5)
                     {
                         threshold = args[2];
-                        inputFile = args[3];
-                        outputFile = args[4];
+                        input = args[3];
+                        output = args[4];
                     }
                     else
                     {
-                        inputFile = args[2];
-                        outputFile = args[3];
+                        input = args[2];
+                        output = args[3];
                     }
                 }
                 else
                 {
-                    inputFile = args[2];
-                    outputFile = args[3];
+                    input = args[2];
+                    output = args[3];
                 }
 
-                if (!File.Exists(inputFile))
+                if (!File.Exists(input))
                 {
-                    Console.WriteLine("Error: input file not exists: " + inputFile);
+                    Console.WriteLine("Error: input file not exists: " + input);
                     goto fail;
                 }
                 else
                 {
-                    if (Path.GetExtension(outputFile).ToLowerInvariant() != ".dds")
+                    if (Path.GetExtension(output).ToLowerInvariant() != ".dds")
                     {
-                        Console.WriteLine("Error: output file is not dds: " + outputFile);
+                        Console.WriteLine("Error: output file is not dds: " + output);
                         goto fail;
                     }
                     loadEmbeddedDlls();
-                    if (!CmdLineConverter.convertImage(inputFile, outputFile, format, threshold))
-                    {
+                    if (!CmdLineTools.convertImage(input, output, format, threshold))
                         goto fail;
-                    }
                 }
             }
             else if (cmd.Equals("-extract-all-dds", StringComparison.OrdinalIgnoreCase) ||
@@ -1131,37 +707,18 @@ namespace MassEffectModder
                     goto fail;
                 }
 
-                game = args[1];
-                try
-                {
-                    gameId = (MeType)int.Parse(game);
-                }
-                catch
-                {
-                    gameId = 0;
-                }
-                if (gameId != MeType.ME1_TYPE && gameId != MeType.ME2_TYPE && gameId != MeType.ME3_TYPE)
-                {
-                    Console.WriteLine("Error: wrong game id!");
-                    DisplayHelp();
-                    goto fail;
-                }
-                outputDir = args[2];
+                output = args[2];
                 string tfcFilter = "";
                 if (args.Length > 3)
                     tfcFilter = args[3];
 
                 loadEmbeddedDlls();
                 if (cmd.Equals("-extract-all-dds", StringComparison.OrdinalIgnoreCase))
-                    if (!CmdLineConverter.extractAllTextures(gameId, outputDir, false, tfcFilter))
-                    {
+                    if (!CmdLineTools.extractAllTextures(gameId, output, false, tfcFilter))
                         goto fail;
-                    }
                 if (cmd.Equals("-extract-all-png", StringComparison.OrdinalIgnoreCase))
-                    if (!CmdLineConverter.extractAllTextures(gameId, outputDir, true, ""))
-                    {
+                    if (!CmdLineTools.extractAllTextures(gameId, output, true, ""))
                         goto fail;
-                    }
             }
             else if (cmd.Equals("-me3dlcmod-for-mgamerz", StringComparison.OrdinalIgnoreCase))
             {
@@ -1172,7 +729,7 @@ namespace MassEffectModder
                     goto fail;
                 }
 
-                inputFile = args[1];
+                input = args[1];
                 string tfcName = args[2];
                 byte[] guid;
                 if (args.Length == 4)
@@ -1188,19 +745,13 @@ namespace MassEffectModder
                         guid[i / 2] = Convert.ToByte(args[3].Substring(i, 2), 16);
                 }
                 else
-                {
                     guid = Guid.NewGuid().ToByteArray();
-                }
                 loadEmbeddedDlls();
-                if (!CmdLineConverter.applyMEMSpecialModME3(inputFile, tfcName, guid))
-                {
+                if (!CmdLineTools.applyMEMSpecialModME3(input, tfcName, guid))
                     goto fail;
-                }
             }
             else
-            {
                 DisplayHelp();
-            }
 
             unloadEmbeddedDlls();
             Environment.Exit(0);

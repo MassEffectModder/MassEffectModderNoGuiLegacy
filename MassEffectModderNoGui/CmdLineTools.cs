@@ -31,7 +31,7 @@ using System.Windows.Forms;
 
 namespace MassEffectModder
 {
-    static public class CmdLineConverter
+    static public class CmdLineTools
     {
         public const uint textureMapBinTag = 0x5054454D;
         public const uint textureMapBinVersion = 2;
