@@ -1579,7 +1579,7 @@ namespace MassEffectModder
             }
 
             string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    Assembly.GetExecutingAssembly().GetName().Name);
+                    Program.MAINEXENAME);
             string mapFile = Path.Combine(path, "me" + gameId + "map.bin");
             if (!loadTexturesMapFile(mapFile))
                 return false;
@@ -1606,7 +1606,7 @@ namespace MassEffectModder
             }
 
             string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    Assembly.GetExecutingAssembly().GetName().Name);
+                    Program.MAINEXENAME);
             string mapFile = Path.Combine(path, "me" + 3 + "map.bin");
             if (!loadTexturesMapFile(mapFile))
                 return false;
@@ -2166,7 +2166,7 @@ namespace MassEffectModder
             }
 
             string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                Assembly.GetExecutingAssembly().GetName().Name);
+                Program.MAINEXENAME);
             string mapFile = Path.Combine(path, "me" + gameId + "map.bin");
             if (!loadTexturesMapFile(mapFile))
                 return false;

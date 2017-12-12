@@ -46,8 +46,8 @@ namespace MassEffectModder
             else
             {
                 string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                        Assembly.GetExecutingAssembly().GetName().Name);
-                _iniPath = Path.Combine(path, Assembly.GetExecutingAssembly().GetName().Name + ".ini");
+                        Program.MAINEXENAME);
+                _iniPath = Path.Combine(path, Program.MAINEXENAME + ".ini");
                 if (!Directory.Exists(path))
                     Directory.CreateDirectory(path);
             }

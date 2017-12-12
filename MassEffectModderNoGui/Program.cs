@@ -53,6 +53,7 @@ namespace MassEffectModder
         public static byte[] tableME1 = null;
         public static byte[] tableME2 = null;
         public static byte[] tableME3 = null;
+        public static string MAINEXENAME = "MassEffectModder";
 
         static void loadEmbeddedDlls()
         {

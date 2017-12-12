@@ -42,7 +42,7 @@ namespace MassEffectModder
 
             List<FoundTexture> textures = new List<FoundTexture>();
             string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    Assembly.GetExecutingAssembly().GetName().Name);
+                    Program.MAINEXENAME);
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
             string filename = Path.Combine(path, "me" + (int)GameData.gameType + "map.bin");
