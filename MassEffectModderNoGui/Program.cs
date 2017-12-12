@@ -187,12 +187,6 @@ namespace MassEffectModder
             Console.WriteLine("  -version\n");
             Console.WriteLine("     Display MEM version");
             Console.WriteLine("");
-            Console.WriteLine("  -get-installed-games");
-            Console.WriteLine("     Return bitmask installed games");
-            Console.WriteLine("     bit 0 - ME1");
-            Console.WriteLine("     bit 1 - ME2");
-            Console.WriteLine("     bit 2 - ME3");
-            Console.WriteLine("");
             Console.WriteLine("  -check-game-data <game id> [-ipc]\n");
             Console.WriteLine("     Check game data with md5 database.\n");
             Console.WriteLine("     Scan detect mods");
@@ -353,23 +347,6 @@ namespace MassEffectModder
             if (cmd.Equals("-version", StringComparison.OrdinalIgnoreCase))
             {
                 Environment.Exit(0);
-            }
-
-            if (cmd.Equals("-get-installed-games", StringComparison.OrdinalIgnoreCase))
-            {
-                int gameMask = 0;
-                ConfIni configIni = new ConfIni();
-                GameData gameData = new GameData(MeType.ME1_TYPE, configIni, false, true);
-                if (GameData.GamePath != null && Directory.Exists(GameData.GamePath) && gameData.getPackages(true))
-                    gameMask |= 1;
-                gameData = new GameData(MeType.ME2_TYPE, configIni, false, true);
-                if (GameData.GamePath != null && Directory.Exists(GameData.GamePath) && gameData.getPackages(true))
-                    gameMask |= 2;
-                gameData = new GameData(MeType.ME3_TYPE, configIni, false, true);
-                if (GameData.GamePath != null && Directory.Exists(GameData.GamePath) && gameData.getPackages(true))
-                    gameMask |= 4;
-
-                Environment.Exit(gameMask);
             }
 
             if (cmd.Equals("-convert-to-mem", StringComparison.OrdinalIgnoreCase) ||
@@ -584,22 +561,22 @@ namespace MassEffectModder
             }
             else if (cmd.Equals("-check-game-data-without-sfars", StringComparison.OrdinalIgnoreCase))
             {
-                loadMD5Tables();
                 loadEmbeddedDlls();
+                loadMD5Tables();
                 if (!CmdLineTools.CheckGameData(gameId, true, false, false, ipc))
                     goto fail;
             }
             else if (cmd.Equals("-check-game-data-only-vanilla", StringComparison.OrdinalIgnoreCase))
             {
-                loadMD5Tables();
                 loadEmbeddedDlls();
+                loadMD5Tables();
                 if (!CmdLineTools.CheckGameData(gameId, false, true, false, ipc))
                     goto fail;
             }
             else if (cmd.Equals("-check-game-data-for-backup", StringComparison.OrdinalIgnoreCase))
             {
-                loadMD5Tables();
                 loadEmbeddedDlls();
+                loadMD5Tables();
                 if (!CmdLineTools.CheckGameData(gameId, false, true, true, ipc))
                     goto fail;
             }
