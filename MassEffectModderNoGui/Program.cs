@@ -434,6 +434,7 @@ namespace MassEffectModder
                 cmd.Equals("-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-without-sfars", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-check-game-data-only-vanilla", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-for-backup", StringComparison.OrdinalIgnoreCase))
             {
                 for (int l = 0; l < args.Length; l++)
