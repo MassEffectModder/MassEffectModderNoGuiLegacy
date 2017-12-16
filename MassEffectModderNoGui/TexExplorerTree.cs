@@ -140,11 +140,15 @@ namespace MassEffectModder
             }
 
             GameData.packageFiles.Sort();
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]PHASE Scanning textures");
+                Console.Out.Flush();
+            }
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
                 if (ipc)
                 {
-                    Console.WriteLine("[IPC]PHASE Scanning textures");
                     Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
                     Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / GameData.packageFiles.Count));
                     Console.Out.Flush();

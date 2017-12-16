@@ -1400,11 +1400,26 @@ namespace MassEffectModder
             Console.WriteLine("Remove mipmaps started..." + Environment.NewLine);
             if (GameData.gameType == MeType.ME1_TYPE)
             {
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PHASE Removing empty mipmaps - phase 1");
+                    Console.Out.Flush();
+                }
                 errors += mipMaps.removeMipMapsME1(1, textures, null, ipc, repack);
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PHASE Removing empty mipmaps - phase 2");
+                    Console.Out.Flush();
+                }
                 errors += mipMaps.removeMipMapsME1(2, textures, null, ipc, repack);
             }
             else
             {
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PHASE Removing empty mipmaps");
+                    Console.Out.Flush();
+                }
                 errors += mipMaps.removeMipMapsME2ME3(textures, null, ipc, repack);
             }
             Console.WriteLine("Remove mipmaps finished" + Environment.NewLine + Environment.NewLine);
@@ -1904,6 +1919,11 @@ namespace MassEffectModder
                 }
             }
 
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]PHASE Saving packages");
+                Console.Out.Flush();
+            }
             cachePackageMgr.CloseAllWithSave(repack, ipc);
 
             return status;

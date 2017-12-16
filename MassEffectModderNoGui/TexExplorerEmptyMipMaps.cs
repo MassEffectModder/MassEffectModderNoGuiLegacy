@@ -48,7 +48,6 @@ namespace MassEffectModder
                 Package package = null;
                 if (ipc)
                 {
-                    Console.WriteLine("[IPC]PHASE Removing empty mipmaps - phase: " + phase);
                     Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / GameData.packageFiles.Count));
                     Console.Out.Flush();
                 }
@@ -192,7 +191,6 @@ skip:
                 Package package = null;
                 if (ipc)
                 {
-                    Console.WriteLine("[IPC]PHASE Removing empty mipmaps");
                     Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / GameData.packageFiles.Count));
                     Console.Out.Flush();
                 }
