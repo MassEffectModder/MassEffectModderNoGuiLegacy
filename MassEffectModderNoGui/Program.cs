@@ -223,6 +223,9 @@ namespace MassEffectModder
             Console.WriteLine("  -detect-empty-mipmaps <game id> [-ipc]>\n");
             Console.WriteLine("     Detect if empty mipmaps were removed.\n");
             Console.WriteLine("");
+            Console.WriteLine("  -detect-bad-mods <game id> [-ipc]>\n");
+            Console.WriteLine("     Detect not compatibe mods.\n");
+            Console.WriteLine("");
             Console.WriteLine("  -apply-lods-gfx <game id> [-limit2k]\n");
             Console.WriteLine("     Update LODs and GFX settings.\n");
             Console.WriteLine("");
@@ -359,6 +362,7 @@ namespace MassEffectModder
                 cmd.Equals("-scan-with-remove", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-apply-mod-tag", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-detect-bad-mods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-apply-lods-gfx", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-remove-lods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-print-lods", StringComparison.OrdinalIgnoreCase) ||
@@ -432,6 +436,7 @@ namespace MassEffectModder
                 cmd.Equals("-repack", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-scan-with-remove", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-detect-bad-mods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-without-sfars", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-only-vanilla", StringComparison.OrdinalIgnoreCase) ||
@@ -530,6 +535,12 @@ namespace MassEffectModder
             {
                 loadEmbeddedDlls();
                 if (!CmdLineTools.VerifyGameDataEmptyMipMapsRemoval(gameId, ipc))
+                    goto fail;
+            }
+            else if (cmd.Equals("-detect-bad-mods", StringComparison.OrdinalIgnoreCase))
+            {
+                loadEmbeddedDlls();
+                if (!CmdLineTools.DetectBadMods(gameId, ipc))
                     goto fail;
             }
             else if (cmd.Equals("-apply-lods-gfx", StringComparison.OrdinalIgnoreCase))

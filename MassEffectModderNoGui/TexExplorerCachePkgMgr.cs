@@ -21,6 +21,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace MassEffectModder
 {
@@ -70,7 +71,8 @@ namespace MassEffectModder
                 Package pkg = packages[i];
                 if (ipc)
                 {
-                    Console.WriteLine("[IPC]PROCESSING_FILE " + packages[i]);
+                    Console.WriteLine("[IPC]PHASE Saving packages");
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + Path.GetFileName(packages[i].packagePath));
                     Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / packages.Count));
                     Console.Out.Flush();
                 }

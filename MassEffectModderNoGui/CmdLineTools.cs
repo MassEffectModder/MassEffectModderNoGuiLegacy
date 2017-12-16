@@ -147,7 +147,7 @@ namespace MassEffectModder
 
         static private bool loadTexturesMapFile(string path)
         {
-            List<FoundTexture> textures = new List<FoundTexture>();
+            textures = new List<FoundTexture>();
 
             if (!File.Exists(path))
                 return false;
@@ -1469,6 +1469,8 @@ namespace MassEffectModder
                 return false;
             }
 
+            gameData.getPackages(true);
+
             bool status = MipMaps.verifyGameDataEmptyMipMapsRemoval();
             if (!status && ipc)
             {
@@ -1578,15 +1580,15 @@ namespace MassEffectModder
                 return false;
             }
 
-            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    Program.MAINEXENAME);
-            string mapFile = Path.Combine(path, "me" + gameId + "map.bin");
-            if (!loadTexturesMapFile(mapFile))
-                return false;
-
             gameData.getPackages(true);
             if (gameId != MeType.ME1_TYPE)
                 gameData.getTfcTextures();
+
+            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    Program.MAINEXENAME);
+            string mapFile = Path.Combine(path, "me" + (int)gameId + "map.bin");
+            if (!loadTexturesMapFile(mapFile))
+                return false;
 
             List<string> modFiles = Directory.GetFiles(inputDir, "*.mem").Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
             modFiles.AddRange(Directory.GetFiles(inputDir, "*.tpf").Where(item => item.EndsWith(".tpf", StringComparison.OrdinalIgnoreCase)));
@@ -1605,14 +1607,14 @@ namespace MassEffectModder
                 return false;
             }
 
-            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    Program.MAINEXENAME);
-            string mapFile = Path.Combine(path, "me" + 3 + "map.bin");
-            if (!loadTexturesMapFile(mapFile))
-                return false;
-
             gameData.getPackages(true);
             gameData.getTfcTextures();
+
+            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    Program.MAINEXENAME);
+            string mapFile = Path.Combine(path, "me3map.bin");
+            if (!loadTexturesMapFile(mapFile))
+                return false;
 
             List<string> memFiles = new List<string>();
             memFiles.Add(memFile);
@@ -1708,6 +1710,13 @@ namespace MassEffectModder
                                 name = modFiles[l].name;
                                 exportId = fs.ReadInt32();
                                 pkgPath = fs.ReadStringASCIINull();
+                            }
+
+                            if (ipc)
+                            {
+                                Console.WriteLine("[IPC]PROCESSING_FILE " + modFiles[l].name);
+                                Console.WriteLine("[IPC]TASK_PROGRESS " + (l * 100 / numFiles));
+                                Console.Out.Flush();
                             }
 
                             dst = MipMaps.decompressData(fs, size);
@@ -1831,6 +1840,13 @@ namespace MassEffectModder
                                     Console.WriteLine("Skipping file: " + filename + " not found in definition file, entry: " + (i + 1) + " - mod: " + files[i] + Environment.NewLine);
                                     zip.GoToNextFile(handle);
                                     continue;
+                                }
+
+                                if (ipc)
+                                {
+                                    Console.WriteLine("[IPC]PROCESSING_FILE " + filename);
+                                    Console.WriteLine("[IPC]TASK_PROGRESS " + (t * 100 / numEntries));
+                                    Console.Out.Flush();
                                 }
 
                                 FoundTexture foundTexture = textures.Find(s => s.crc == crc);
@@ -2165,9 +2181,13 @@ namespace MassEffectModder
                 return false;
             }
 
+            gameData.getPackages(true);
+            if (gameId != MeType.ME1_TYPE)
+                gameData.getTfcTextures();
+
             string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 Program.MAINEXENAME);
-            string mapFile = Path.Combine(path, "me" + gameId + "map.bin");
+            string mapFile = Path.Combine(path, "me" + (int)gameId + "map.bin");
             if (!loadTexturesMapFile(mapFile))
                 return false;
 
