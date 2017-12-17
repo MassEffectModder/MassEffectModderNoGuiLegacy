@@ -1406,15 +1406,10 @@ namespace MassEffectModder
             {
                 if (ipc)
                 {
-                    Console.WriteLine("[IPC]PHASE Removing empty mipmaps - phase 1");
+                    Console.WriteLine("[IPC]PHASE Removing empty mipmaps");
                     Console.Out.Flush();
                 }
                 errors += mipMaps.removeMipMapsME1(1, textures, null, ipc, repack);
-                if (ipc)
-                {
-                    Console.WriteLine("[IPC]PHASE Removing empty mipmaps - phase 2");
-                    Console.Out.Flush();
-                }
                 errors += mipMaps.removeMipMapsME1(2, textures, null, ipc, repack);
             }
             else
