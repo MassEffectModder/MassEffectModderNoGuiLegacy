@@ -48,7 +48,7 @@ namespace MassEffectModder
                 Package package = null;
                 if (ipc)
                 {
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / GameData.packageFiles.Count));
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + ((GameData.packageFiles.Count * (phase - 1) + i + 1) * 100 / (GameData.packageFiles.Count * 2)));
                     Console.Out.Flush();
                 }
 
