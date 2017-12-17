@@ -64,7 +64,7 @@ namespace MassEffectModder
             packages.Clear();
         }
 
-        public void CloseAllWithSave(bool ipc = false, bool forceZlib = false)
+        public void CloseAllWithSave(bool forceZlib = false, bool ipc = false)
         {
             for (int i = 0; i < packages.Count; i++)
             {

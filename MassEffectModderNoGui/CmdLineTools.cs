@@ -52,6 +52,8 @@ namespace MassEffectModder
         };
 
         static List<FoundTexture> textures;
+        static int totalNumberOfMods;
+        static int currentNumberOfTotalMods;
 
         static public bool applyModTag(int gameId, int MeuitmV, int AlotV)
         {
@@ -1127,6 +1129,8 @@ namespace MassEffectModder
                             {
                                 throw new Exception();
                             }
+                            if (File.Exists(Path.Combine(outputTPFdir, filename)))
+                                File.Delete(Path.Combine(outputTPFdir, filename));
                             using (FileStream fs = new FileStream(Path.Combine(outputTPFdir, filename), FileMode.CreateNew))
                             {
                                 fs.WriteFromBuffer(data);
@@ -1644,13 +1648,50 @@ namespace MassEffectModder
             bool status = true;
             CachePackageMgr cachePackageMgr = new CachePackageMgr();
 
+            totalNumberOfMods = 0;
+            currentNumberOfTotalMods = 1;
+
+            for (int i = 0; i < files.Count; i++)
+            {
+                if (files[i].EndsWith(".mem", StringComparison.OrdinalIgnoreCase))
+                {
+                    using (FileStream fs = new FileStream(files[i], FileMode.Open, FileAccess.Read))
+                    {
+                        uint tag = fs.ReadUInt32();
+                        uint version = fs.ReadUInt32();
+                        if (tag != TextureModTag || version != TextureModVersion)
+                            continue;
+                        fs.JumpTo(fs.ReadInt64());
+                        fs.SkipInt32();
+                        totalNumberOfMods += fs.ReadInt32();
+                    }
+                }
+                else if (files[i].EndsWith(".tpf", StringComparison.OrdinalIgnoreCase))
+                {
+                    ulong numEntries = 0;
+                    IntPtr handle = IntPtr.Zero;
+                    ZlibHelper.Zip zip = new ZlibHelper.Zip();
+                    try
+                    {
+                        handle = zip.Open(files[i], ref numEntries, 1);
+                        zip.Close(handle);
+                        totalNumberOfMods += (int)numEntries;
+                    }
+                    catch
+                    {
+                        continue;
+                    }
+                }
+                else
+                    throw new Exception();
+            }
+
             for (int i = 0; i < files.Count; i++)
             {
                 Console.WriteLine("Mod: " + (i + 1) + " of " + files.Count + " started: " + Path.GetFileName(files[i]) + Environment.NewLine);
                 if (ipc)
                 {
                     Console.WriteLine("[IPC]PROCESSING_FILE " + files[i]);
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / files.Count));
                     Console.Out.Flush();
                 }
 
@@ -1705,7 +1746,7 @@ namespace MassEffectModder
                             modFiles.Add(fileMod);
                         }
                         numFiles = modFiles.Count;
-                        for (int l = 0; l < numFiles; l++)
+                        for (int l = 0; l < numFiles; l++, currentNumberOfTotalMods++)
                         {
                             string name = "";
                             uint crc = 0;
@@ -1729,8 +1770,8 @@ namespace MassEffectModder
 
                             if (ipc)
                             {
-                                Console.WriteLine("[IPC]PROCESSING_FILE " + modFiles[l].name);
-                                Console.WriteLine("[IPC]TASK_PROGRESS " + (l * 100 / numFiles));
+                                Console.WriteLine("[IPC]PROCESSING_MOD " + modFiles[l].name);
+                                Console.WriteLine("[IPC]OVERALL_PROGRESS " + (currentNumberOfTotalMods * 100 / totalNumberOfMods));
                                 Console.Out.Flush();
                             }
 
@@ -1827,7 +1868,7 @@ namespace MassEffectModder
                         if (result != 0)
                             throw new Exception();
 
-                        for (uint t = 0; t < numEntries; t++)
+                        for (uint t = 0; t < numEntries; t++, currentNumberOfTotalMods++)
                         {
                             if (i == indexTpf)
                             {
@@ -1859,8 +1900,8 @@ namespace MassEffectModder
 
                                 if (ipc)
                                 {
-                                    Console.WriteLine("[IPC]PROCESSING_FILE " + filename);
-                                    Console.WriteLine("[IPC]TASK_PROGRESS " + (t * 100 / numEntries));
+                                    Console.WriteLine("[IPC]PROCESSING_MOD " + filename);
+                                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + (currentNumberOfTotalMods * 100 / totalNumberOfMods));
                                     Console.Out.Flush();
                                 }
 
