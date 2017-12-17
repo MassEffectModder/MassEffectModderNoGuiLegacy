@@ -52,8 +52,6 @@ namespace MassEffectModder
         };
 
         static List<FoundTexture> textures;
-        static int totalNumberOfMods;
-        static int currentNumberOfTotalMods;
 
         static public bool applyModTag(int gameId, int MeuitmV, int AlotV)
         {
@@ -1402,23 +1400,18 @@ namespace MassEffectModder
 
             MipMaps mipMaps = new MipMaps();
             Console.WriteLine("Remove mipmaps started..." + Environment.NewLine);
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]PHASE Removing empty mipmaps");
+                Console.Out.Flush();
+            }
             if (GameData.gameType == MeType.ME1_TYPE)
             {
-                if (ipc)
-                {
-                    Console.WriteLine("[IPC]PHASE Removing empty mipmaps");
-                    Console.Out.Flush();
-                }
                 errors += mipMaps.removeMipMapsME1(1, textures, null, ipc, repack);
                 errors += mipMaps.removeMipMapsME1(2, textures, null, ipc, repack);
             }
             else
             {
-                if (ipc)
-                {
-                    Console.WriteLine("[IPC]PHASE Removing empty mipmaps");
-                    Console.Out.Flush();
-                }
                 errors += mipMaps.removeMipMapsME2ME3(textures, null, ipc, repack);
             }
             Console.WriteLine("Remove mipmaps finished" + Environment.NewLine + Environment.NewLine);
@@ -1643,8 +1636,8 @@ namespace MassEffectModder
             bool status = true;
             CachePackageMgr cachePackageMgr = new CachePackageMgr();
 
-            totalNumberOfMods = 0;
-            currentNumberOfTotalMods = 1;
+            int totalNumberOfMods = 0;
+            int currentNumberOfTotalMods = 1;
 
             for (int i = 0; i < files.Count; i++)
             {
