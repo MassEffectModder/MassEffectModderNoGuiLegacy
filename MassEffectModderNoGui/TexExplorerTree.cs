@@ -34,9 +34,8 @@ namespace MassEffectModder
         public List<FoundTexture> treeScan = null;
         private bool generateBuiltinMapFiles = false; // change to true to enable map files generation
 
-        public string PrepareListOfTextures(CachePackageMgr cachePackageMgr, bool ipc, ref string log, bool force = false)
+        public bool PrepareListOfTextures(CachePackageMgr cachePackageMgr, bool ipc, bool force = false)
         {
-            string errors = "";
             treeScan = null;
 
             List<FoundTexture> textures = new List<FoundTexture>();
@@ -57,12 +56,15 @@ namespace MassEffectModder
                     if (tag != textureMapBinTag || version != textureMapBinVersion)
                     {
                         fs.Close();
-                        log += "Detected wrong or old version of textures scan file!" + Environment.NewLine;
-                        log += "You need to restore the game to vanilla state then reinstall optional DLC/PCC mods." + Environment.NewLine;
-                        log += "Then from the main menu, select 'Remove Textures Scan File' and start Texture Manager again." + Environment.NewLine;
-                        return "Detected wrong or old version of textures scan file!" + Environment.NewLine +
-                            "You need to restore the game to vanilla state then reinstall optional DLC/PCC mods." + Environment.NewLine +
-                            "Then from the main menu, select 'Remove Textures Scan File' and start Texture Manager again." + Environment.NewLine;
+                        string err = "Detected wrong or old version of textures scan file!" + Environment.NewLine;
+                        err += "You need to restore the game to vanilla state then reinstall optional DLC/PCC mods." + Environment.NewLine;
+                        Console.WriteLine(err);
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR: Detected wrong or old version of textures scan file!");
+                            Console.Out.Flush();
+                        }
+                        return false;
                     }
 
                     uint countTexture = fs.ReadUInt32();
@@ -101,9 +103,14 @@ namespace MassEffectModder
                         {
                             if (!force)
                             {
-                                errors += "Detected removal of game files since last game data scan." + Environment.NewLine + Environment.NewLine +
-                                "You need to restore the game to vanilla state then reinstall optional DLC/PCC mods.";
-                                return "";
+                                Console.WriteLine("Detected removal of game files since last game data scan." + Environment.NewLine + Environment.NewLine +
+                                "You need to restore the game to vanilla state then reinstall optional DLC/PCC mods.");
+                                if (ipc)
+                                {
+                                    Console.WriteLine("[IPC]ERROR: Detected removal of game files since last game data scan.");
+                                    Console.Out.Flush();
+                                }
+                                return false;
                             }
                         }
                     }
@@ -113,15 +120,19 @@ namespace MassEffectModder
                         {
                             if (!force)
                             {
-                                errors += "Detected additional game files not present in latest game data scan." + Environment.NewLine + Environment.NewLine +
-                                "You need to restore the game to vanilla state then reinstall optional DLC/PCC mods.";
-                                return "";
+                                Console.WriteLine("Detected additional game files not present in latest game data scan." + Environment.NewLine + Environment.NewLine +
+                                "You need to restore the game to vanilla state then reinstall optional DLC/PCC mods.");
+                                if (ipc)
+                                {
+                                    Console.WriteLine("[IPC]ERROR: Detected additional game files not present in latest game data scan.");
+                                    Console.Out.Flush();
+                                }
+                                return false;
                             }
                         }
                     }
 
                     treeScan = textures;
-                    return errors;
                 }
             }
 
@@ -133,9 +144,14 @@ namespace MassEffectModder
             {
                 if (!force)
                 {
-                    errors += "Detected modded game. Can not continue." + Environment.NewLine + Environment.NewLine +
-                    "You need to restore the game to vanilla state then reinstall optional DLC/PCC mods.";
-                    return "";
+                    Console.WriteLine("Detected modded game. Can not continue." + Environment.NewLine + Environment.NewLine +
+                    "You need to restore the game to vanilla state then reinstall optional DLC/PCC mods.");
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]ERROR Detected modded game. Can not continue.");
+                        Console.Out.Flush();
+                    }
+                    return false;
                 }
             }
 
@@ -153,13 +169,7 @@ namespace MassEffectModder
                     Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / GameData.packageFiles.Count));
                     Console.Out.Flush();
                 }
-                string error = FindTextures(textures, GameData.packageFiles[i], cachePackageMgr, ref log);
-                errors += error;
-                if (ipc && error != "")
-                {
-                    Console.WriteLine("[IPC]ERROR Error in file " + GameData.packageFiles[i]);
-                    Console.Out.Flush();
-                }
+                FindTextures(textures, GameData.packageFiles[i], cachePackageMgr, ipc);
             }
 
             if (GameData.gameType == MeType.ME1_TYPE)
@@ -289,12 +299,11 @@ namespace MassEffectModder
             }
 
             treeScan = textures;
-            return errors;
+            return true;
         }
 
-        private string FindTextures(List<FoundTexture> textures, string packagePath, CachePackageMgr cachePackageMgr, ref string log)
+        private void FindTextures(List<FoundTexture> textures, string packagePath, CachePackageMgr cachePackageMgr, bool ipc)
         {
-            string errors = "";
             Package package = null;
 
             try
@@ -312,9 +321,13 @@ namespace MassEffectModder
                 err += e.Message + Environment.NewLine + Environment.NewLine;
                 err += e.StackTrace + Environment.NewLine + Environment.NewLine;
                 err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
-                errors += err;
-                log += err;
-                return errors;
+                Console.WriteLine(err);
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]ERROR Issue with open package file: " + packagePath);
+                    Console.Out.Flush();
+                }
+                return;
             }
             for (int i = 0; i < package.exportsTable.Count; i++)
             {
@@ -356,8 +369,12 @@ namespace MassEffectModder
                     }
                     if (crc == 0)
                     {
-                        errors += "Error: Texture " + package.exportsTable[i].objectName + " is broken in package: " + packagePath + ", skipping..." + Environment.NewLine;
-                        log += "Error: Texture " + package.exportsTable[i].objectName + " is broken in package: " + packagePath + ", skipping..." + Environment.NewLine;
+                        Console.WriteLine("Error: Texture " + package.exportsTable[i].objectName + " is broken in package: " + packagePath + ", skipping..." + Environment.NewLine);
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR Texture " + package.exportsTable[i].objectName + " is broken in package: " + packagePath + ", skipping...");
+                            Console.Out.Flush();
+                        }
                         continue;
                     }
 
@@ -401,8 +418,6 @@ namespace MassEffectModder
             {
                 package.DisposeCache();
             }
-
-            return errors;
         }
     }
 }

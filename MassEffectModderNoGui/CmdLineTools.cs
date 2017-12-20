@@ -1379,9 +1379,6 @@ namespace MassEffectModder
 
         public static bool ScanAndMipMapsRemoval(MeType gameId, bool ipc, bool repack = false)
         {
-            string errors = "";
-            string log = "";
-
             ConfIni configIni = new ConfIni();
             GameData gameData = new GameData(gameId, configIni);
             if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
@@ -1395,7 +1392,8 @@ namespace MassEffectModder
                 gameData.getTfcTextures();
 
             TreeScan treeScan = new TreeScan();
-            errors += treeScan.PrepareListOfTextures(null, ipc, ref log, true);
+            if (!treeScan.PrepareListOfTextures(null, ipc, true))
+                return false;
             textures = treeScan.treeScan;
 
             MipMaps mipMaps = new MipMaps();
@@ -1407,12 +1405,12 @@ namespace MassEffectModder
             }
             if (GameData.gameType == MeType.ME1_TYPE)
             {
-                errors += mipMaps.removeMipMapsME1(1, textures, null, ipc, repack);
-                errors += mipMaps.removeMipMapsME1(2, textures, null, ipc, repack);
+                mipMaps.removeMipMapsME1(1, textures, null, ipc, repack);
+                mipMaps.removeMipMapsME1(2, textures, null, ipc, repack);
             }
             else
             {
-                errors += mipMaps.removeMipMapsME2ME3(textures, null, ipc, repack);
+                mipMaps.removeMipMapsME2ME3(textures, null, ipc, repack);
             }
             Console.WriteLine("Remove mipmaps finished" + Environment.NewLine + Environment.NewLine);
 

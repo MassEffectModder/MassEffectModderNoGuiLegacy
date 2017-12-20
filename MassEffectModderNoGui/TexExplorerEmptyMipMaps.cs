@@ -37,11 +37,9 @@ namespace MassEffectModder
             public uint crc;
         }
 
-        public string removeMipMapsME1(int phase, List<FoundTexture> textures, CachePackageMgr cachePackageMgr,
+        public void removeMipMapsME1(int phase, List<FoundTexture> textures, CachePackageMgr cachePackageMgr,
             bool ipc, bool forceZlib = false)
         {
-            string errors = "";
-
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
                 bool modified = false;
@@ -67,7 +65,12 @@ namespace MassEffectModder
                     err += e.Message + Environment.NewLine + Environment.NewLine;
                     err += e.StackTrace + Environment.NewLine + Environment.NewLine;
                     err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
-                    errors += err;
+                    Console.WriteLine(err);
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]ERROR Issue with open package file: " + GameData.packageFiles[i]);
+                        Console.Out.Flush();
+                    }
                     continue;
                 }
 
@@ -110,7 +113,12 @@ namespace MassEffectModder
                             }
                             if (foundListEntry == -1)
                             {
-                                errors += "Error: Texture " + package.exportsTable[l].objectName + " not found in package: " + GameData.packageFiles[i] + ", skipping..." + Environment.NewLine;
+                                Console.WriteLine("Error: Texture " + package.exportsTable[l].objectName + " not found in package: " + GameData.packageFiles[i] + ", skipping..." + Environment.NewLine);
+                                if (ipc)
+                                {
+                                    Console.WriteLine("[IPC]ERROR Texture " + package.exportsTable[l].objectName + " not found in package: " + GameData.packageFiles[i] + ", skipping...");
+                                    Console.Out.Flush();
+                                }
                                 goto skip;
                             }
 
@@ -132,7 +140,12 @@ namespace MassEffectModder
                                 {
                                     if (texture.mipMapsList.Count != masterTexture.mipMapsList.Count)
                                     {
-                                        errors += "Error: Texture " + package.exportsTable[l].objectName + " in package: " + GameData.packageFiles[i] + " has wrong reference, skipping..." + Environment.NewLine;
+                                        Console.WriteLine("Error: Texture " + package.exportsTable[l].objectName + " in package: " + GameData.packageFiles[i] + " has wrong reference, skipping..." + Environment.NewLine);
+                                        if (ipc)
+                                        {
+                                            Console.WriteLine("[IPC]ERROR Texture " + package.exportsTable[l].objectName + " in package: " + GameData.packageFiles[i] + " has wrong reference, skipping..." + Environment.NewLine);
+                                            Console.Out.Flush();
+                                        }
                                         goto skip;
                                     }
                                     for (int t = 0; t < texture.mipMapsList.Count; t++)
@@ -177,14 +190,11 @@ skip:
                     package.DisposeCache();
                 }
             }
-            return errors;
         }
 
-        public string removeMipMapsME2ME3(List<FoundTexture> textures, CachePackageMgr cachePackageMgr,
+        public void removeMipMapsME2ME3(List<FoundTexture> textures, CachePackageMgr cachePackageMgr,
             bool ipc, bool forceZlib = false)
         {
-            string errors = "";
-
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
                 bool modified = false;
@@ -210,7 +220,12 @@ skip:
                     err += e.Message + Environment.NewLine + Environment.NewLine;
                     err += e.StackTrace + Environment.NewLine + Environment.NewLine;
                     err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
-                    errors += err;
+                    Console.WriteLine(err);
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]ERROR Issue with open package file: " + GameData.packageFiles[i]);
+                        Console.Out.Flush();
+                    }
                     continue;
                 }
                 
@@ -265,7 +280,6 @@ skip:
             {
                 TOCBinFile.UpdateAllTOCBinFiles();
             }
-            return errors;
         }
 
         static public bool verifyGameDataEmptyMipMapsRemoval()
