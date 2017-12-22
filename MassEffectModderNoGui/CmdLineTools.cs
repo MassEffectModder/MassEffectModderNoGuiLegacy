@@ -226,23 +226,23 @@ namespace MassEffectModder
             List<string> list2;
             if (!onlyIndividual)
             {
-                list = Directory.GetFiles(inputDir, "*.mem").Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
+                list = Directory.GetFiles(inputDir, "*.mem", SearchOption.AllDirectories).Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
                 list.Sort();
-                list2 = Directory.GetFiles(inputDir, "*.tpf").Where(item => item.EndsWith(".tpf", StringComparison.OrdinalIgnoreCase)).ToList();
-                list2.AddRange(Directory.GetFiles(inputDir, "*.mod").Where(item => item.EndsWith(".mod", StringComparison.OrdinalIgnoreCase)));
+                list2 = Directory.GetFiles(inputDir, "*.tpf", SearchOption.AllDirectories).Where(item => item.EndsWith(".tpf", StringComparison.OrdinalIgnoreCase)).ToList();
+                list2.AddRange(Directory.GetFiles(inputDir, "*.mod", SearchOption.AllDirectories).Where(item => item.EndsWith(".mod", StringComparison.OrdinalIgnoreCase)));
             }
             else
             {
                 list = new List<string>();
                 list2 = new List<string>();
             }
-            list2.AddRange(Directory.GetFiles(inputDir, "*.bin").Where(item => item.EndsWith(".bin", StringComparison.OrdinalIgnoreCase)));
-            list2.AddRange(Directory.GetFiles(inputDir, "*.dds").Where(item => item.EndsWith(".dds", StringComparison.OrdinalIgnoreCase)));
-            list2.AddRange(Directory.GetFiles(inputDir, "*.png").Where(item => item.EndsWith(".png", StringComparison.OrdinalIgnoreCase)));
-            list2.AddRange(Directory.GetFiles(inputDir, "*.bmp").Where(item => item.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase)));
-            list2.AddRange(Directory.GetFiles(inputDir, "*.tga").Where(item => item.EndsWith(".tga", StringComparison.OrdinalIgnoreCase)));
-            list2.AddRange(Directory.GetFiles(inputDir, "*.jpg").Where(item => item.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)));
-            list2.AddRange(Directory.GetFiles(inputDir, "*.jpeg").Where(item => item.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)));
+            list2.AddRange(Directory.GetFiles(inputDir, "*.bin", SearchOption.AllDirectories).Where(item => item.EndsWith(".bin", StringComparison.OrdinalIgnoreCase)));
+            list2.AddRange(Directory.GetFiles(inputDir, "*.dds", SearchOption.AllDirectories).Where(item => item.EndsWith(".dds", StringComparison.OrdinalIgnoreCase)));
+            list2.AddRange(Directory.GetFiles(inputDir, "*.png", SearchOption.AllDirectories).Where(item => item.EndsWith(".png", StringComparison.OrdinalIgnoreCase)));
+            list2.AddRange(Directory.GetFiles(inputDir, "*.bmp", SearchOption.AllDirectories).Where(item => item.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase)));
+            list2.AddRange(Directory.GetFiles(inputDir, "*.tga", SearchOption.AllDirectories).Where(item => item.EndsWith(".tga", StringComparison.OrdinalIgnoreCase)));
+            list2.AddRange(Directory.GetFiles(inputDir, "*.jpg", SearchOption.AllDirectories).Where(item => item.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)));
+            list2.AddRange(Directory.GetFiles(inputDir, "*.jpeg", SearchOption.AllDirectories).Where(item => item.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)));
             list2.Sort();
             list.AddRange(list2);
             files = list.ToArray();
