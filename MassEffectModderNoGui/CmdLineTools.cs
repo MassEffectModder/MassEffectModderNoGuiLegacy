@@ -872,6 +872,11 @@ namespace MassEffectModder
                 outFs.Close();
                 if (File.Exists(memFilePath))
                     File.Delete(memFilePath);
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]ERROR_NO_BUILDABLE_FILES");
+                    Console.Out.Flush();
+                }
                 return false;
             }
 
