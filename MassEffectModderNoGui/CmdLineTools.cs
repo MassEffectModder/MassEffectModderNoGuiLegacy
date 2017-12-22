@@ -267,7 +267,8 @@ namespace MassEffectModder
             for (int n = 0; n < files.Count(); n++)
             {
                 string file = files[n];
-                Console.WriteLine("File: " + Path.GetFileName(file));
+                string relativeFilePath = file.Substring(inputDir.TrimEnd('\\').Length + 1);
+                Console.WriteLine("File: " + relativeFilePath);
                 if (ipc)
                 {
                     Console.WriteLine("[IPC]PROCESSING_FILE " + Path.GetFileName(file));
@@ -285,13 +286,18 @@ namespace MassEffectModder
                         {
                             if (version != TextureModVersion)
                             {
-                                errors += "File " + file + " was made with an older version of MEM, skipping..." + Environment.NewLine;
-                                Console.WriteLine("File " + file + " was made with an older version of MEM, skipping...");
+                                errors += "File " + relativeFilePath + " was made with an older version of MEM, skipping..." + Environment.NewLine;
+                                Console.WriteLine("File " + relativeFilePath + " was made with an older version of MEM, skipping...");
                             }
                             else
                             {
-                                errors += "File " + file + " is not a valid MEM mod, skipping..." + Environment.NewLine;
-                                Console.WriteLine("File " + file + " is not a valid MEM mod, skipping...");
+                                errors += "File " + relativeFilePath + " is not a valid MEM mod, skipping..." + Environment.NewLine;
+                                Console.WriteLine("File " + relativeFilePath + " is not a valid MEM mod, skipping...");
+                            }
+                            if (ipc)
+                            {
+                                Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                Console.Out.Flush();
                             }
                             continue;
                         }
@@ -302,8 +308,13 @@ namespace MassEffectModder
                             gameType = fs.ReadUInt32();
                             if ((MeType)gameType != gameId)
                             {
-                                errors += "File " + file + " is not a MEM mod valid for this game" + Environment.NewLine;
-                                Console.WriteLine("File " + file + " is not a MEM mod valid for this game");
+                                errors += "File " + relativeFilePath + " is not a MEM mod valid for this game" + Environment.NewLine;
+                                Console.WriteLine("File " + relativeFilePath + " is not a MEM mod valid for this game");
+                                if (ipc)
+                                {
+                                    Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                    Console.Out.Flush();
+                                }
                                 continue;
                             }
                         }
@@ -372,8 +383,13 @@ namespace MassEffectModder
                                     {
                                         len = fs.ReadInt32();
                                         fs.Skip(len);
-                                        errors += "Skipping not compatible content, entry: " + (i + 1) + " - mod: " + file + Environment.NewLine;
-                                        Console.WriteLine("Skipping not compatible content, entry: " + (i + 1) + " - mod: " + file);
+                                        errors += "Skipping not compatible content, entry: " + (i + 1) + " - mod: " + relativeFilePath + Environment.NewLine;
+                                        Console.WriteLine("Skipping not compatible content, entry: " + (i + 1) + " - mod: " + relativeFilePath);
+                                        if (ipc)
+                                        {
+                                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                            Console.Out.Flush();
+                                        }
                                         continue;
                                     }
                                     mod.packagePath = Path.Combine(path, package);
@@ -396,8 +412,13 @@ namespace MassEffectModder
                                     {
                                         len = fs.ReadInt32();
                                         fs.Skip(len);
-                                        errors += "Skipping not compatible content, entry: " + (i + 1) + " - mod: " + file + Environment.NewLine;
-                                        Console.WriteLine("Skipping not compatible content, entry: " + (i + 1) + " - mod: " + file);
+                                        errors += "Skipping not compatible content, entry: " + (i + 1) + " - mod: " + relativeFilePath + Environment.NewLine;
+                                        Console.WriteLine("Skipping not compatible content, entry: " + (i + 1) + " - mod: " + relativeFilePath);
+                                        if (ipc)
+                                        {
+                                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                            Console.Out.Flush();
+                                        }
                                         continue;
                                     }
                                     textureName = f.name;
@@ -412,8 +433,17 @@ namespace MassEffectModder
                                     if (image.mipMaps[0].origWidth / image.mipMaps[0].origHeight !=
                                         f.width / f.height)
                                     {
-                                        errors += "Error in texture: " + textureName + string.Format("_0x{0:X8}", f.crc) + " This texture has wrong aspect ratio, skipping texture, entry: " + (i + 1) + " - mod: " + file + Environment.NewLine;
-                                        Console.WriteLine("Error in texture: " + textureName + string.Format("_0x{0:X8}", f.crc) + " This texture has wrong aspect ratio, skipping texture, entry: " + (i + 1) + " - mod: " + file);
+                                        errors += "Error in texture: " + textureName + string.Format("_0x{0:X8}", f.crc) +
+                                            " This texture has wrong aspect ratio, skipping texture, entry: " + (i + 1) +
+                                            " - mod: " + relativeFilePath + Environment.NewLine;
+                                        Console.WriteLine("Error in texture: " + textureName + string.Format("_0x{0:X8}", f.crc) +
+                                            " This texture has wrong aspect ratio, skipping texture, entry: " + (i + 1) +
+                                            " - mod: " + relativeFilePath);
+                                        if (ipc)
+                                        {
+                                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                            Console.Out.Flush();
+                                        }
                                         continue;
                                     }
 
@@ -449,8 +479,13 @@ namespace MassEffectModder
                     }
                     catch
                     {
-                        errors += "Mod is not compatible: " + file + Environment.NewLine;
-                        Console.WriteLine("Mod is not compatible: " + file);
+                        errors += "Mod is not compatible: " + relativeFilePath + Environment.NewLine;
+                        Console.WriteLine("Mod is not compatible: " + relativeFilePath);
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
                         continue;
                     }
                 }
@@ -510,8 +545,13 @@ namespace MassEffectModder
                     }
                     catch
                     {
-                        errors += "Filename not valid: " + file + Environment.NewLine;
-                        Console.WriteLine("Filename not valid: " + file);
+                        errors += "Filename not valid: " + relativeFilePath + Environment.NewLine;
+                        Console.WriteLine("Filename not valid: " + relativeFilePath);
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
                         continue;
                     }
                 }
@@ -578,8 +618,15 @@ namespace MassEffectModder
                                     if (Path.GetExtension(filename).ToLowerInvariant() != ".def" &&
                                         Path.GetExtension(filename).ToLowerInvariant() != ".log")
                                     {
-                                        errors += "Skipping file: " + filename + " not found in definition file, entry: " + (i + 1) + " - mod: " + file + Environment.NewLine;
-                                        Console.WriteLine("Skipping file: " + filename + " not found in definition file, entry: " + (i + 1) + " - mod: " + file);
+                                        errors += "Skipping file: " + filename + " not found in definition file, entry: " + 
+                                            (i + 1) + " - mod: " + relativeFilePath + Environment.NewLine;
+                                        Console.WriteLine("Skipping file: " + filename + " not found in definition file, entry: " +
+                                            (i + 1) + " - mod: " + relativeFilePath);
+                                        if (ipc)
+                                        {
+                                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                            Console.Out.Flush();
+                                        }
                                     }
                                     zip.GoToNextFile(handle);
                                     continue;
@@ -588,7 +635,8 @@ namespace MassEffectModder
                                 List<FoundTexture> foundCrcList = textures.FindAll(s => s.crc == crc);
                                 if (foundCrcList.Count == 0)
                                 {
-                                    Console.WriteLine("Texture skipped. File " + filename + string.Format(" - 0x{0:X8}", crc) + " is not present in your game setup - mod: " + file);
+                                    Console.WriteLine("Texture skipped. File " + filename + string.Format(" - 0x{0:X8}", crc) +
+                                        " is not present in your game setup - mod: " + relativeFilePath);
                                     zip.GoToNextFile(handle);
                                     continue;
                                 }
@@ -601,9 +649,16 @@ namespace MassEffectModder
                                 result = zip.ReadCurrentFile(handle, mod.data, dstLen);
                                 if (result != 0)
                                 {
-                                    errors += "Error in texture: " + textureName + string.Format("_0x{0:X8}", crc) + ", skipping texture, entry: " + (i + 1) + " - mod: " + file + Environment.NewLine;
-                                    Console.WriteLine("Error in texture: " + textureName + string.Format("_0x{0:X8}", crc) + ", skipping texture, entry: " + (i + 1) + " - mod: " + file);
+                                    errors += "Error in texture: " + textureName + string.Format("_0x{0:X8}", crc) +
+                                        ", skipping texture, entry: " + (i + 1) + " - mod: " + relativeFilePath + Environment.NewLine;
+                                    Console.WriteLine("Error in texture: " + textureName + string.Format("_0x{0:X8}", crc) +
+                                        ", skipping texture, entry: " + (i + 1) + " - mod: " + relativeFilePath);
                                     zip.GoToNextFile(handle);
+                                    if (ipc)
+                                    {
+                                        Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                        Console.Out.Flush();
+                                    }
                                     continue;
                                 }
 
@@ -613,9 +668,16 @@ namespace MassEffectModder
                                 if (image.mipMaps[0].origWidth / image.mipMaps[0].origHeight !=
                                     foundCrcList[0].width / foundCrcList[0].height)
                                 {
-                                    errors += "Error in texture: " + textureName + string.Format("_0x{0:X8}", crc) + " This texture has wrong aspect ratio, skipping texture, entry: " + (i + 1) + " - mod: " + file + Environment.NewLine;
-                                    Console.WriteLine("Error in texture: " + textureName + string.Format("_0x{0:X8}", crc) + " This texture has wrong aspect ratio, skipping texture, entry: " + (i + 1) + " - mod: " + file);
+                                    errors += "Error in texture: " + textureName + string.Format("_0x{0:X8}", crc) +
+                                        " This texture has wrong aspect ratio, skipping texture, entry: " + (i + 1) + " - mod: " + relativeFilePath + Environment.NewLine;
+                                    Console.WriteLine("Error in texture: " + textureName + string.Format("_0x{0:X8}", crc) +
+                                        " This texture has wrong aspect ratio, skipping texture, entry: " + (i + 1) + " - mod: " + relativeFilePath);
                                     zip.GoToNextFile(handle);
+                                    if (ipc)
+                                    {
+                                        Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                        Console.Out.Flush();
+                                    }
                                     continue;
                                 }
 
@@ -648,8 +710,15 @@ namespace MassEffectModder
                             }
                             catch
                             {
-                                errors += "Skipping not compatible content, entry: " + (i + 1) + " file: " + fileName + " - mod: " + file + Environment.NewLine;
-                                Console.WriteLine("Skipping not compatible content, entry: " + (i + 1) + " file: " + fileName + " - mod: " + file);
+                                errors += "Skipping not compatible content, entry: " + (i + 1) + " file: " + fileName +
+                                    " - mod: " + relativeFilePath + Environment.NewLine;
+                                Console.WriteLine("Skipping not compatible content, entry: " + (i + 1) + " file: " + fileName +
+                                    " - mod: " + relativeFilePath);
+                                if (ipc)
+                                {
+                                    Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                    Console.Out.Flush();
+                                }
                             }
                             zip.GoToNextFile(handle);
                         }
@@ -658,11 +727,16 @@ namespace MassEffectModder
                     }
                     catch
                     {
-                        errors += "Mod is not compatible: " + file + Environment.NewLine;
-                        Console.WriteLine("Mod is not compatible: " + file + Environment.NewLine);
+                        errors += "Mod is not compatible: " + relativeFilePath + Environment.NewLine;
+                        Console.WriteLine("Mod is not compatible: " + relativeFilePath + Environment.NewLine);
                         if (handle != IntPtr.Zero)
                             zip.Close(handle);
                         handle = IntPtr.Zero;
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
                         continue;
                     }
                 }
@@ -672,15 +746,25 @@ namespace MassEffectModder
                     string filename = Path.GetFileNameWithoutExtension(file).ToLowerInvariant();
                     if (!filename.Contains("0x"))
                     {
-                        errors += "Texture filename not valid: " + Path.GetFileName(file) + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture..." + Environment.NewLine;
-                        Console.WriteLine("Texture filename not valid: " + Path.GetFileName(file) + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                        errors += "Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture..." + Environment.NewLine;
+                        Console.WriteLine("Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
                         continue;
                     }
                     int idx = filename.IndexOf("0x");
                     if (filename.Length - idx < 10)
                     {
-                        errors += "Texture filename not valid: " + Path.GetFileName(file) + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture..." + Environment.NewLine;
-                        Console.WriteLine("Texture filename not valid: " + Path.GetFileName(file) + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                        errors += "Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture..." + Environment.NewLine;
+                        Console.WriteLine("Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
                         continue;
                     }
                     uint crc;
@@ -691,15 +775,25 @@ namespace MassEffectModder
                     }
                     catch
                     {
-                        errors += "Texture filename not valid: " + Path.GetFileName(file) + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture..." + Environment.NewLine;
-                        Console.WriteLine("Texture filename not valid: " + Path.GetFileName(file) + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                        errors += "Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture..." + Environment.NewLine;
+                        Console.WriteLine("Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
                         continue;
                     }
 
                     List<FoundTexture> foundCrcList = textures.FindAll(s => s.crc == crc);
                     if (foundCrcList.Count == 0)
                     {
-                        Console.WriteLine("Texture skipped. Texture " + Path.GetFileName(file) + " is not present in your game setup.");
+                        Console.WriteLine("Texture skipped. Texture " + relativeFilePath + " is not present in your game setup.");
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
                         continue;
                     }
 
@@ -713,8 +807,13 @@ namespace MassEffectModder
                         if (image.mipMaps[0].origWidth / image.mipMaps[0].origHeight !=
                             foundCrcList[0].width / foundCrcList[0].height)
                         {
-                            errors += "Error in texture: " + Path.GetFileName(file) + " This texture has wrong aspect ratio, skipping texture..." + Environment.NewLine;
-                            Console.WriteLine("Error in texture: " + Path.GetFileName(file) + " This texture has wrong aspect ratio, skipping texture...");
+                            errors += "Error in texture: " + relativeFilePath + " This texture has wrong aspect ratio, skipping texture..." + Environment.NewLine;
+                            Console.WriteLine("Error in texture: " + relativeFilePath + " This texture has wrong aspect ratio, skipping texture...");
+                            if (ipc)
+                            {
+                                Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                Console.Out.Flush();
+                            }
                             continue;
                         }
 
@@ -727,7 +826,7 @@ namespace MassEffectModder
                                 Console.WriteLine("[IPC]PROCESSING_FILE Converting " + Path.GetFileName(file));
                                 Console.Out.Flush();
                             }
-                            Console.WriteLine("Converting/correcting texture: " + Path.GetFileName(file));
+                            Console.WriteLine("Converting/correcting texture: " + relativeFilePath);
                             bool dxt1HasAlpha = false;
                             byte dxt1Threshold = 128;
                             if (foundCrcList[0].alphadxt1)
@@ -737,7 +836,7 @@ namespace MassEffectModder
                                     image.pixelFormat == PixelFormat.DXT3 ||
                                     image.pixelFormat == PixelFormat.DXT5)
                                 {
-                                    Console.WriteLine("Warning for texture: " + Path.GetFileName(file) + ". This texture converted from full alpha to binary alpha.");
+                                    Console.WriteLine("Warning for texture: " + relativeFilePath + ". This texture converted from full alpha to binary alpha.");
                                 }
                             }
                             image.correctMips(pixelFormat, dxt1HasAlpha, dxt1Threshold);
@@ -761,15 +860,25 @@ namespace MassEffectModder
                     string filename = Path.GetFileNameWithoutExtension(file).ToLowerInvariant();
                     if (!filename.Contains("0x"))
                     {
-                        errors += "Texture filename not valid: " + Path.GetFileName(file) + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture..." + Environment.NewLine;
-                        Console.WriteLine("Texture filename not valid: " + Path.GetFileName(file) + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                        errors += "Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture..." + Environment.NewLine;
+                        Console.WriteLine("Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
                         continue;
                     }
                     int idx = filename.IndexOf("0x");
                     if (filename.Length - idx < 10)
                     {
-                        errors += "Texture filename not valid: " + Path.GetFileName(file) + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture..." + Environment.NewLine;
-                        Console.WriteLine("Texture filename not valid: " + Path.GetFileName(file) + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                        errors += "Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture..." + Environment.NewLine;
+                        Console.WriteLine("Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
                         continue;
                     }
                     uint crc;
@@ -780,15 +889,25 @@ namespace MassEffectModder
                     }
                     catch
                     {
-                        errors += "Texture filename not valid: " + Path.GetFileName(file) + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture..." + Environment.NewLine;
-                        Console.WriteLine("Texture filename not valid: " + Path.GetFileName(file) + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                        errors += "Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture..." + Environment.NewLine;
+                        Console.WriteLine("Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
                         continue;
                     }
 
                     List<FoundTexture> foundCrcList = textures.FindAll(s => s.crc == crc);
                     if (foundCrcList.Count == 0)
                     {
-                        Console.WriteLine("Texture skipped. Texture " + Path.GetFileName(file) + " is not present in your game setup.");
+                        Console.WriteLine("Texture skipped. Texture " + relativeFilePath + " is not present in your game setup.");
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
                         continue;
                     }
 
@@ -798,8 +917,13 @@ namespace MassEffectModder
                     if (image.mipMaps[0].origWidth / image.mipMaps[0].origHeight !=
                         foundCrcList[0].width / foundCrcList[0].height)
                     {
-                        errors += "Error in texture: " + Path.GetFileName(file) + " This texture has wrong aspect ratio, skipping texture..." + Environment.NewLine;
-                        Console.WriteLine("Error in texture: " + Path.GetFileName(file) + " This texture has wrong aspect ratio, skipping texture...");
+                        errors += "Error in texture: " + relativeFilePath + " This texture has wrong aspect ratio, skipping texture..." + Environment.NewLine;
+                        Console.WriteLine("Error in texture: " + relativeFilePath + " This texture has wrong aspect ratio, skipping texture...");
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
                         continue;
                     }
 
@@ -812,7 +936,7 @@ namespace MassEffectModder
                             image.pixelFormat == PixelFormat.DXT3 ||
                             image.pixelFormat == PixelFormat.DXT5)
                         {
-                            Console.WriteLine("Warning for texture: " + Path.GetFileName(file) + ". This texture converted from full alpha to binary alpha.");
+                            Console.WriteLine("Warning for texture: " + relativeFilePath + ". This texture converted from full alpha to binary alpha.");
                         }
                     }
                     if (ipc)
@@ -820,7 +944,7 @@ namespace MassEffectModder
                         Console.WriteLine("[IPC]PROCESSING_FILE Converting " + Path.GetFileName(file));
                         Console.Out.Flush();
                     }
-                    Console.WriteLine("Converting/correcting texture: " + Path.GetFileName(file));
+                    Console.WriteLine("Converting/correcting texture: " + relativeFilePath);
                     image.correctMips(pixelFormat, dxt1HasAlpha, dxt1Threshold);
                     mod.data = image.StoreImageToDDS();
                     mod.textureName = foundCrcList[0].name;
