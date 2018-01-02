@@ -1441,7 +1441,7 @@ namespace MassEffectModder
             return Misc.VerifyME1Exe(gameData);
         }
 
-        public static bool ApplyLODAndGfxSettings(MeType gameId, bool Limit2K = false)
+        public static bool ApplyLODAndGfxSettings(MeType gameId, bool Limit2K, bool softShadowsME1)
         {
             ConfIni configIni = new ConfIni();
             GameData gameData = new GameData(gameId, configIni);
@@ -1457,7 +1457,7 @@ namespace MassEffectModder
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
             ConfIni engineConf = new ConfIni(path);
             LODSettings.updateLOD(gameId, engineConf, Limit2K);
-            LODSettings.updateGFXSettings(gameId, engineConf);
+            LODSettings.updateGFXSettings(gameId, engineConf, softShadowsME1);
 
             return true;
         }
