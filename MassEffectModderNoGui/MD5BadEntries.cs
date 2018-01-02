@@ -23,9 +23,9 @@ namespace MassEffectModder
 {
     static partial class Misc
     {
-        const string Bad_ME1UITM = "MEUITM";
-        const string Bad_ME1Controller = "ME1 Controller v1.2.0 - MEUITM";
-        const string Bad_ME1SameSexRomances = "ME1 Same-Sex Romances v2.0 - MEUITM";
+        const string Bad_ME1UITM = "MEUITM legacy installer version";
+        const string Bad_ME1Controller = "ME1 Controller v1.2.0 - legacy MEUITM version";
+        const string Bad_ME1SameSexRomances = "ME1 Same-Sex Romances v2.0 - legacy MEUITM version";
         const string Bad_NoSharedCooldown = "ME2 No Shared Cooldown";
 
         static public MD5ModFileEntry[] badMOD = new MD5ModFileEntry[]
