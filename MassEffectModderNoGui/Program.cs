@@ -189,12 +189,18 @@ namespace MassEffectModder
             Console.WriteLine("     Display MEM version");
             Console.WriteLine("");
             Console.WriteLine("  -check-game-data <game id> [-ipc]\n");
+            Console.WriteLine("     Check game data missmatch to textures scan after installation.\n");
+            Console.WriteLine("");
+            Console.WriteLine("  -check-game-data-after <game id> [-ipc]\n");
+            Console.WriteLine("     Check game data for mods installed after textures installation.\n");
+            Console.WriteLine("");
+            Console.WriteLine("  -check-game-data <game id> [-ipc]\n");
             Console.WriteLine("     Check game data with md5 database.\n");
-            Console.WriteLine("     Scan detect mods");
+            Console.WriteLine("     Scan to detect mods");
             Console.WriteLine("");
             Console.WriteLine("  -check-game-data-without-sfars <game id> [-ipc]\n");
             Console.WriteLine("     Check game data with md5 database, but skipping sfar files.\n");
-            Console.WriteLine("     Scan detect mods");
+            Console.WriteLine("     Scan to detect mods");
             Console.WriteLine("");
             Console.WriteLine("  -check-game-data-only-vanilla <game id> [-ipc]\n");
             Console.WriteLine("     Check game data with md5 database.\n");
@@ -366,6 +372,8 @@ namespace MassEffectModder
                 cmd.Equals("-apply-lods-gfx", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-remove-lods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-print-lods", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-check-game-data-missmatch", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-check-game-data-after", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-without-sfars", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-only-vanilla", StringComparison.OrdinalIgnoreCase) ||
@@ -437,6 +445,8 @@ namespace MassEffectModder
                 cmd.Equals("-scan-with-remove", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-bad-mods", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-check-game-data-missmatch", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-check-game-data-after", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-without-sfars", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-only-vanilla", StringComparison.OrdinalIgnoreCase) ||
@@ -566,6 +576,18 @@ namespace MassEffectModder
             else if (cmd.Equals("-print-lods", StringComparison.OrdinalIgnoreCase))
             {
                 if (!CmdLineTools.PrintLODSettings(gameId))
+                    goto fail;
+            }
+            else if (cmd.Equals("-check-game-data-missmatch", StringComparison.OrdinalIgnoreCase))
+            {
+                loadEmbeddedDlls();
+                if (!Misc.detectsMissmatchPackagesAfter(gameId, ipc))
+                    goto fail;
+            }
+            else if (cmd.Equals("-check-game-data-after", StringComparison.OrdinalIgnoreCase))
+            {
+                loadEmbeddedDlls();
+                if (!Misc.checkGameFilesAfter(gameId, ipc))
                     goto fail;
             }
             else if (cmd.Equals("-check-game-data", StringComparison.OrdinalIgnoreCase))

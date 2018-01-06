@@ -145,7 +145,7 @@ namespace MassEffectModder
             }
         }
 
-        static private bool loadTexturesMapFile(string path)
+        static public bool loadTexturesMapFile(string path)
         {
             textures = new List<FoundTexture>();
 
@@ -1611,31 +1611,6 @@ namespace MassEffectModder
             }
 
             return true;
-        }
-
-        public static List<string> getStandardDLCFolders()
-        {
-            List<string> foldernames = new List<string>();
-            foldernames.Add("DLC_CON_MP1");
-            foldernames.Add("DLC_CON_MP2");
-            foldernames.Add("DLC_CON_MP3");
-            foldernames.Add("DLC_CON_MP4");
-            foldernames.Add("DLC_CON_MP5");
-            foldernames.Add("DLC_UPD_Patch01");
-            foldernames.Add("DLC_UPD_Patch02");
-            foldernames.Add("DLC_HEN_PR");
-            foldernames.Add("DLC_CON_END");
-            foldernames.Add("DLC_EXP_Pack001");
-            foldernames.Add("DLC_EXP_Pack002");
-            foldernames.Add("DLC_EXP_Pack003");
-            foldernames.Add("DLC_EXP_Pack003_Base");
-            foldernames.Add("DLC_CON_APP01");
-            foldernames.Add("DLC_CON_GUN01");
-            foldernames.Add("DLC_CON_GUN02");
-            foldernames.Add("DLC_CON_DH1");
-            foldernames.Add("DLC_OnlinePassHidCE");
-            foldernames.Add("__metadata");
-            return foldernames;
         }
 
         public static bool CheckGameData(MeType gameId, bool wihtoutSfars, bool onlyVanilla, bool backupMode, bool ipc)

@@ -1108,230 +1108,433 @@ namespace MassEffectModder
             return vanilla;
         }
 
-        static public bool checkGameFilesAfter(MeType gameType, ref string errors, ref List<string> mods, bool ipc = false)
+        static public bool detectsMissmatchPackagesAfter(MeType gameType, bool ipc = false)
         {
-            bool vanilla = true;
-            List<string> packageMainFiles = null;
-            List<string> packageDLCFiles = null;
-            MD5FileEntry[] entries = null;
-
-            if (gameType == MeType.ME1_TYPE)
+            ConfIni configIni = new ConfIni();
+            GameData gameData = new GameData(gameType, configIni);
+            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
             {
-                packageMainFiles = Directory.GetFiles(GameData.MainData, "*.*",
-                SearchOption.AllDirectories).Where(s => s.EndsWith(".upk",
-                    StringComparison.OrdinalIgnoreCase) ||
-                    s.EndsWith(".u", StringComparison.OrdinalIgnoreCase) ||
-                    s.EndsWith(".sfm", StringComparison.OrdinalIgnoreCase)).ToList();
-                if (Directory.Exists(GameData.DLCData))
-                {
-                    packageDLCFiles = Directory.GetFiles(GameData.DLCData, "*.*",
-                    SearchOption.AllDirectories).Where(s => s.EndsWith(".upk",
-                        StringComparison.OrdinalIgnoreCase) ||
-                        s.EndsWith(".u", StringComparison.OrdinalIgnoreCase) ||
-                        s.EndsWith(".sfm", StringComparison.OrdinalIgnoreCase)).ToList();
-                }
-                packageMainFiles.RemoveAll(s => s.ToLowerInvariant().Contains("localshadercache-pc-d3d-sm3.upk"));
-                packageMainFiles.RemoveAll(s => s.ToLowerInvariant().Contains("refshadercache-pc-d3d-sm3.upk"));
-                entries = Program.entriesME1;
+                Console.WriteLine("Error: Could not found the game!");
+                return false;
             }
-            else if (gameType == MeType.ME2_TYPE)
+
+            gameData.getPackages(true);
+
+            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    Program.MAINEXENAME);
+            string mapFile = Path.Combine(path, "me" + (int)gameType + "map.bin");
+            if (!File.Exists(mapFile))
+                return false;
+            using (FileStream fs = new FileStream(mapFile, FileMode.Open, FileAccess.Read))
             {
-                packageMainFiles = Directory.GetFiles(GameData.MainData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
-                if (Directory.Exists(GameData.DLCData))
+                uint tag = fs.ReadUInt32();
+                uint version = fs.ReadUInt32();
+                if (tag != CmdLineTools.textureMapBinTag || version != CmdLineTools.textureMapBinVersion)
                 {
-                    packageDLCFiles = Directory.GetFiles(GameData.DLCData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
+                    Console.WriteLine("Detected wrong or old version of textures scan file!" + Environment.NewLine);
+                    return false;
                 }
-                entries = Program.entriesME2;
+
+                uint countTexture = fs.ReadUInt32();
+                for (int i = 0; i < countTexture; i++)
+                {
+                    int len = fs.ReadInt32();
+                    fs.ReadStringASCII(len);
+                    fs.ReadUInt32();
+                    uint countPackages = fs.ReadUInt32();
+                    for (int k = 0; k < countPackages; k++)
+                    {
+                        fs.ReadInt32();
+                        fs.ReadInt32();
+                        len = fs.ReadInt32();
+                        fs.ReadStringASCII(len);
+                    }
+                }
+
+                List<string> packages = new List<string>();
+                int numPackages = fs.ReadInt32();
+                for (int i = 0; i < numPackages; i++)
+                {
+                    int len = fs.ReadInt32();
+                    string pkgPath = fs.ReadStringASCII(len);
+                    pkgPath = GameData.GamePath + pkgPath;
+                    packages.Add(pkgPath);
+                }
+                if (gameType == MeType.ME1_TYPE)
+                {
+                    Console.WriteLine("Checking for removed files since last game data scan...");
+                    for (int i = 0; i < packages.Count; i++)
+                    {
+                        if (GameData.packageFiles.Find(s => s.Equals(packages[i], StringComparison.OrdinalIgnoreCase)) == null)
+                        {
+                            Console.WriteLine("File: " + packages[i]);
+                            if (ipc)
+                            {
+                                Console.WriteLine("[IPC]ERROR_REMOVED_FILE " + packages[i]);
+                                Console.Out.Flush();
+                            }
+                        }
+                    }
+                    Console.WriteLine("Finished checking for removed files since last game data scan.");
+                }
+                for (int i = 0; i < GameData.packageFiles.Count; i++)
+                {
+                    Console.WriteLine("Checking for additional files since last game data scan..." + packages[i]);
+                    if (packages.Find(s => s.Equals(GameData.packageFiles[i], StringComparison.OrdinalIgnoreCase)) == null)
+                    {
+                        Console.WriteLine("File: " + packages[i]);
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_ADDED_FILE " + packages[i]);
+                            Console.Out.Flush();
+                        }
+                    }
+                }
+                Console.WriteLine("Finished checking for additional files since last game data scan.");
+            }
+
+            return true;
+        }
+
+        public static List<string> getStandardDLCFolders(MeType gameType)
+        {
+            List<string> foldernames = new List<string>();
+            if (gameType == MeType.ME2_TYPE)
+            {
+                foldernames.Add("DLC_CER_02");
+                foldernames.Add("DLC_CER_Arc");
+                foldernames.Add("DLC_CON_Pack01");
+                foldernames.Add("DLC_CON_Pack02");
+                foldernames.Add("DLC_DHME1");
+                foldernames.Add("DLC_EXP_Part01");
+                foldernames.Add("DLC_EXP_Part02");
+                foldernames.Add("DLC_HEN_MT");
+                foldernames.Add("DLC_HEN_VT");
+                foldernames.Add("DLC_MCR_01");
+                foldernames.Add("DLC_MCR_03");
+                foldernames.Add("DLC_PRE_Cerberus");
+                foldernames.Add("DLC_PRE_Collectors");
+                foldernames.Add("DLC_PRE_DA");
+                foldernames.Add("DLC_PRE_Gamestop");
+                foldernames.Add("DLC_PRE_General");
+                foldernames.Add("DLC_PRE_Incisor");
+                foldernames.Add("DLC_PRO_Gulp01");
+                foldernames.Add("DLC_PRO_Pepper01");
+                foldernames.Add("DLC_PRO_Pepper02");
+                foldernames.Add("DLC_UNC_Hammer01");
+                foldernames.Add("DLC_UNC_Moment01");
+                foldernames.Add("DLC_UNC_Pack01");
             }
             else if (gameType == MeType.ME3_TYPE)
             {
-                packageMainFiles = Directory.GetFiles(GameData.MainData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
+                foldernames.Add("DLC_CON_MP1");
+                foldernames.Add("DLC_CON_MP2");
+                foldernames.Add("DLC_CON_MP3");
+                foldernames.Add("DLC_CON_MP4");
+                foldernames.Add("DLC_CON_MP5");
+                foldernames.Add("DLC_UPD_Patch01");
+                foldernames.Add("DLC_UPD_Patch02");
+                foldernames.Add("DLC_HEN_PR");
+                foldernames.Add("DLC_CON_END");
+                foldernames.Add("DLC_EXP_Pack001");
+                foldernames.Add("DLC_EXP_Pack002");
+                foldernames.Add("DLC_EXP_Pack003");
+                foldernames.Add("DLC_EXP_Pack003_Base");
+                foldernames.Add("DLC_CON_APP01");
+                foldernames.Add("DLC_CON_GUN01");
+                foldernames.Add("DLC_CON_GUN02");
+                foldernames.Add("DLC_CON_DH1");
+                foldernames.Add("DLC_OnlinePassHidCE");
+                foldernames.Add("__metadata");
+            }
+            return foldernames;
+        }
+
+        static public bool checkGameFilesAfter(MeType gameType, bool ipc = false)
+        {
+            ConfIni configIni = new ConfIni();
+            GameData gameData = new GameData(gameType, configIni);
+            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
+            {
+                Console.WriteLine("Error: Could not found the game!");
+                return false;
+            }
+
+            gameData.getPackages(true);
+
+            List<string> packageDLCFiles = null;
+            List<string> dlcDirs = getStandardDLCFolders(gameType);
+
+            if (gameType == MeType.ME2_TYPE)
+            {
                 if (Directory.Exists(GameData.DLCData))
                 {
                     packageDLCFiles = Directory.GetFiles(GameData.DLCData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
                     packageDLCFiles.RemoveAll(s => s.ToLowerInvariant().Contains("guidcache"));
-                }
-                packageMainFiles.RemoveAll(s => s.ToLowerInvariant().Contains("guidcache"));
-                entries = Program.entriesME3;
-            }
-
-            packageMainFiles.Sort();
-            int allFilesCount = packageMainFiles.Count();
-            int progress = 0;
-            if (packageDLCFiles != null)
-            {
-                packageDLCFiles.Sort();
-                allFilesCount += packageDLCFiles.Count();
-            }
-
-            mods.Clear();
-
-            for (int l = 0; l < packageMainFiles.Count; l++)
-            {
-                if (ipc)
-                {
-                    Console.WriteLine("[IPC]PROCESSING_FILE " + packageMainFiles[l]);
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + ((l + progress) * 100 / allFilesCount));
-                    Console.Out.Flush();
-                }
-                byte[] md5 = calculateMD5(packageMainFiles[l]);
-                bool found = false;
-                for (int p = 0; p < entries.Count(); p++)
-                {
-                    if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, entries[p].md5))
+                    for (int l = 0; l < dlcDirs.Count; l++)
                     {
-                        found = true;
-                        break;
+                        packageDLCFiles.RemoveAll(s => s.ToLowerInvariant().Contains("\\" + dlcDirs[l] + "\\"));
                     }
                 }
-                if (found)
+            }
+            else if (gameType == MeType.ME3_TYPE)
+            {
+                if (Directory.Exists(GameData.DLCData))
+                {
+                    packageDLCFiles = Directory.GetFiles(GameData.DLCData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
+                    packageDLCFiles.RemoveAll(s => s.ToLowerInvariant().Contains("guidcache"));
+                    for (int l = 0; l < dlcDirs.Count; l++)
+                    {
+                        packageDLCFiles.RemoveAll(s => s.ToLowerInvariant().Contains("\\" + dlcDirs[l] + "\\"));
+                    }
+                }
+            }
+
+            List <MD5ModFileEntry> mods = new List<MD5ModFileEntry>();
+
+            for (int l = 0; l < modsEntries.Count(); l++)
+            {
+                mods.Add(modsEntries[l]);
+            }
+
+
+            if (gameType == MeType.ME2_TYPE)
+            {
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_CER_02\CookedPC\BIOG_HMM_ARM_SHP_CER02_R.pcc",
+                    modName = "DLC_CER_02",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_CER_Arc\CookedPC\SFXHeavyWeapon_ArcProjector.pcc",
+                    modName = "DLC_CER_Arc",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_CON_Pack01\CookedPC\BioH_Garrus_02.pcc",
+                    modName = "DLC_CON_Pack01",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_CON_Pack02\CookedPC\BioH_Grunt_02.pcc",
+                    modName = "DLC_CON_Pack02",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_DHME1\CookedPC\BioD_ProNor.pcc",
+                    modName = "DLC_DHME1",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_EXP_Part01\CookedPC\BioA_CarChase_100.pcc",
+                    modName = "DLC_EXP_Part01",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_EXP_Part02\CookedPC\BioA_ArvLvl1.pcc",
+                    modName = "DLC_EXP_Part02",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_HEN_MT\CookedPC\BioA_PtyMtL_320Storage.pcc",
+                    modName = "DLC_HEN_MT",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_HEN_VT\CookedPC\BioA_ZyaVtl_315Branch.pcc",
+                    modName = "DLC_HEN_VT",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_MCR_01\CookedPC\SFXWeapon_GethShotgun.pcc",
+                    modName = "DLC_MCR_01",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_MCR_03\CookedPC\DLC_MCR_03",
+                    modName = "DLC_MCR_03",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_PRE_Cerberus\CookedPC\BIOG_HMM_ARM_CBS_R.pcc",
+                    modName = "DLC_PRE_Cerberus",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_PRE_Collectors\CookedPC\BIOG_HMM_ARM_COL_R.pcc",
+                    modName = "DLC_PRE_Collectors",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_PRE_DA\CookedPC\BIOG_HMM_ARM_SHP_DA_R.pcc",
+                    modName = "DLC_PRE_DA",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_PRE_Gamestop\CookedPC\BIOG_HMM_ARM_TRM_R.pcc",
+                    modName = "DLC_PRE_Gamestop",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_PRE_General\CookedPC\BIOG_HMM_ARM_INF_R.pcc",
+                    modName = "DLC_PRE_General",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_PRE_Incisor\CookedPC\SFXWeapon_IncisorSniperRifle.pcc",
+                    modName = "DLC_PRE_Incisor",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_PRO_Gulp01\CookedPC\BIOG_HMM_HGR_GLP_R.pcc",
+                    modName = "DLC_PRO_Gulp01",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_PRO_Pepper01\CookedPC\BIOG_HMM_HGR_PEP1_R.pcc",
+                    modName = "DLC_PRO_Pepper01",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_PRO_Pepper02\CookedPC\BIOG_HMM_HGR_PEP2_R.pcc",
+                    modName = "DLC_PRO_Pepper02",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_UNC_Hammer01\CookedPC\BioA_N7Ruins.pcc",
+                    modName = "DLC_UNC_Hammer01",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_UNC_Pack01\CookedPC\BioA_Unc1Base1_200Cafe.pcc",
+                    modName = "DLC_UNC_Pack01",
+                });
+            }
+            else if (gameType == MeType.ME3_TYPE)
+            {
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_CON_APP01\CookedPCConsole\BioH_EDI_03.pcc",
+                    modName = "DLC_CON_APP01",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_CON_DH1\CookedPCConsole\BioD_DHME2_Chp2.pcc",
+                    modName = "DLC_CON_DH1",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_CON_END\CookedPCConsole\BioA_End002_Bunker.pcc",
+                    modName = "DLC_CON_END",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_CON_GUN01\CookedPCConsole\SFXWeapon_AssaultRifle_Quarian.pcc",
+                    modName = "DLC_CON_GUN01",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_CON_GUN02\CookedPCConsole\SFXWeapon_Pistol_Bloodpack.pcc",
+                    modName = "DLC_CON_GUN02",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_CON_MP1\CookedPCConsole\Batarian_Sentinel_MP.pcc",
+                    modName = "DLC_CON_MP1",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_CON_MP2\CookedPCConsole\BioA_MPJngl_Vista.pcc",
+                    modName = "DLC_CON_MP2",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_CON_MP3\CookedPCConsole\BioA_MPHosp_BSP2.pcc",
+                    modName = "DLC_CON_MP3",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_CON_MP4\CookedPCConsole\Asari_Sentinel_MP.pcc",
+                    modName = "DLC_CON_MP4",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_CON_MP5\CookedPCConsole\Fembot_Infiltrator_MP.pcc",
+                    modName = "DLC_CON_MP5",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_EXP_Pack001\CookedPCConsole\BioA_Lev002_000LevelTrans.pcc",
+                    modName = "DLC_EXP_Pack001",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_EXP_Pack002\CookedPCConsole\BioA_Omg001_200Docks.pcc",
+                    modName = "DLC_EXP_Pack002",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_EXP_Pack003\CookedPCConsole\BioD_Cit002_020Crowds.pcc",
+                    modName = "DLC_EXP_Pack003",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_EXP_Pack003_Base\CookedPCConsole\BioA_Cit001_Fall.pcc",
+                    modName = "DLC_EXP_Pack003_Base",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_HEN_PR\CookedPCConsole\BioA_Cat001_050GlobalB.pcc",
+                    modName = "DLC_HEN_PR",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\BioGame\DLC\DLC_OnlinePassHidCE\CookedPCConsole\BioH_Kaidan_02.pcc",
+                    modName = "DLC_OnlinePassHidCE",
+                });
+            }
+
+            for (int l = 0; l < dlcDirs.Count; l++)
+            {
+                MD5ModFileEntry mod = new MD5ModFileEntry();
+                mod.modName = dlcDirs[l];
+                mod.path = GameData.RelativeGameData(packageDLCFiles[l]);
+                mods.Add(mod);
+            }
+
+
+            for (int p = 0; p < mods.Count(); p++)
+            {
+                MD5ModFileEntry mod = mods[p];
+                if (!File.Exists(GameData.GamePath + mod.path))
                     continue;
-
-                    found = false;
-                    for (int p = 0; p < modsEntries.Count(); p++)
+                Package pkg = new Package(GameData.GamePath + mod.path, true);
+                for (int l = 0; l < pkg.exportsTable.Count; l++)
+                {
+                    int id = pkg.getClassNameId(pkg.exportsTable[l].classId);
+                    if (id == pkg.nameIdTexture2D ||
+                        id == pkg.nameIdTextureFlipBook)
                     {
-                        if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, modsEntries[p].md5))
+                        using (Texture texture = new Texture(pkg, l, pkg.getExportData(l), false))
                         {
-                            found = true;
-                            if (!mods.Exists(s => s == modsEntries[p].modName))
-                                mods.Add(modsEntries[p].modName);
-                            break;
+                            if (texture.hasImageData() &&
+                                texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
+                            {
+                                Console.WriteLine("Error: Detected vanilla or mod: " + mod.modName + " package: ", mod.path);
+                                if (ipc)
+                                {
+                                    Console.WriteLine("[IPC]ERROR_VANILLA_MOD_FILE " + mod.path);
+                                    Console.Out.Flush();
+                                }
+                                break;
+                            }
                         }
                     }
-                    if (found)
-                        continue;
-
-                    found = false;
-                    for (int p = 0; p < badMOD.Count(); p++)
-                    {
-                        if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, badMOD[p].md5))
-                        {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (found)
-                        continue;
-
-                int index = -1;
-                for (int p = 0; p < entries.Count(); p++)
-                {
-                    if (GameData.RelativeGameData(packageMainFiles[l]).ToLowerInvariant() == entries[p].path.ToLowerInvariant())
-                    {
-                        index = p;
-                        break;
-                    }
-                }
-                if (index == -1)
-                    continue;
-
-                vanilla = false;
-
-                    errors += "File " + packageMainFiles[l] + " has wrong MD5 checksum: ";
-                for (int i = 0; i < md5.Count(); i++)
-                {
-                    errors += string.Format("{0:x2}", md5[i]);
-                }
-                    errors += "\n, expected: ";
-                    for (int i = 0; i < entries[index].md5.Count(); i++)
-                    {
-                        errors += string.Format("{0:x2}", entries[index].md5[i]);
-                    }
-                errors += Environment.NewLine;
-
-                if (ipc)
-                {
-                    Console.WriteLine("[IPC]ERROR " + packageMainFiles[l]);
-                    Console.Out.Flush();
                 }
             }
-            progress += packageMainFiles.Count();
 
-            if (packageDLCFiles != null)
-            {
-                for (int l = 0; l < packageDLCFiles.Count; l++)
-                {
-                    if (ipc)
-                    {
-                        Console.WriteLine("[IPC]PROCESSING_FILE " + packageDLCFiles[l]);
-                        Console.WriteLine("[IPC]OVERALL_PROGRESS " + ((l + progress) * 100 / allFilesCount));
-                        Console.Out.Flush();
-                    }
-                    byte[] md5 = calculateMD5(packageDLCFiles[l]);
-                    bool found = false;
-                    for (int p = 0; p < entries.Count(); p++)
-                    {
-                        if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, entries[p].md5))
-                        {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (found)
-                        continue;
-
-                    found = false;
-                    for (int p = 0; p < modsEntries.Count(); p++)
-                    {
-                        if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, modsEntries[p].md5))
-                        {
-                            found = true;
-                            if (!mods.Exists(s => s == modsEntries[p].modName))
-                                mods.Add(modsEntries[p].modName);
-                            break;
-                        }
-                    }
-                    if (found)
-                        continue;
-
-                    found = false;
-                    for (int p = 0; p < badMOD.Count(); p++)
-                    {
-                        if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, badMOD[p].md5))
-                        {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (found)
-                        continue;
-
-                    int index = -1;
-                    for (int p = 0; p < entries.Count(); p++)
-                    {
-                        if (GameData.RelativeGameData(packageDLCFiles[l]).ToLowerInvariant() == entries[p].path.ToLowerInvariant())
-                        {
-                            index = p;
-                            break;
-                        }
-                    }
-                    if (index == -1)
-                        continue;
-
-                    vanilla = false;
-
-                    errors += "File " + packageDLCFiles[l] + " has wrong MD5 checksum: ";
-                    for (int i = 0; i < md5.Count(); i++)
-                    {
-                        errors += string.Format("{0:x2}", md5[i]);
-                    }
-                    errors += "\n, expected: ";
-                    for (int i = 0; i < entries[index].md5.Count(); i++)
-                    {
-                        errors += string.Format("{0:x2}", entries[index].md5[i]);
-                    }
-                    errors += Environment.NewLine;
-
-                    if (ipc)
-                    {
-                        Console.WriteLine("[IPC]ERROR " + packageDLCFiles[l]);
-                        Console.Out.Flush();
-                    }
-                }
-                progress += packageDLCFiles.Count();
-            }
-
-            return vanilla;
+            return true;
         }
     }
 }
