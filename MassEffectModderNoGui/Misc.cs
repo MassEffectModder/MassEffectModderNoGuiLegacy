@@ -365,21 +365,30 @@ namespace MassEffectModder
         {
             if (gameId == MeType.ME1_TYPE)
             {
+                engineConf.Write("MaxShadowResolution", "2048", "Engine.Engine");
                 engineConf.Write("MaxShadowResolution", "2048", "Engine.GameEngine");
                 if (softShadowsME1)
+                {
+                    engineConf.Write("MinShadowResolution", "16", "Engine.Engine");
                     engineConf.Write("MinShadowResolution", "16", "Engine.GameEngine");
+                }
                 else
+                {
+                    engineConf.Write("MinShadowResolution", "64", "Engine.Engine");
                     engineConf.Write("MinShadowResolution", "64", "Engine.GameEngine");
+                }
                 engineConf.Write("DynamicShadows", "True", "SystemSettings");
-                if (softShadowsME1)
-                    engineConf.Write("DepthBias", "0.006000", "SystemSettings");
-                else
-                    engineConf.Write("DepthBias", "0.030000", "SystemSettings");
+                engineConf.Write("EnableDynamicShadows", "True", "WinDrv.WindowsClient");
+                engineConf.Write("DepthBias", "0.030000", "Engine.Engine");
+                engineConf.Write("DepthBias", "0.030000", "Engine.GameEngine");
                 engineConf.Write("ShadowFilterQualityBias", "2", "SystemSettings");
+                engineConf.Write("ShadowFilterRadius", "5", "Engine.Engine");
                 engineConf.Write("ShadowFilterRadius", "5", "Engine.GameEngine");
+                engineConf.Write("bEnableBranchingPCFShadows", "True", "Engine.Engine");
                 engineConf.Write("bEnableBranchingPCFShadows", "True", "Engine.GameEngine");
                 engineConf.Write("MaxAnisotropy", "16", "SystemSettings");
-                engineConf.Write("DisplayGamma", "2.2", "WinDrv.WindowsClient");
+                engineConf.Write("DisplayGamma", "2.0", "Engine.Client");
+                engineConf.Write("DisplayGamma", "2.0", "WinDrv.WindowsClient");
                 engineConf.Write("TextureLODLevel", "3", "WinDrv.WindowsClient");
                 engineConf.Write("FilterLevel", "2", "WinDrv.WindowsClient");
                 engineConf.Write("Trilinear", "True", "SystemSettings");
@@ -1097,6 +1106,232 @@ namespace MassEffectModder
             }
             if (generateMd5Entries)
                 fs.Close();
+
+            return vanilla;
+        }
+
+        static public bool checkGameFilesAfter(MeType gameType, ref string errors, ref List<string> mods, bool ipc = false)
+        {
+            bool vanilla = true;
+            List<string> packageMainFiles = null;
+            List<string> packageDLCFiles = null;
+            MD5FileEntry[] entries = null;
+
+            if (gameType == MeType.ME1_TYPE)
+            {
+                packageMainFiles = Directory.GetFiles(GameData.MainData, "*.*",
+                SearchOption.AllDirectories).Where(s => s.EndsWith(".upk",
+                    StringComparison.OrdinalIgnoreCase) ||
+                    s.EndsWith(".u", StringComparison.OrdinalIgnoreCase) ||
+                    s.EndsWith(".sfm", StringComparison.OrdinalIgnoreCase)).ToList();
+                if (Directory.Exists(GameData.DLCData))
+                {
+                    packageDLCFiles = Directory.GetFiles(GameData.DLCData, "*.*",
+                    SearchOption.AllDirectories).Where(s => s.EndsWith(".upk",
+                        StringComparison.OrdinalIgnoreCase) ||
+                        s.EndsWith(".u", StringComparison.OrdinalIgnoreCase) ||
+                        s.EndsWith(".sfm", StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+                packageMainFiles.RemoveAll(s => s.ToLowerInvariant().Contains("localshadercache-pc-d3d-sm3.upk"));
+                packageMainFiles.RemoveAll(s => s.ToLowerInvariant().Contains("refshadercache-pc-d3d-sm3.upk"));
+                entries = Program.entriesME1;
+            }
+            else if (gameType == MeType.ME2_TYPE)
+            {
+                packageMainFiles = Directory.GetFiles(GameData.MainData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
+                if (Directory.Exists(GameData.DLCData))
+                {
+                    packageDLCFiles = Directory.GetFiles(GameData.DLCData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+                entries = Program.entriesME2;
+            }
+            else if (gameType == MeType.ME3_TYPE)
+            {
+                packageMainFiles = Directory.GetFiles(GameData.MainData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
+                if (Directory.Exists(GameData.DLCData))
+                {
+                    packageDLCFiles = Directory.GetFiles(GameData.DLCData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
+                    packageDLCFiles.RemoveAll(s => s.ToLowerInvariant().Contains("guidcache"));
+                }
+                packageMainFiles.RemoveAll(s => s.ToLowerInvariant().Contains("guidcache"));
+                entries = Program.entriesME3;
+            }
+
+            packageMainFiles.Sort();
+            int allFilesCount = packageMainFiles.Count();
+            int progress = 0;
+            if (packageDLCFiles != null)
+            {
+                packageDLCFiles.Sort();
+                allFilesCount += packageDLCFiles.Count();
+            }
+
+            mods.Clear();
+
+            for (int l = 0; l < packageMainFiles.Count; l++)
+            {
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + packageMainFiles[l]);
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + ((l + progress) * 100 / allFilesCount));
+                    Console.Out.Flush();
+                }
+                byte[] md5 = calculateMD5(packageMainFiles[l]);
+                bool found = false;
+                for (int p = 0; p < entries.Count(); p++)
+                {
+                    if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, entries[p].md5))
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (found)
+                    continue;
+
+                    found = false;
+                    for (int p = 0; p < modsEntries.Count(); p++)
+                    {
+                        if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, modsEntries[p].md5))
+                        {
+                            found = true;
+                            if (!mods.Exists(s => s == modsEntries[p].modName))
+                                mods.Add(modsEntries[p].modName);
+                            break;
+                        }
+                    }
+                    if (found)
+                        continue;
+
+                    found = false;
+                    for (int p = 0; p < badMOD.Count(); p++)
+                    {
+                        if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, badMOD[p].md5))
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found)
+                        continue;
+
+                int index = -1;
+                for (int p = 0; p < entries.Count(); p++)
+                {
+                    if (GameData.RelativeGameData(packageMainFiles[l]).ToLowerInvariant() == entries[p].path.ToLowerInvariant())
+                    {
+                        index = p;
+                        break;
+                    }
+                }
+                if (index == -1)
+                    continue;
+
+                vanilla = false;
+
+                    errors += "File " + packageMainFiles[l] + " has wrong MD5 checksum: ";
+                for (int i = 0; i < md5.Count(); i++)
+                {
+                    errors += string.Format("{0:x2}", md5[i]);
+                }
+                    errors += "\n, expected: ";
+                    for (int i = 0; i < entries[index].md5.Count(); i++)
+                    {
+                        errors += string.Format("{0:x2}", entries[index].md5[i]);
+                    }
+                errors += Environment.NewLine;
+
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]ERROR " + packageMainFiles[l]);
+                    Console.Out.Flush();
+                }
+            }
+            progress += packageMainFiles.Count();
+
+            if (packageDLCFiles != null)
+            {
+                for (int l = 0; l < packageDLCFiles.Count; l++)
+                {
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]PROCESSING_FILE " + packageDLCFiles[l]);
+                        Console.WriteLine("[IPC]OVERALL_PROGRESS " + ((l + progress) * 100 / allFilesCount));
+                        Console.Out.Flush();
+                    }
+                    byte[] md5 = calculateMD5(packageDLCFiles[l]);
+                    bool found = false;
+                    for (int p = 0; p < entries.Count(); p++)
+                    {
+                        if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, entries[p].md5))
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found)
+                        continue;
+
+                    found = false;
+                    for (int p = 0; p < modsEntries.Count(); p++)
+                    {
+                        if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, modsEntries[p].md5))
+                        {
+                            found = true;
+                            if (!mods.Exists(s => s == modsEntries[p].modName))
+                                mods.Add(modsEntries[p].modName);
+                            break;
+                        }
+                    }
+                    if (found)
+                        continue;
+
+                    found = false;
+                    for (int p = 0; p < badMOD.Count(); p++)
+                    {
+                        if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, badMOD[p].md5))
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found)
+                        continue;
+
+                    int index = -1;
+                    for (int p = 0; p < entries.Count(); p++)
+                    {
+                        if (GameData.RelativeGameData(packageDLCFiles[l]).ToLowerInvariant() == entries[p].path.ToLowerInvariant())
+                        {
+                            index = p;
+                            break;
+                        }
+                    }
+                    if (index == -1)
+                        continue;
+
+                    vanilla = false;
+
+                    errors += "File " + packageDLCFiles[l] + " has wrong MD5 checksum: ";
+                    for (int i = 0; i < md5.Count(); i++)
+                    {
+                        errors += string.Format("{0:x2}", md5[i]);
+                    }
+                    errors += "\n, expected: ";
+                    for (int i = 0; i < entries[index].md5.Count(); i++)
+                    {
+                        errors += string.Format("{0:x2}", entries[index].md5[i]);
+                    }
+                    errors += Environment.NewLine;
+
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]ERROR " + packageDLCFiles[l]);
+                        Console.Out.Flush();
+                    }
+                }
+                progress += packageDLCFiles.Count();
+            }
 
             return vanilla;
         }
