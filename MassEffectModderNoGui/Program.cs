@@ -229,6 +229,9 @@ namespace MassEffectModder
             Console.WriteLine("  -detect-empty-mipmaps <game id> [-ipc]>\n");
             Console.WriteLine("     Detect if empty mipmaps were removed.\n");
             Console.WriteLine("");
+            Console.WriteLine("  -detect-mods <game id> [-ipc]>\n");
+            Console.WriteLine("     Detect compatibe mods.\n");
+            Console.WriteLine("");
             Console.WriteLine("  -detect-bad-mods <game id> [-ipc]>\n");
             Console.WriteLine("     Detect not compatibe mods.\n");
             Console.WriteLine("");
