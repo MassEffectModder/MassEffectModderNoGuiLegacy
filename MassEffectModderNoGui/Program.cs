@@ -194,7 +194,7 @@ namespace MassEffectModder
             Console.WriteLine("  -check-game-data-after <game id> [-ipc]\n");
             Console.WriteLine("     Check game data for mods installed after textures installation.\n");
             Console.WriteLine("");
-            Console.WriteLine("  -check-game-data <game id> [-ipc]\n");
+            Console.WriteLine("  -check-game-data-missmatch <game id> [-ipc]\n");
             Console.WriteLine("     Check game data with md5 database.\n");
             Console.WriteLine("     Scan to detect mods");
             Console.WriteLine("");
@@ -226,13 +226,13 @@ namespace MassEffectModder
             Console.WriteLine("  -apply-mod-tag <game id> <alot version> <meuitm version>\n");
             Console.WriteLine("     Apply stamp that mod was installed.\n");
             Console.WriteLine("");
-            Console.WriteLine("  -detect-empty-mipmaps <game id> [-ipc]>\n");
+            Console.WriteLine("  -detect-empty-mipmaps <game id> [-ipc]\n");
             Console.WriteLine("     Detect if empty mipmaps were removed.\n");
             Console.WriteLine("");
-            Console.WriteLine("  -detect-mods <game id> [-ipc]>\n");
+            Console.WriteLine("  -detect-mods <game id> [-ipc]\n");
             Console.WriteLine("     Detect compatibe mods.\n");
             Console.WriteLine("");
-            Console.WriteLine("  -detect-bad-mods <game id> [-ipc]>\n");
+            Console.WriteLine("  -detect-bad-mods <game id> [-ipc]\n");
             Console.WriteLine("     Detect not compatibe mods.\n");
             Console.WriteLine("");
             Console.WriteLine("  -apply-lods-gfx <game id> [-limit2k] [-soft-shadows-mods]\n");
