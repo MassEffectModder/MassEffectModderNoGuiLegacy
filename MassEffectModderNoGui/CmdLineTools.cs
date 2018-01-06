@@ -1676,6 +1676,34 @@ namespace MassEffectModder
             return true;
         }
 
+        public static bool DetectMods(MeType gameId, bool ipc)
+        {
+            ConfIni configIni = new ConfIni();
+            GameData gameData = new GameData(gameId, configIni);
+            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
+            {
+                Console.WriteLine("Error: Could not found the game!");
+                return false;
+            }
+
+            List<string> mods = Misc.detectMods(gameId);
+            if (mods.Count != 0)
+            {
+                Console.WriteLine("Detected compatible mods:");
+                for (int l = 0; l < mods.Count; l++)
+                {
+                    Console.WriteLine(mods[l] + Environment.NewLine);
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]MOD " + mods[l]);
+                        Console.Out.Flush();
+                    }
+                }
+            }
+
+            return true;
+        }
+
         public static bool InstallMods(MeType gameId, string inputDir, bool ipc, bool repack = false)
         {
             textures = new List<FoundTexture>();

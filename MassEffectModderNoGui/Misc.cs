@@ -622,57 +622,7 @@ namespace MassEffectModder
 
         static public List<string> detectBrokenMod(MeType gameType)
         {
-            List<string> packageMainFiles = null;
-            List<string> packageDLCFiles = null;
-            List<string> sfarFiles = null;
             List<string> mods = new List<string>();
-
-            if (gameType == MeType.ME1_TYPE)
-            {
-                packageMainFiles = Directory.GetFiles(GameData.MainData, "*.*",
-                SearchOption.AllDirectories).Where(s => s.EndsWith(".upk",
-                    StringComparison.OrdinalIgnoreCase) ||
-                    s.EndsWith(".u", StringComparison.OrdinalIgnoreCase) ||
-                    s.EndsWith(".sfm", StringComparison.OrdinalIgnoreCase)).ToList();
-                if (Directory.Exists(GameData.DLCData))
-                {
-                    packageDLCFiles = Directory.GetFiles(GameData.DLCData, "*.*",
-                    SearchOption.AllDirectories).Where(s => s.EndsWith(".upk",
-                        StringComparison.OrdinalIgnoreCase) ||
-                        s.EndsWith(".u", StringComparison.OrdinalIgnoreCase) ||
-                        s.EndsWith(".sfm", StringComparison.OrdinalIgnoreCase)).ToList();
-                }
-                packageMainFiles.RemoveAll(s => s.ToLowerInvariant().Contains("localshadercache-pc-d3d-sm3.upk"));
-                packageMainFiles.RemoveAll(s => s.ToLowerInvariant().Contains("refshadercache-pc-d3d-sm3.upk"));
-            }
-            else if (gameType == MeType.ME2_TYPE)
-            {
-                packageMainFiles = Directory.GetFiles(GameData.MainData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
-                if (Directory.Exists(GameData.DLCData))
-                    packageDLCFiles = Directory.GetFiles(GameData.DLCData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
-            }
-            else if (gameType == MeType.ME3_TYPE)
-            {
-                packageMainFiles = Directory.GetFiles(GameData.MainData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
-                if (Directory.Exists(GameData.DLCData))
-                {
-                    packageDLCFiles = Directory.GetFiles(GameData.DLCData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
-                    sfarFiles = Directory.GetFiles(GameData.DLCData, "Default.sfar", SearchOption.AllDirectories).ToList();
-                    for (int i = 0; i < sfarFiles.Count; i++)
-                    {
-                        if (File.Exists(Path.Combine(Path.GetDirectoryName(sfarFiles[i]), "Mount.dlc")))
-                            sfarFiles.RemoveAt(i--);
-                    }
-                    packageDLCFiles.RemoveAll(s => s.ToLowerInvariant().Contains("guidcache"));
-                }
-                packageMainFiles.RemoveAll(s => s.ToLowerInvariant().Contains("guidcache"));
-            }
-
-            packageMainFiles.Sort();
-            if (packageDLCFiles != null)
-                packageDLCFiles.Sort();
-            if (sfarFiles != null)
-                sfarFiles.Sort();
 
             for (int l = 0; l < badMOD.Count(); l++)
             {
@@ -683,6 +633,25 @@ namespace MassEffectModder
                 {
                     if (!mods.Exists(s => s == badMOD[l].modName))
                         mods.Add(badMOD[l].modName);
+                }
+            }
+
+            return mods;
+        }
+
+        static public List<string> detectMods(MeType gameType)
+        {
+            List<string> mods = new List<string>();
+
+            for (int l = 0; l < modsEntries.Count(); l++)
+            {
+                if (!File.Exists(GameData.GamePath + modsEntries[l].path))
+                    continue;
+                byte[] md5 = calculateMD5(GameData.GamePath + modsEntries[l].path);
+                if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, modsEntries[l].md5))
+                {
+                    if (!mods.Exists(s => s == modsEntries[l].modName))
+                        mods.Add(modsEntries[l].modName);
                 }
             }
 
@@ -1162,30 +1131,30 @@ namespace MassEffectModder
                 }
                 if (gameType == MeType.ME1_TYPE)
                 {
-                    Console.WriteLine("Checking for removed files since last game data scan...");
+                    Console.WriteLine("\nChecking for removed files since last game data scan...");
                     for (int i = 0; i < packages.Count; i++)
                     {
                         if (GameData.packageFiles.Find(s => s.Equals(packages[i], StringComparison.OrdinalIgnoreCase)) == null)
                         {
-                            Console.WriteLine("File: " + packages[i]);
+                            Console.WriteLine("File: " + GameData.RelativeGameData(packages[i]));
                             if (ipc)
                             {
-                                Console.WriteLine("[IPC]ERROR_REMOVED_FILE " + packages[i]);
+                                Console.WriteLine("[IPC]ERROR_REMOVED_FILE " + GameData.RelativeGameData(packages[i]));
                                 Console.Out.Flush();
                             }
                         }
                     }
                     Console.WriteLine("Finished checking for removed files since last game data scan.");
                 }
+                Console.WriteLine("\nChecking for additional files since last game data scan...");
                 for (int i = 0; i < GameData.packageFiles.Count; i++)
                 {
-                    Console.WriteLine("Checking for additional files since last game data scan..." + packages[i]);
                     if (packages.Find(s => s.Equals(GameData.packageFiles[i], StringComparison.OrdinalIgnoreCase)) == null)
                     {
-                        Console.WriteLine("File: " + packages[i]);
+                        Console.WriteLine("File: " + GameData.RelativeGameData(packages[i]));
                         if (ipc)
                         {
-                            Console.WriteLine("[IPC]ERROR_ADDED_FILE " + packages[i]);
+                            Console.WriteLine("[IPC]ERROR_ADDED_FILE " + GameData.RelativeGameData(packages[i]));
                             Console.Out.Flush();
                         }
                     }
@@ -1199,7 +1168,12 @@ namespace MassEffectModder
         public static List<string> getStandardDLCFolders(MeType gameType)
         {
             List<string> foldernames = new List<string>();
-            if (gameType == MeType.ME2_TYPE)
+            if (gameType == MeType.ME1_TYPE)
+            {
+                foldernames.Add("DLC_UNC");
+                foldernames.Add("DLC_Vegas");
+            }
+            else if (gameType == MeType.ME2_TYPE)
             {
                 foldernames.Add("DLC_CER_02");
                 foldernames.Add("DLC_CER_Arc");
@@ -1265,27 +1239,27 @@ namespace MassEffectModder
             List<string> packageDLCFiles = null;
             List<string> dlcDirs = getStandardDLCFolders(gameType);
 
-            if (gameType == MeType.ME2_TYPE)
+            if (Directory.Exists(GameData.DLCData))
             {
-                if (Directory.Exists(GameData.DLCData))
+                if (gameType == MeType.ME1_TYPE)
                 {
-                    packageDLCFiles = Directory.GetFiles(GameData.DLCData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
-                    packageDLCFiles.RemoveAll(s => s.ToLowerInvariant().Contains("guidcache"));
+                    packageDLCFiles = Directory.GetFiles(GameData.DLCData, "*.*",
+                    SearchOption.AllDirectories).Where(s => s.EndsWith(".upk",
+                    StringComparison.OrdinalIgnoreCase) ||
+                    s.EndsWith(".u", StringComparison.OrdinalIgnoreCase) ||
+                    s.EndsWith(".sfm", StringComparison.OrdinalIgnoreCase)).ToList();
                     for (int l = 0; l < dlcDirs.Count; l++)
                     {
-                        packageDLCFiles.RemoveAll(s => s.ToLowerInvariant().Contains("\\" + dlcDirs[l] + "\\"));
+                        packageDLCFiles.RemoveAll(s => s.Contains("\\" + dlcDirs[l] + "\\"));
                     }
                 }
-            }
-            else if (gameType == MeType.ME3_TYPE)
-            {
-                if (Directory.Exists(GameData.DLCData))
+                else
                 {
                     packageDLCFiles = Directory.GetFiles(GameData.DLCData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
                     packageDLCFiles.RemoveAll(s => s.ToLowerInvariant().Contains("guidcache"));
                     for (int l = 0; l < dlcDirs.Count; l++)
                     {
-                        packageDLCFiles.RemoveAll(s => s.ToLowerInvariant().Contains("\\" + dlcDirs[l] + "\\"));
+                        packageDLCFiles.RemoveAll(s => s.Contains("\\" + dlcDirs[l] + "\\"));
                     }
                 }
             }
@@ -1297,8 +1271,31 @@ namespace MassEffectModder
                 mods.Add(modsEntries[l]);
             }
 
+            for (int l = 0; l < packageDLCFiles.Count; l++)
+            {
+                MD5ModFileEntry mod = new MD5ModFileEntry();
+                mod.path = GameData.RelativeGameData(packageDLCFiles[l]);
+                if (gameType == MeType.ME1_TYPE)
+                    mod.modName = mod.path.Split('\\')[2];
+                else
+                    mod.modName = mod.path.Split('\\')[3];
+                mods.Add(mod);
+            }
 
-            if (gameType == MeType.ME2_TYPE)
+            if (gameType == MeType.ME1_TYPE)
+            {
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\DLC\DLC_UNC\CookedPC\Packages\GameObjects\Characters\BIOG_CBT_DCB_NKD_R.upk",
+                    modName = "DLC_UNC",
+                });
+                mods.Add(new MD5ModFileEntry
+                {
+                    path = @"\DLC\DLC_Vegas\CookedPC\Packages\BIOA_MAR10_T.upk",
+                    modName = "DLC_Vegas",
+                });
+            }
+            else if (gameType == MeType.ME2_TYPE)
             {
                 mods.Add(new MD5ModFileEntry
                 {
@@ -1495,15 +1492,7 @@ namespace MassEffectModder
                 });
             }
 
-            for (int l = 0; l < dlcDirs.Count; l++)
-            {
-                MD5ModFileEntry mod = new MD5ModFileEntry();
-                mod.modName = dlcDirs[l];
-                mod.path = GameData.RelativeGameData(packageDLCFiles[l]);
-                mods.Add(mod);
-            }
-
-
+            Console.WriteLine("\nChecking for vanilla files after textures installation...");
             for (int p = 0; p < mods.Count(); p++)
             {
                 MD5ModFileEntry mod = mods[p];
@@ -1521,10 +1510,10 @@ namespace MassEffectModder
                             if (texture.hasImageData() &&
                                 texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
                             {
-                                Console.WriteLine("Error: Detected vanilla or mod: " + mod.modName + " package: ", mod.path);
+                                Console.WriteLine("File: " + mod.modName + " package: " + mod.path);
                                 if (ipc)
                                 {
-                                    Console.WriteLine("[IPC]ERROR_VANILLA_MOD_FILE " + mod.path);
+                                    Console.WriteLine("[IPC]ERROR_VANILLA_MOD_FILE " + mod.modName);
                                     Console.Out.Flush();
                                 }
                                 break;
@@ -1533,6 +1522,7 @@ namespace MassEffectModder
                     }
                 }
             }
+            Console.WriteLine("Finished checking for vanilla files after textures installation");
 
             return true;
         }
