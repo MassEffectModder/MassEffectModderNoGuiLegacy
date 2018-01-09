@@ -1077,7 +1077,7 @@ namespace MassEffectModder
             return vanilla;
         }
 
-        static public bool detectsMissmatchPackagesAfter(MeType gameType, bool ipc = false)
+        static public bool detectsMismatchPackagesAfter(MeType gameType, bool ipc = false)
         {
             ConfIni configIni = new ConfIni();
             GameData gameData = new GameData(gameType, configIni);
@@ -1236,7 +1236,7 @@ namespace MassEffectModder
 
             gameData.getPackages(true);
 
-            List<string> packageDLCFiles = null;
+            List<string> packageDLCFiles = new List<string>();
             List<string> dlcDirs = getStandardDLCFolders(gameType);
 
             if (Directory.Exists(GameData.DLCData))
