@@ -1457,7 +1457,7 @@ namespace MassEffectModder
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
             ConfIni engineConf = new ConfIni(path);
             LODSettings.updateLOD(gameId, engineConf, Limit2K);
-            LODSettings.updateGFXSettings(gameId, engineConf, softShadowsME1);
+            LODSettings.updateGFXSettings(gameId, engineConf, softShadowsME1, false);
 
             return true;
         }
