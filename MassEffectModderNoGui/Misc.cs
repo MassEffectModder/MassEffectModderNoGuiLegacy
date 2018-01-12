@@ -382,8 +382,16 @@ namespace MassEffectModder
                 engineConf.Write("DepthBias", "0.030000", "Engine.Engine");
                 engineConf.Write("DepthBias", "0.030000", "Engine.GameEngine");
                 engineConf.Write("ShadowFilterQualityBias", "2", "SystemSettings");
-                engineConf.Write("ShadowFilterRadius", "5", "Engine.Engine");
-                engineConf.Write("ShadowFilterRadius", "5", "Engine.GameEngine");
+                if (softShadowsME1)
+                {
+                    engineConf.Write("ShadowFilterRadius", "2", "Engine.Engine");
+                    engineConf.Write("ShadowFilterRadius", "2", "Engine.GameEngine");
+                }
+                else
+                {
+                    engineConf.Write("ShadowFilterRadius", "5", "Engine.Engine");
+                    engineConf.Write("ShadowFilterRadius", "5", "Engine.GameEngine");
+                }
                 engineConf.Write("bEnableBranchingPCFShadows", "True", "Engine.Engine");
                 engineConf.Write("bEnableBranchingPCFShadows", "True", "Engine.GameEngine");
                 engineConf.Write("MaxAnisotropy", "16", "SystemSettings");
@@ -397,6 +405,9 @@ namespace MassEffectModder
                 engineConf.Write("ParticleLODBias", "0", "SystemSettings");
                 engineConf.Write("SkeletalMeshLODBias", "0", "SystemSettings");
                 engineConf.Write("DetailMode", "2", "SystemSettings");
+                engineConf.Write("PoolSize", "1536", "TextureStreaming");
+                engineConf.Write("MinTimeToGuaranteeMinMipCount", "0", "TextureStreaming");
+                engineConf.Write("MaxTimeToGuaranteeMinMipCount", "0", "TextureStreaming");
             }
             else if (gameId == MeType.ME2_TYPE)
             {
@@ -1129,23 +1140,20 @@ namespace MassEffectModder
                     pkgPath = GameData.GamePath + pkgPath;
                     packages.Add(pkgPath);
                 }
-                if (gameType == MeType.ME1_TYPE)
+                Console.WriteLine("\nChecking for removed files since last game data scan...");
+                for (int i = 0; i < packages.Count; i++)
                 {
-                    Console.WriteLine("\nChecking for removed files since last game data scan...");
-                    for (int i = 0; i < packages.Count; i++)
+                    if (GameData.packageFiles.Find(s => s.Equals(packages[i], StringComparison.OrdinalIgnoreCase)) == null)
                     {
-                        if (GameData.packageFiles.Find(s => s.Equals(packages[i], StringComparison.OrdinalIgnoreCase)) == null)
+                        Console.WriteLine("File: " + GameData.RelativeGameData(packages[i]));
+                        if (ipc)
                         {
-                            Console.WriteLine("File: " + GameData.RelativeGameData(packages[i]));
-                            if (ipc)
-                            {
-                                Console.WriteLine("[IPC]ERROR_REMOVED_FILE " + GameData.RelativeGameData(packages[i]));
-                                Console.Out.Flush();
-                            }
+                            Console.WriteLine("[IPC]ERROR_REMOVED_FILE " + GameData.RelativeGameData(packages[i]));
+                            Console.Out.Flush();
                         }
                     }
-                    Console.WriteLine("Finished checking for removed files since last game data scan.");
                 }
+                Console.WriteLine("Finished checking for removed files since last game data scan.");
                 Console.WriteLine("\nChecking for additional files since last game data scan...");
                 for (int i = 0; i < GameData.packageFiles.Count; i++)
                 {
