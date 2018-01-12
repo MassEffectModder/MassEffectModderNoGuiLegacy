@@ -1162,15 +1162,16 @@ namespace MassEffectModder
                     }
                 }
                 Console.WriteLine("Finished checking for removed files since last game data scan.");
+
                 Console.WriteLine("\nChecking for additional files since last game data scan...");
                 for (int i = 0; i < GameData.packageFiles.Count; i++)
                 {
                     if (packages.Find(s => s.Equals(GameData.packageFiles[i], StringComparison.OrdinalIgnoreCase)) == null)
                     {
-                        Console.WriteLine("File: " + GameData.RelativeGameData(packages[i]));
+                        Console.WriteLine("File: " + GameData.RelativeGameData(GameData.packageFiles[i]));
                         if (ipc)
                         {
-                            Console.WriteLine("[IPC]ERROR_ADDED_FILE " + GameData.RelativeGameData(packages[i]));
+                            Console.WriteLine("[IPC]ERROR_ADDED_FILE " + GameData.RelativeGameData(GameData.packageFiles[i]));
                             Console.Out.Flush();
                         }
                     }
@@ -1529,7 +1530,7 @@ namespace MassEffectModder
                                 Console.WriteLine("File: " + mod.modName + " package: " + mod.path);
                                 if (ipc)
                                 {
-                                    Console.WriteLine("[IPC]ERROR_VANILLA_MOD_FILE " + mod.modName);
+                                    Console.WriteLine("[IPC]ERROR_VANILLA_MOD_FILE " + mod.modName + " - " + mod.path);
                                     Console.Out.Flush();
                                 }
                                 break;
