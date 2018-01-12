@@ -226,8 +226,8 @@ namespace MassEffectModder
             Console.WriteLine("  -apply-mod-tag <game id> <alot version> <meuitm version>\n");
             Console.WriteLine("     Apply stamp that mod was installed.\n");
             Console.WriteLine("");
-            Console.WriteLine("  -detect-empty-mipmaps <game id> [-ipc]\n");
-            Console.WriteLine("     Detect if empty mipmaps were removed.\n");
+            Console.WriteLine("  --quick-detect-empty-mipmaps <game id> [-ipc]\n");
+            Console.WriteLine("     Detect if empty mipmaps were removed from one base package.\n");
             Console.WriteLine("");
             Console.WriteLine("  -detect-mods <game id> [-ipc]\n");
             Console.WriteLine("     Detect compatibe mods.\n");
@@ -370,7 +370,7 @@ namespace MassEffectModder
                 cmd.Equals("-repack", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-scan-with-remove", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-apply-mod-tag", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-quick-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-mods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-bad-mods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-apply-lods-gfx", StringComparison.OrdinalIgnoreCase) ||
@@ -447,7 +447,7 @@ namespace MassEffectModder
                 cmd.Equals("-unpack-dlcs", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-repack", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-scan-with-remove", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-quick-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-bad-mods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-mods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-mismatch", StringComparison.OrdinalIgnoreCase) ||
@@ -546,7 +546,7 @@ namespace MassEffectModder
                 if (!CmdLineTools.ApplyModTag(gameId, alotV, meuitmV))
                     goto fail;
             }
-            else if (cmd.Equals("-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase))
+            else if (cmd.Equals("-quick-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
                 if (!CmdLineTools.VerifyGameDataEmptyMipMapsRemoval(gameId, ipc))
