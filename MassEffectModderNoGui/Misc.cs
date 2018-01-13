@@ -1527,7 +1527,7 @@ namespace MassEffectModder
                             if (texture.hasImageData() &&
                                 texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
                             {
-                                Console.WriteLine("File: " + mod.modName + " package: " + mod.path);
+                                Console.WriteLine("Mod: " + mod.modName + " - Package: " + mod.path);
                                 if (ipc)
                                 {
                                     Console.WriteLine("[IPC]ERROR_VANILLA_MOD_FILE " + mod.modName + " - " + mod.path);
