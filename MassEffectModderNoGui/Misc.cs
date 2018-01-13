@@ -1515,6 +1515,12 @@ namespace MassEffectModder
                 MD5ModFileEntry mod = mods[p];
                 if (!File.Exists(GameData.GamePath + mod.path))
                     continue;
+                if (mod.md5 != null)
+                {
+                    byte[] md5 = calculateMD5(GameData.GamePath + mod.path);
+                    if (!StructuralComparisons.StructuralEqualityComparer.Equals(md5, mod.md5))
+                        continue;
+                }
                 Package pkg = new Package(GameData.GamePath + mod.path, true);
                 for (int l = 0; l < pkg.exportsTable.Count; l++)
                 {
