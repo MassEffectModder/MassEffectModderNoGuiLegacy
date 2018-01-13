@@ -1603,12 +1603,7 @@ namespace MassEffectModder
 
             gameData.getPackages(true);
 
-            bool status = MipMaps.verifyGameDataEmptyMipMapsRemoval();
-            if (!status && ipc)
-            {
-                Console.WriteLine("[IPC]ERROR Empty mipmaps not removed!");
-                Console.Out.Flush();
-            }
+            MipMaps.verifyGameDataEmptyMipMapsRemoval(ipc);
 
             return true;
         }
