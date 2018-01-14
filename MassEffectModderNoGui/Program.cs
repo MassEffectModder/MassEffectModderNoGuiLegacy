@@ -376,6 +376,7 @@ namespace MassEffectModder
                 cmd.Equals("-apply-lods-gfx", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-remove-lods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-print-lods", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-check-game-data-textures", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-mismatch", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-after", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data", StringComparison.OrdinalIgnoreCase) ||
@@ -450,6 +451,7 @@ namespace MassEffectModder
                 cmd.Equals("-quick-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-bad-mods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-mods", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-check-game-data-textures", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-mismatch", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-after", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data", StringComparison.OrdinalIgnoreCase) ||
@@ -587,6 +589,12 @@ namespace MassEffectModder
             else if (cmd.Equals("-print-lods", StringComparison.OrdinalIgnoreCase))
             {
                 if (!CmdLineTools.PrintLODSettings(gameId))
+                    goto fail;
+            }
+            else if (cmd.Equals("-check-game-data-textures", StringComparison.OrdinalIgnoreCase))
+            {
+                loadEmbeddedDlls();
+                if (!CmdLineTools.CheckTextures(gameId, ipc))
                     goto fail;
             }
             else if (cmd.Equals("-check-game-data-mismatch", StringComparison.OrdinalIgnoreCase))

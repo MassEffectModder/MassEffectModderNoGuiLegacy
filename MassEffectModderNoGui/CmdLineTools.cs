@@ -2417,5 +2417,114 @@ namespace MassEffectModder
             Console.WriteLine("Extracting textures completed.");
             return true;
         }
+
+        public static bool CheckTextures(MeType gameId, bool ipc)
+        {
+            ConfIni configIni = new ConfIni();
+            GameData gameData = new GameData(gameId, configIni);
+            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
+            {
+                Console.WriteLine("Error: Could not found the game!");
+                return false;
+            }
+
+            gameData.getPackages(true);
+            if (gameId != MeType.ME1_TYPE)
+                gameData.getTfcTextures();
+
+            Console.WriteLine("Starting checking textures...");
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]PHASE Checking textures");
+                Console.Out.Flush();
+            }
+            for (int i = 0; i < GameData.packageFiles.Count; i++)
+            {
+                Package package;
+                Console.WriteLine("Package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / GameData.packageFiles.Count));
+                    Console.Out.Flush();
+                }
+                try
+                {
+                    package = new Package(GameData.packageFiles[i]);
+                }
+                catch (Exception e)
+                {
+                    string err = "";
+                    err += "---- Start --------------------------------------------" + Environment.NewLine;
+                    err += "Issue with open package file: " + GameData.packageFiles[i] + Environment.NewLine;
+                    err += e.Message + Environment.NewLine + Environment.NewLine;
+                    err += e.StackTrace + Environment.NewLine + Environment.NewLine;
+                    err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
+                    Console.WriteLine(err);
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]ERROR Issue with open package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                        Console.Out.Flush();
+                    }
+                    continue;
+                }
+
+                for (int e = 0; e < package.exportsTable.Count; e++)
+                {
+                    int id = package.getClassNameId(package.exportsTable[i].classId);
+                    if (id == package.nameIdTexture2D ||
+                        id == package.nameIdLightMapTexture2D ||
+                        id == package.nameIdShadowMapTexture2D ||
+                        id == package.nameIdTextureFlipBook)
+                    {
+                        Texture texture = null;
+                        try
+                        {
+                            texture = new Texture(package, i, package.getExportData(i));
+                        }
+                        catch
+                        {
+                            Console.WriteLine("Error: issue with open texture: " +
+                                package.exportsTable[i].objectName + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                            if (ipc)
+                            {
+                                Console.WriteLine("[IPC]ERROR Issue with open texture: " +
+                                    package.exportsTable[i].objectName + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                                Console.Out.Flush();
+                            }
+                            continue;
+                        }
+                        if (!texture.hasImageData())
+                            continue;
+
+                        for (int m = 0; m < texture.mipMapsList.Count; m++)
+                        {
+                            try
+                            {
+                                texture.getMipMapDataByIndex(m);
+                            }
+                            catch
+                            {
+                                Console.WriteLine("Error: issue with open texture data: " +
+                                    package.exportsTable[i].objectName + "mipmap: " + m + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                                if (ipc)
+                                {
+                                    Console.WriteLine("[IPC]ERROR Issue with open texture data: " +
+                                        package.exportsTable[i].objectName + "mipmap: " + m + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                                    Console.Out.Flush();
+                                }
+                                continue;
+                            }
+                        }
+                        texture.Dispose();
+                    }
+                }
+
+                package.Dispose();
+            }
+            Console.WriteLine("Finished checking textures.");
+
+            return true;
+        }
     }
 }
