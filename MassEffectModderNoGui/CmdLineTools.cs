@@ -2428,7 +2428,8 @@ namespace MassEffectModder
                 return false;
             }
 
-            gameData.getPackages(true);
+            gameData.getPackages();
+            GameData.packageFiles.Sort();
             if (gameId != MeType.ME1_TYPE)
                 gameData.getTfcTextures();
 
@@ -2441,7 +2442,7 @@ namespace MassEffectModder
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
                 Package package;
-                Console.WriteLine("Package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                Console.WriteLine("Package " + (i + 1) + " of " + GameData.packageFiles.Count + " - " + GameData.RelativeGameData(GameData.packageFiles[i]));
                 if (ipc)
                 {
                     Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
@@ -2471,7 +2472,7 @@ namespace MassEffectModder
 
                 for (int e = 0; e < package.exportsTable.Count; e++)
                 {
-                    int id = package.getClassNameId(package.exportsTable[i].classId);
+                    int id = package.getClassNameId(package.exportsTable[e].classId);
                     if (id == package.nameIdTexture2D ||
                         id == package.nameIdLightMapTexture2D ||
                         id == package.nameIdShadowMapTexture2D ||
@@ -2480,22 +2481,37 @@ namespace MassEffectModder
                         Texture texture = null;
                         try
                         {
-                            texture = new Texture(package, i, package.getExportData(i));
+                            texture = new Texture(package, e, package.getExportData(e));
                         }
                         catch
                         {
-                            Console.WriteLine("Error: issue with open texture: " +
-                                package.exportsTable[i].objectName + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                            Console.WriteLine("Error: Issue with open texture: " +
+                                package.exportsTable[e].objectName + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
                             if (ipc)
                             {
                                 Console.WriteLine("[IPC]ERROR Issue with open texture: " +
-                                    package.exportsTable[i].objectName + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                                    package.exportsTable[e].objectName + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
                                 Console.Out.Flush();
                             }
                             continue;
                         }
                         if (!texture.hasImageData())
                             continue;
+
+                        if (texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
+                        {
+                            Console.WriteLine("ERROR: Empty mipmaps not removed in texture: " +
+                                package.exportsTable[e].objectName + " in package: " +
+                                GameData.RelativeGameData(GameData.packageFiles[i]));
+                            if (ipc)
+                            {
+                                Console.WriteLine("[IPC]ERROR Empty mipmaps not removed in texture: " +
+                                    package.exportsTable[e].objectName + " in package: " +
+                                    GameData.RelativeGameData(GameData.packageFiles[i]));
+                                Console.Out.Flush();
+                            }
+                            continue;
+                        }
 
                         for (int m = 0; m < texture.mipMapsList.Count; m++)
                         {
@@ -2505,7 +2521,7 @@ namespace MassEffectModder
                             }
                             catch
                             {
-                                Console.WriteLine("Error: issue with open texture data: " +
+                                Console.WriteLine("Error: Issue with open texture data: " +
                                     package.exportsTable[i].objectName + "mipmap: " + m + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
                                 if (ipc)
                                 {
