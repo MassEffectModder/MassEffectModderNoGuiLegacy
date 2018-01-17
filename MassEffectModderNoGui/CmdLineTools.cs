@@ -2464,7 +2464,7 @@ namespace MassEffectModder
                     Console.WriteLine(err);
                     if (ipc)
                     {
-                        Console.WriteLine("[IPC]ERROR Issue with open package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                        Console.WriteLine("[IPC]ERROR_TEXTURE_SCAN_DIAGNOSTIC Issue with open package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
                         Console.Out.Flush();
                     }
                     continue;
@@ -2489,7 +2489,7 @@ namespace MassEffectModder
                                 package.exportsTable[e].objectName + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
                             if (ipc)
                             {
-                                Console.WriteLine("[IPC]ERROR Issue with open texture: " +
+                                Console.WriteLine("[IPC]ERROR_TEXTURE_SCAN_DIAGNOSTIC Issue with open texture: " +
                                     package.exportsTable[e].objectName + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
                                 Console.Out.Flush();
                             }
@@ -2505,7 +2505,7 @@ namespace MassEffectModder
                                 GameData.RelativeGameData(GameData.packageFiles[i]));
                             if (ipc)
                             {
-                                Console.WriteLine("[IPC]ERROR Empty mipmaps not removed in texture: " +
+                                Console.WriteLine("[IPC]ERROR_MIPMAPS_NOT_REMOVED Empty mipmaps not removed in texture: " +
                                     package.exportsTable[e].objectName + " in package: " +
                                     GameData.RelativeGameData(GameData.packageFiles[i]));
                                 Console.Out.Flush();
@@ -2525,7 +2525,7 @@ namespace MassEffectModder
                                     package.exportsTable[i].objectName + "mipmap: " + m + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
                                 if (ipc)
                                 {
-                                    Console.WriteLine("[IPC]ERROR Issue with open texture data: " +
+                                    Console.WriteLine("[IPC]ERROR_TEXTURE_SCAN_DIAGNOSTIC Issue with open texture data: " +
                                         package.exportsTable[i].objectName + "mipmap: " + m + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
                                     Console.Out.Flush();
                                 }
