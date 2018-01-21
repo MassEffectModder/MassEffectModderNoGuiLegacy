@@ -1415,6 +1415,190 @@ namespace MassEffectModder
             return status;
         }
 
+        static public bool extractMEM(MeType gameId, string inputDir, string outputDir, bool ipc)
+        {
+            loadTexturesMap(gameId);
+
+            Console.WriteLine("Extract MEM files started...");
+
+            string[] files = null;
+            List<string> list = Directory.GetFiles(inputDir, "*.mem").Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
+            list.Sort();
+            files = list.ToArray();
+
+            if (!Directory.Exists(outputDir))
+                Directory.CreateDirectory(outputDir);
+
+            int currentNumberOfTotalMods = 1;
+            int totalNumberOfMods = 0;
+            for (int i = 0; i < files.Count(); i++)
+            {
+                using (FileStream fs = new FileStream(files[i], FileMode.Open, FileAccess.Read))
+                {
+                    uint tag = fs.ReadUInt32();
+                    uint version = fs.ReadUInt32();
+                    if (tag != TextureModTag || version != TextureModVersion)
+                        continue;
+                    fs.JumpTo(fs.ReadInt64());
+                    fs.SkipInt32();
+                    totalNumberOfMods += fs.ReadInt32();
+                }
+            }
+
+            foreach (string file in files)
+            {
+                string relativeFilePath = file.Substring(inputDir.TrimEnd('\\').Length + 1);
+                Console.WriteLine("Extract MEM: " + relativeFilePath);
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + relativeFilePath);
+                    Console.Out.Flush();
+                }
+                string outputMODdir = outputDir + "\\" + Path.GetFileNameWithoutExtension(file);
+                if (!Directory.Exists(outputMODdir))
+                    Directory.CreateDirectory(outputMODdir);
+
+                try
+                {
+                    using (FileStream fs = new FileStream(file, FileMode.Open, FileAccess.Read))
+                    {
+                        uint tag = fs.ReadUInt32();
+                        uint version = fs.ReadUInt32();
+                        if (tag != TextureModTag || version != TextureModVersion)
+                        {
+                            if (version != TextureModVersion)
+                            {
+                                Console.WriteLine("File " + relativeFilePath + " was made with an older version of MEM, skipping...");
+                            }
+                            else
+                            {
+                                Console.WriteLine("File " + relativeFilePath + " is not a valid MEM mod, skipping...");
+                            }
+                            if (ipc)
+                            {
+                                Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                Console.Out.Flush();
+                            }
+                            continue;
+                        }
+                        else
+                        {
+                            uint gameType = 0;
+                            fs.JumpTo(fs.ReadInt64());
+                            gameType = fs.ReadUInt32();
+                            if (textures != null && (MeType)gameType != gameId)
+                            {
+                                Console.WriteLine("File " + relativeFilePath + " is not a MEM mod valid for this game");
+                                if (ipc)
+                                {
+                                    Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                    Console.Out.Flush();
+                                }
+                                continue;
+                            }
+                        }
+                        int numFiles = fs.ReadInt32();
+                        List<MipMaps.FileMod> modFiles = new List<MipMaps.FileMod>();
+                        for (int i = 0; i < numFiles; i++)
+                        {
+                            MipMaps.FileMod fileMod = new MipMaps.FileMod();
+                            fileMod.tag = fs.ReadUInt32();
+                            fileMod.name = fs.ReadStringASCIINull();
+                            fileMod.offset = fs.ReadInt64();
+                            fileMod.size = fs.ReadInt64();
+                            modFiles.Add(fileMod);
+                        }
+                        numFiles = modFiles.Count;
+
+                        for (int i = 0; i < numFiles; i++, currentNumberOfTotalMods++)
+                        {
+                            string name = "";
+                            uint crc = 0;
+                            long size = 0, dstLen = 0;
+                            int exportId = -1;
+                            string pkgPath = "";
+                            byte[] dst = null;
+                            fs.JumpTo(modFiles[i].offset);
+                            size = modFiles[i].size;
+                            if (modFiles[i].tag == FileTextureTag)
+                            {
+                                name = fs.ReadStringASCIINull();
+                                crc = fs.ReadUInt32();
+                            }
+                            else if (modFiles[i].tag == MipMaps.FileBinaryTag)
+                            {
+                                name = modFiles[i].name;
+                                exportId = fs.ReadInt32();
+                                pkgPath = fs.ReadStringASCIINull();
+                            }
+
+                            Console.WriteLine("Processing MEM mod " + relativeFilePath +
+                                    " - File " + (i + 1) + " of " + numFiles + " - " + name);
+                            if (ipc)
+                            {
+                                Console.WriteLine("[IPC]PROCESSING_MOD Extracting MEM mod: " + relativeFilePath);
+                                Console.WriteLine("[IPC]OVERALL_PROGRESS " + (currentNumberOfTotalMods * 100 / totalNumberOfMods));
+                                Console.Out.Flush();
+                            }
+
+                            dst = MipMaps.decompressData(fs, size);
+                            dstLen = dst.Length;
+
+                            if (modFiles[i].tag == FileTextureTag)
+                            {
+                                string filename = name + "_" + string.Format("0x{0:X8}", crc) + ".dds";
+                                using (FileStream output = new FileStream(Path.Combine(outputMODdir, Path.GetFileName(filename)), FileMode.Create, FileAccess.Write))
+                                {
+                                    output.Write(dst, 0, (int)dstLen);
+                                }
+                            }
+                            else if (modFiles[i].tag == MipMaps.FileBinaryTag)
+                            {
+                                string path = pkgPath;
+                                string newFilename;
+                                if (path.Contains("\\DLC\\"))
+                                {
+                                    string dlcName = path.Split('\\')[3];
+                                    newFilename = "D" + dlcName.Length + "-" + dlcName + "-";
+                                }
+                                else
+                                {
+                                    newFilename = "B";
+                                }
+                                newFilename += Path.GetFileName(path).Length + "-" + Path.GetFileName(path) + "-E" + exportId + ".bin";
+                                using (FileStream output = new FileStream(Path.Combine(outputMODdir, newFilename), FileMode.Create, FileAccess.Write))
+                                {
+                                    output.Write(dst, 0, (int)dstLen);
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine("Unknown tag for file: " + name);
+                                if (ipc)
+                                {
+                                    Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                    Console.Out.Flush();
+                                }
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    Console.WriteLine("MEM mod is not compatible: " + file);
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                        Console.Out.Flush();
+                    }
+                    continue;
+                }
+            }
+
+            Console.WriteLine("Extract MEM mod files completed.");
+            return true;
+        }
+
         public static bool ApplyModTag(MeType gameId, int alotV, int meuitmV)
         {
             ConfIni configIni = new ConfIni();
@@ -2457,14 +2641,14 @@ namespace MassEffectModder
                 {
                     string err = "";
                     err += "---- Start --------------------------------------------" + Environment.NewLine;
-                    err += "Issue with open package file: " + GameData.packageFiles[i] + Environment.NewLine;
+                    err += "Error opening package file: " + GameData.packageFiles[i] + Environment.NewLine;
                     err += e.Message + Environment.NewLine + Environment.NewLine;
                     err += e.StackTrace + Environment.NewLine + Environment.NewLine;
                     err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
                     Console.WriteLine(err);
                     if (ipc)
                     {
-                        Console.WriteLine("[IPC]ERROR_TEXTURE_SCAN_DIAGNOSTIC Issue with open package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                        Console.WriteLine("[IPC]ERROR_TEXTURE_SCAN_DIAGNOSTIC Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
                         Console.Out.Flush();
                     }
                     continue;
@@ -2485,11 +2669,11 @@ namespace MassEffectModder
                         }
                         catch
                         {
-                            Console.WriteLine("Error: Issue with open texture: " +
+                            Console.WriteLine("Error: Failed reading texture data for texture: " +
                                 package.exportsTable[e].objectName + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
                             if (ipc)
                             {
-                                Console.WriteLine("[IPC]ERROR_TEXTURE_SCAN_DIAGNOSTIC Issue with open texture: " +
+                                Console.WriteLine("[IPC]ERROR_TEXTURE_SCAN_DIAGNOSTIC Error reading texture data for texture: " +
                                     package.exportsTable[e].objectName + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
                                 Console.Out.Flush();
                             }
