@@ -235,7 +235,7 @@ namespace MassEffectModder
             Console.WriteLine("  -detect-bad-mods <game id> [-ipc]\n");
             Console.WriteLine("     Detect not compatibe mods.\n");
             Console.WriteLine("");
-            Console.WriteLine("  -apply-lods-gfx <game id> [-limit2k] [-soft-shadows-mods]\n");
+            Console.WriteLine("  -apply-lods-gfx <game id> [-limit2k] [-soft-shadows-mode] [-meuitm-mode]\n");
             Console.WriteLine("     Update LODs and GFX settings.\n");
             Console.WriteLine("");
             Console.WriteLine("  -remove-lods <game id>\n");
@@ -585,15 +585,18 @@ namespace MassEffectModder
             {
                 bool limit2k = false;
                 bool softShadowsME1 = false;
+                bool meuitmMode = false;
                 for (int l = 0; l < args.Length; l++)
                 {
                     if (args[l].ToLowerInvariant() == "-limit2k")
                         limit2k = true;
                     if (args[l].ToLowerInvariant() == "-soft-shadows-mode")
                         softShadowsME1 = true;
+                    if (args[l].ToLowerInvariant() == "-meuitm-mode")
+                        meuitmMode = true;
                 }
 
-                if (!CmdLineTools.ApplyLODAndGfxSettings(gameId, limit2k, softShadowsME1))
+                if (!CmdLineTools.ApplyLODAndGfxSettings(gameId, limit2k, softShadowsME1, meuitmMode))
                     goto fail;
             }
             else if (cmd.Equals("-remove-lods", StringComparison.OrdinalIgnoreCase))
