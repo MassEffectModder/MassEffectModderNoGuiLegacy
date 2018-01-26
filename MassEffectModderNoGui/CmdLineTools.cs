@@ -1754,9 +1754,19 @@ namespace MassEffectModder
             }
 
             gameData.getPackages(true);
-
+            string path = "";
+            if (gameId == MeType.ME1_TYPE)
+            {
+                path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk";
+            }
+            if (gameId == MeType.ME2_TYPE)
+            {
+                path = @"\BioGame\CookedPC\BIOC_Materials.pcc";
+            }
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
+                if (path != "" && GameData.packageFiles[i].Contains(path))
+                    continue;
                 if (ipc)
                 {
                     Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
