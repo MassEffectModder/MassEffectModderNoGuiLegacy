@@ -1702,16 +1702,27 @@ namespace MassEffectModder
             Console.WriteLine("Adding marker to package files started..." + Environment.NewLine);
             if (ipc)
             {
-                //Console.WriteLine("[IPC]PHASE Adding marker to package files");
+                Console.WriteLine("[IPC]PHASE Adding marker to package files");
                 Console.Out.Flush();
             }
+            List<string> filesToUpdate = new List<string>();
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
                 if (path != "" && GameData.packageFiles[i].ToLowerInvariant().Contains(path))
                     continue;
+                filesToUpdate.Add(path);
+            }
+            for (int i = 0; i < filesToUpdate.Count; i++)
+            {
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + filesToUpdate[i]);
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + ((i + 1) * 100 / filesToUpdate.Count));
+                    Console.Out.Flush();
+                }
                 try
                 {
-                    using (FileStream fs = new FileStream(GameData.packageFiles[i], FileMode.Open, FileAccess.ReadWrite))
+                    using (FileStream fs = new FileStream(filesToUpdate[i], FileMode.Open, FileAccess.ReadWrite))
                     {
                         fs.SeekEnd();
                         fs.Seek(-Package.MEMendFileMarker.Length, SeekOrigin.Current);
