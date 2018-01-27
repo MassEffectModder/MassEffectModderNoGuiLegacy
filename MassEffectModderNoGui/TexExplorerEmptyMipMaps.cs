@@ -217,6 +217,7 @@ skip:
                     }
                     else
                     {
+                        package.Dispose();
                         AddMarkerToPackages(GameData.packageFiles[i]);
                     }
                     package.Dispose();
@@ -307,6 +308,7 @@ skip:
                     }
                     else
                     {
+                        package.Dispose();
                         AddMarkerToPackages(GameData.packageFiles[i]);
                     }
                     package.Dispose();

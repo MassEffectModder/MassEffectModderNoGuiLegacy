@@ -1784,6 +1784,12 @@ namespace MassEffectModder
             }
             Console.WriteLine("Remove mipmaps finished" + Environment.NewLine + Environment.NewLine);
 
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]PHASE Adding marker to package files");
+                Console.Out.Flush();
+            }
+
             return true;
         }
 
