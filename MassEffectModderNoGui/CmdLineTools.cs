@@ -1,7 +1,7 @@
 ﻿/*
  * MassEffectModder
  *
- * Copyright (C) 2016-2017 Pawel Kolodziejski <aquadran at users.sourceforge.net>
+ * Copyright (C) 2016-2018 Pawel Kolodziejski <aquadran at users.sourceforge.net>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -1688,6 +1688,54 @@ namespace MassEffectModder
             return true;
         }
 
+        public static void AddMarkerToPackages(MeType gameId, bool ipc)
+        {
+            string path = "";
+            if (gameId == MeType.ME1_TYPE)
+            {
+                path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
+            }
+            if (gameId == MeType.ME2_TYPE)
+            {
+                path = @"\BioGame\CookedPC\BIOC_Materials.pcc".ToLowerInvariant();
+            }
+            Console.WriteLine("Adding marker to package files started..." + Environment.NewLine);
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]PHASE Adding marker to package files");
+                Console.Out.Flush();
+            }
+            for (int i = 0; i < GameData.packageFiles.Count; i++)
+            {
+                if (path != "" && GameData.packageFiles[i].ToLowerInvariant().Contains(path))
+                    continue;
+                try
+                {
+                    using (FileStream fs = new FileStream(GameData.packageFiles[i], FileMode.Open, FileAccess.ReadWrite))
+                    {
+                        fs.SeekEnd();
+                        fs.Seek(-Package.MEMendFileMarker.Length, SeekOrigin.Current);
+                        string marker = fs.ReadStringASCII(Package.MEMendFileMarker.Length);
+                        if (marker != Package.MEMendFileMarker)
+                        {
+                            fs.SeekEnd();
+                            fs.WriteStringASCII(Package.MEMendFileMarker);
+                        }
+                    }
+                }
+                catch
+                {
+                    Console.WriteLine("The file is could not be opened to write marker, skipped: " + GameData.packageFiles[i]);
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]ERROR The file is could not be opened to write marker: " + GameData.packageFiles[i]);
+                        Console.Out.Flush();
+                    }
+                }
+            }
+            Console.WriteLine("Adding marker to package files ended." + Environment.NewLine);
+        }
+
         public static bool ScanAndMipMapsRemoval(MeType gameId, bool ipc, bool repack = false)
         {
             ConfIni configIni = new ConfIni();
@@ -1725,6 +1773,8 @@ namespace MassEffectModder
             }
             Console.WriteLine("Remove mipmaps finished" + Environment.NewLine + Environment.NewLine);
 
+            AddMarkerToPackages(gameId, ipc);
+
             return true;
         }
 
@@ -1757,15 +1807,15 @@ namespace MassEffectModder
             string path = "";
             if (gameId == MeType.ME1_TYPE)
             {
-                path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk";
+                path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
             }
             if (gameId == MeType.ME2_TYPE)
             {
-                path = @"\BioGame\CookedPC\BIOC_Materials.pcc";
+                path = @"\BioGame\CookedPC\BIOC_Materials.pcc".ToLowerInvariant();
             }
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
-                if (path != "" && GameData.packageFiles[i].Contains(path))
+                if (path != "" && GameData.packageFiles[i].ToLowerInvariant().Contains(path))
                     continue;
                 if (ipc)
                 {
@@ -1893,7 +1943,7 @@ namespace MassEffectModder
             return true;
         }
 
-        public static bool InstallMods(MeType gameId, string inputDir, bool ipc, bool repack = false)
+        public static bool InstallMods(MeType gameId, string inputDir, bool ipc, bool markers = true, bool repack = false)
         {
             textures = new List<FoundTexture>();
             ConfIni configIni = new ConfIni();
@@ -1917,6 +1967,9 @@ namespace MassEffectModder
             List<string> modFiles = Directory.GetFiles(inputDir, "*.mem").Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
             modFiles.AddRange(Directory.GetFiles(inputDir, "*.tpf").Where(item => item.EndsWith(".tpf", StringComparison.OrdinalIgnoreCase)));
             bool status = applyMods(modFiles, repack, ipc);
+            if (markers)
+                AddMarkerToPackages(gameId, ipc);
+
             return status;
         }
 

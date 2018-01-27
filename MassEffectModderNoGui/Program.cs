@@ -1,7 +1,7 @@
 /*
  * MassEffectModder
  *
- * Copyright (C) 2014-2017 Pawel Kolodziejski <aquadran at users.sourceforge.net>
+ * Copyright (C) 2014-2018 Pawel Kolodziejski <aquadran at users.sourceforge.net>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -208,7 +208,7 @@ namespace MassEffectModder
             Console.WriteLine("  -check-game-data-for-backup <game id> [-ipc]\n");
             Console.WriteLine("     Check game data with md5 database for backup purpose.\n");
             Console.WriteLine("");
-            Console.WriteLine("  -install-mods <game id> <input dir> [-repack] [-ipc]\n");
+            Console.WriteLine("  -install-mods <game id> <input dir> [-repack] [-ipc] [-no-markers]\n");
             Console.WriteLine("     Install MEM/TPF mods from input directory.\n");
             Console.WriteLine("");
             Console.WriteLine("  -unpack-dlcs [-ipc]\n");
@@ -501,7 +501,13 @@ namespace MassEffectModder
             else if (cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
-                if (!CmdLineTools.InstallMods(gameId, input, ipc, repack))
+                bool markers = true;
+                for (int l = 0; l < args.Length; l++)
+                {
+                    if (args[l].ToLowerInvariant() == "-no-markers")
+                        markers = false;
+                }
+                if (!CmdLineTools.InstallMods(gameId, input, ipc, markers, repack))
                     goto fail;
             }
             else if (cmd.Equals("-unpack-dlcs", StringComparison.OrdinalIgnoreCase))
