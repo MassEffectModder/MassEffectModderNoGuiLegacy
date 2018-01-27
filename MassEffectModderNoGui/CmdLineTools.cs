@@ -1784,8 +1784,6 @@ namespace MassEffectModder
             }
             Console.WriteLine("Remove mipmaps finished" + Environment.NewLine + Environment.NewLine);
 
-            AddMarkerToPackages(gameId, ipc);
-
             return true;
         }
 
