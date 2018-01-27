@@ -208,7 +208,7 @@ namespace MassEffectModder
             Console.WriteLine("  -check-game-data-for-backup <game id> [-ipc]\n");
             Console.WriteLine("     Check game data with md5 database for backup purpose.\n");
             Console.WriteLine("");
-            Console.WriteLine("  -install-mods <game id> <input dir> [-repack] [-ipc] [-no-markers]\n");
+            Console.WriteLine("  -install-mods <game id> <input dir> [-repack] [-ipc]\n");
             Console.WriteLine("     Install MEM/TPF mods from input directory.\n");
             Console.WriteLine("");
             Console.WriteLine("  -unpack-dlcs [-ipc]\n");
@@ -501,13 +501,7 @@ namespace MassEffectModder
             else if (cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
-                bool markers = true;
-                for (int l = 0; l < args.Length; l++)
-                {
-                    if (args[l].ToLowerInvariant() == "-no-markers")
-                        markers = false;
-                }
-                if (!CmdLineTools.InstallMods(gameId, input, ipc, markers, repack))
+                if (!CmdLineTools.InstallMods(gameId, input, ipc, repack))
                     goto fail;
             }
             else if (cmd.Equals("-unpack-dlcs", StringComparison.OrdinalIgnoreCase))
