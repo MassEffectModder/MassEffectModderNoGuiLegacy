@@ -1702,7 +1702,7 @@ namespace MassEffectModder
             Console.WriteLine("Adding marker to package files started..." + Environment.NewLine);
             if (ipc)
             {
-                Console.WriteLine("[IPC]PHASE Adding marker to package files");
+                //Console.WriteLine("[IPC]PHASE Adding marker to package files");
                 Console.Out.Flush();
             }
             for (int i = 0; i < GameData.packageFiles.Count; i++)
