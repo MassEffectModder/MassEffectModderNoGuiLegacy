@@ -1252,14 +1252,14 @@ namespace MassEffectModder
                 }
                 try
                 {
-                    using (FileStream fs = new FileStream(GameData.GamePath + filesToUpdate[i], FileMode.Open, FileAccess.Read))
+                    using (FileStream fs = new FileStream(filesToUpdate[i], FileMode.Open, FileAccess.Read))
                     {
                         fs.SeekEnd();
                         fs.Seek(-Package.MEMendFileMarker.Length, SeekOrigin.Current);
                         string marker = fs.ReadStringASCII(Package.MEMendFileMarker.Length);
                         if (marker != Package.MEMendFileMarker)
                         {
-                            Console.WriteLine("Altered file: " + filesToUpdate[i]);
+                            Console.WriteLine("Replaced file: " + filesToUpdate[i]);
                             if (ipc)
                             {
                                 Console.WriteLine("[IPC]ERROR_VANILLA_MOD_FILE " + filesToUpdate[i]);
