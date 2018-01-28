@@ -145,7 +145,7 @@ namespace MassEffectModder
             }
         }
 
-        static public bool loadTexturesMapFile(string path)
+        static public bool loadTexturesMapFile(string path, bool ipc)
         {
             textures = new List<FoundTexture>();
 
@@ -197,6 +197,11 @@ namespace MassEffectModder
                     if (GameData.packageFiles.Find(s => s.Equals(packages[i], StringComparison.OrdinalIgnoreCase)) == null)
                     {
                         Console.WriteLine("Detected removal of game files since last game data scan." + Environment.NewLine + Environment.NewLine);
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR: Detected removal of game files since last game data scan.");
+                            Console.Out.Flush();
+                        }
                         return false;
                     }
                 }
@@ -205,6 +210,11 @@ namespace MassEffectModder
                     if (packages.Find(s => s.Equals(GameData.packageFiles[i], StringComparison.OrdinalIgnoreCase)) == null)
                     {
                         Console.WriteLine("Detected additional game files not present in latest game data scan." + Environment.NewLine + Environment.NewLine);
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR: Detected additional game files not present in latest game data scan.");
+                            Console.Out.Flush();
+                        }
                         return false;
                     }
                 }
@@ -1703,7 +1713,7 @@ namespace MassEffectModder
                 gameData.getTfcTextures();
 
             TreeScan treeScan = new TreeScan();
-            if (!treeScan.PrepareListOfTextures(null, ipc, true))
+            if (!treeScan.PrepareListOfTextures(null, ipc))
                 return false;
             textures = treeScan.treeScan;
 
@@ -1787,23 +1797,6 @@ namespace MassEffectModder
                     package.SaveToFile(true);
                 }
             }
-
-            return true;
-        }
-
-        public static bool VerifyGameDataEmptyMipMapsRemoval(MeType gameId, bool ipc)
-        {
-            ConfIni configIni = new ConfIni();
-            GameData gameData = new GameData(gameId, configIni);
-            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
-            {
-                Console.WriteLine("Error: Could not found the game!");
-                return false;
-            }
-
-            gameData.getPackages(true);
-
-            MipMaps.verifyGameDataEmptyMipMapsRemoval(ipc);
 
             return true;
         }
@@ -1917,7 +1910,7 @@ namespace MassEffectModder
             string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     Program.MAINEXENAME);
             string mapFile = Path.Combine(path, "me" + (int)gameId + "map.bin");
-            if (!loadTexturesMapFile(mapFile))
+            if (!loadTexturesMapFile(mapFile, ipc))
                 return false;
 
             List<string> modFiles = Directory.GetFiles(inputDir, "*.mem").Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
@@ -1943,7 +1936,7 @@ namespace MassEffectModder
             string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     Program.MAINEXENAME);
             string mapFile = Path.Combine(path, "me3map.bin");
-            if (!loadTexturesMapFile(mapFile))
+            if (!loadTexturesMapFile(mapFile, false))
                 return false;
 
             List<string> memFiles = new List<string>();
@@ -2559,7 +2552,7 @@ namespace MassEffectModder
             string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 Program.MAINEXENAME);
             string mapFile = Path.Combine(path, "me" + (int)gameId + "map.bin");
-            if (!loadTexturesMapFile(mapFile))
+            if (!loadTexturesMapFile(mapFile, false))
                 return false;
 
             Console.WriteLine("Extracting textures started...");

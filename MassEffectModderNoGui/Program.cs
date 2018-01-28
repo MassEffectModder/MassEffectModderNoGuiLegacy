@@ -226,9 +226,6 @@ namespace MassEffectModder
             Console.WriteLine("  -apply-mod-tag <game id> <alot version> <meuitm version>\n");
             Console.WriteLine("     Apply stamp that mod was installed.\n");
             Console.WriteLine("");
-            Console.WriteLine("  -quick-detect-empty-mipmaps <game id> [-ipc]\n");
-            Console.WriteLine("     Detect if empty mipmaps were removed from one base package.\n");
-            Console.WriteLine("");
             Console.WriteLine("  -detect-mods <game id> [-ipc]\n");
             Console.WriteLine("     Detect compatibe mods.\n");
             Console.WriteLine("");
@@ -566,8 +563,6 @@ namespace MassEffectModder
             else if (cmd.Equals("-quick-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
-                if (!CmdLineTools.VerifyGameDataEmptyMipMapsRemoval(gameId, ipc))
-                    goto fail;
             }
             else if (cmd.Equals("-detect-mods", StringComparison.OrdinalIgnoreCase))
             {

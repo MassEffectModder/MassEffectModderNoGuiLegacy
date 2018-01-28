@@ -1182,65 +1182,6 @@ namespace MassEffectModder
             return true;
         }
 
-        public static List<string> getStandardDLCFolders(MeType gameType)
-        {
-            List<string> foldernames = new List<string>();
-            if (gameType == MeType.ME1_TYPE)
-            {
-                foldernames.Add("DLC_UNC");
-                foldernames.Add("DLC_Vegas");
-            }
-            else if (gameType == MeType.ME2_TYPE)
-            {
-                foldernames.Add("DLC_CER_02");
-                foldernames.Add("DLC_CER_Arc");
-                foldernames.Add("DLC_CON_Pack01");
-                foldernames.Add("DLC_CON_Pack02");
-                foldernames.Add("DLC_DHME1");
-                foldernames.Add("DLC_EXP_Part01");
-                foldernames.Add("DLC_EXP_Part02");
-                foldernames.Add("DLC_HEN_MT");
-                foldernames.Add("DLC_HEN_VT");
-                foldernames.Add("DLC_MCR_01");
-                foldernames.Add("DLC_MCR_03");
-                foldernames.Add("DLC_PRE_Cerberus");
-                foldernames.Add("DLC_PRE_Collectors");
-                foldernames.Add("DLC_PRE_DA");
-                foldernames.Add("DLC_PRE_Gamestop");
-                foldernames.Add("DLC_PRE_General");
-                foldernames.Add("DLC_PRE_Incisor");
-                foldernames.Add("DLC_PRO_Gulp01");
-                foldernames.Add("DLC_PRO_Pepper01");
-                foldernames.Add("DLC_PRO_Pepper02");
-                foldernames.Add("DLC_UNC_Hammer01");
-                foldernames.Add("DLC_UNC_Moment01");
-                foldernames.Add("DLC_UNC_Pack01");
-            }
-            else if (gameType == MeType.ME3_TYPE)
-            {
-                foldernames.Add("DLC_CON_MP1");
-                foldernames.Add("DLC_CON_MP2");
-                foldernames.Add("DLC_CON_MP3");
-                foldernames.Add("DLC_CON_MP4");
-                foldernames.Add("DLC_CON_MP5");
-                foldernames.Add("DLC_UPD_Patch01");
-                foldernames.Add("DLC_UPD_Patch02");
-                foldernames.Add("DLC_HEN_PR");
-                foldernames.Add("DLC_CON_END");
-                foldernames.Add("DLC_EXP_Pack001");
-                foldernames.Add("DLC_EXP_Pack002");
-                foldernames.Add("DLC_EXP_Pack003");
-                foldernames.Add("DLC_EXP_Pack003_Base");
-                foldernames.Add("DLC_CON_APP01");
-                foldernames.Add("DLC_CON_GUN01");
-                foldernames.Add("DLC_CON_GUN02");
-                foldernames.Add("DLC_CON_DH1");
-                foldernames.Add("DLC_OnlinePassHidCE");
-                foldernames.Add("__metadata");
-            }
-            return foldernames;
-        }
-
         static public bool checkGameFilesAfter(MeType gameType, bool ipc = false)
         {
             ConfIni configIni = new ConfIni();
@@ -1253,298 +1194,59 @@ namespace MassEffectModder
 
             gameData.getPackages(true);
 
-            List<string> packageDLCFiles = new List<string>();
-            List<string> dlcDirs = getStandardDLCFolders(gameType);
-
-            if (Directory.Exists(GameData.DLCData))
-            {
-                if (gameType == MeType.ME1_TYPE)
-                {
-                    packageDLCFiles = Directory.GetFiles(GameData.DLCData, "*.*",
-                    SearchOption.AllDirectories).Where(s => s.EndsWith(".upk",
-                    StringComparison.OrdinalIgnoreCase) ||
-                    s.EndsWith(".u", StringComparison.OrdinalIgnoreCase) ||
-                    s.EndsWith(".sfm", StringComparison.OrdinalIgnoreCase)).ToList();
-                    for (int l = 0; l < dlcDirs.Count; l++)
-                    {
-                        packageDLCFiles.RemoveAll(s => s.Contains("\\" + dlcDirs[l] + "\\"));
-                    }
-                }
-                else
-                {
-                    packageDLCFiles = Directory.GetFiles(GameData.DLCData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
-                    packageDLCFiles.RemoveAll(s => s.ToLowerInvariant().Contains("guidcache"));
-                    for (int l = 0; l < dlcDirs.Count; l++)
-                    {
-                        packageDLCFiles.RemoveAll(s => s.Contains("\\" + dlcDirs[l] + "\\"));
-                    }
-                }
-            }
-
-            List <MD5ModFileEntry> mods = new List<MD5ModFileEntry>();
-
-            for (int l = 0; l < modsEntries.Count(); l++)
-            {
-                mods.Add(modsEntries[l]);
-            }
-
-            for (int l = 0; l < packageDLCFiles.Count; l++)
-            {
-                MD5ModFileEntry mod = new MD5ModFileEntry();
-                mod.path = GameData.RelativeGameData(packageDLCFiles[l]);
-                if (gameType == MeType.ME1_TYPE)
-                    mod.modName = mod.path.Split('\\')[2];
-                else
-                    mod.modName = mod.path.Split('\\')[3];
-                mods.Add(mod);
-            }
-
-            if (gameType == MeType.ME1_TYPE)
-            {
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\DLC\DLC_UNC\CookedPC\Packages\GameObjects\Characters\BIOG_CBT_DCB_NKD_R.upk",
-                    modName = "DLC_UNC",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\DLC\DLC_Vegas\CookedPC\Packages\BIOA_MAR10_T.upk",
-                    modName = "DLC_Vegas",
-                });
-            }
-            else if (gameType == MeType.ME2_TYPE)
-            {
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_CER_02\CookedPC\BIOG_HMM_ARM_SHP_CER02_R.pcc",
-                    modName = "DLC_CER_02",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_CER_Arc\CookedPC\SFXHeavyWeapon_ArcProjector.pcc",
-                    modName = "DLC_CER_Arc",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_CON_Pack01\CookedPC\BioH_Garrus_02.pcc",
-                    modName = "DLC_CON_Pack01",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_CON_Pack02\CookedPC\BioH_Grunt_02.pcc",
-                    modName = "DLC_CON_Pack02",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_DHME1\CookedPC\BioD_ProNor.pcc",
-                    modName = "DLC_DHME1",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_EXP_Part01\CookedPC\BioA_CarChase_100.pcc",
-                    modName = "DLC_EXP_Part01",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_EXP_Part02\CookedPC\BioA_ArvLvl1.pcc",
-                    modName = "DLC_EXP_Part02",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_HEN_MT\CookedPC\BioA_PtyMtL_320Storage.pcc",
-                    modName = "DLC_HEN_MT",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_HEN_VT\CookedPC\BioA_ZyaVtl_315Branch.pcc",
-                    modName = "DLC_HEN_VT",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_MCR_01\CookedPC\SFXWeapon_GethShotgun.pcc",
-                    modName = "DLC_MCR_01",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_MCR_03\CookedPC\DLC_MCR_03",
-                    modName = "DLC_MCR_03",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_PRE_Cerberus\CookedPC\BIOG_HMM_ARM_CBS_R.pcc",
-                    modName = "DLC_PRE_Cerberus",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_PRE_Collectors\CookedPC\BIOG_HMM_ARM_COL_R.pcc",
-                    modName = "DLC_PRE_Collectors",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_PRE_DA\CookedPC\BIOG_HMM_ARM_SHP_DA_R.pcc",
-                    modName = "DLC_PRE_DA",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_PRE_Gamestop\CookedPC\BIOG_HMM_ARM_TRM_R.pcc",
-                    modName = "DLC_PRE_Gamestop",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_PRE_General\CookedPC\BIOG_HMM_ARM_INF_R.pcc",
-                    modName = "DLC_PRE_General",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_PRE_Incisor\CookedPC\SFXWeapon_IncisorSniperRifle.pcc",
-                    modName = "DLC_PRE_Incisor",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_PRO_Gulp01\CookedPC\BIOG_HMM_HGR_GLP_R.pcc",
-                    modName = "DLC_PRO_Gulp01",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_PRO_Pepper01\CookedPC\BIOG_HMM_HGR_PEP1_R.pcc",
-                    modName = "DLC_PRO_Pepper01",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_PRO_Pepper02\CookedPC\BIOG_HMM_HGR_PEP2_R.pcc",
-                    modName = "DLC_PRO_Pepper02",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_UNC_Hammer01\CookedPC\BioA_N7Ruins.pcc",
-                    modName = "DLC_UNC_Hammer01",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_UNC_Pack01\CookedPC\BioA_Unc1Base1_200Cafe.pcc",
-                    modName = "DLC_UNC_Pack01",
-                });
-            }
-            else if (gameType == MeType.ME3_TYPE)
-            {
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_CON_APP01\CookedPCConsole\BioH_EDI_03.pcc",
-                    modName = "DLC_CON_APP01",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_CON_DH1\CookedPCConsole\BioD_DHME2_Chp2.pcc",
-                    modName = "DLC_CON_DH1",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_CON_END\CookedPCConsole\BioA_End002_Bunker.pcc",
-                    modName = "DLC_CON_END",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_CON_GUN01\CookedPCConsole\SFXWeapon_AssaultRifle_Quarian.pcc",
-                    modName = "DLC_CON_GUN01",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_CON_GUN02\CookedPCConsole\SFXWeapon_Pistol_Bloodpack.pcc",
-                    modName = "DLC_CON_GUN02",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_CON_MP1\CookedPCConsole\Batarian_Sentinel_MP.pcc",
-                    modName = "DLC_CON_MP1",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_CON_MP2\CookedPCConsole\BioA_MPJngl_Vista.pcc",
-                    modName = "DLC_CON_MP2",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_CON_MP3\CookedPCConsole\BioA_MPHosp_BSP2.pcc",
-                    modName = "DLC_CON_MP3",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_CON_MP4\CookedPCConsole\Asari_Sentinel_MP.pcc",
-                    modName = "DLC_CON_MP4",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_CON_MP5\CookedPCConsole\Fembot_Infiltrator_MP.pcc",
-                    modName = "DLC_CON_MP5",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_EXP_Pack001\CookedPCConsole\BioA_Lev002_000LevelTrans.pcc",
-                    modName = "DLC_EXP_Pack001",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_EXP_Pack002\CookedPCConsole\BioA_Omg001_200Docks.pcc",
-                    modName = "DLC_EXP_Pack002",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_EXP_Pack003\CookedPCConsole\BioD_Cit002_020Crowds.pcc",
-                    modName = "DLC_EXP_Pack003",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_EXP_Pack003_Base\CookedPCConsole\BioA_Cit001_Fall.pcc",
-                    modName = "DLC_EXP_Pack003_Base",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_HEN_PR\CookedPCConsole\BioA_Cat001_050GlobalB.pcc",
-                    modName = "DLC_HEN_PR",
-                });
-                mods.Add(new MD5ModFileEntry
-                {
-                    path = @"\BioGame\DLC\DLC_OnlinePassHidCE\CookedPCConsole\BioH_Kaidan_02.pcc",
-                    modName = "DLC_OnlinePassHidCE",
-                });
-            }
-
             Console.WriteLine("\nChecking for vanilla files after textures installation...");
-            for (int p = 0; p < mods.Count(); p++)
+            string path = "";
+            if (GameData.gameType == MeType.ME1_TYPE)
             {
-                MD5ModFileEntry mod = mods[p];
-                if (!File.Exists(GameData.GamePath + mod.path))
+                path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
+            }
+            if (GameData.gameType == MeType.ME2_TYPE)
+            {
+                path = @"\BioGame\CookedPC\BIOC_Materials.pcc".ToLowerInvariant();
+            }
+            List<string> filesToUpdate = new List<string>();
+            for (int i = 0; i < GameData.packageFiles.Count; i++)
+            {
+                if (path != "" && GameData.packageFiles[i].ToLowerInvariant().Contains(path))
                     continue;
-                if (mod.md5 != null)
+                filesToUpdate.Add(path);
+            }
+            for (int i = 0; i < filesToUpdate.Count; i++)
+            {
+                if (ipc)
                 {
-                    byte[] md5 = calculateMD5(GameData.GamePath + mod.path);
-                    if (!StructuralComparisons.StructuralEqualityComparer.Equals(md5, mod.md5))
-                        continue;
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + filesToUpdate[i]);
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + ((i + 1) * 100 / filesToUpdate.Count));
+                    Console.Out.Flush();
                 }
-                Package pkg = new Package(GameData.GamePath + mod.path, true);
-                for (int l = 0; l < pkg.exportsTable.Count; l++)
+                try
                 {
-                    int id = pkg.getClassNameId(pkg.exportsTable[l].classId);
-                    if (id == pkg.nameIdTexture2D ||
-                        id == pkg.nameIdTextureFlipBook)
+                    using (FileStream fs = new FileStream(filesToUpdate[i], FileMode.Open, FileAccess.Read))
                     {
-                        using (Texture texture = new Texture(pkg, l, pkg.getExportData(l), false))
+                        fs.SeekEnd();
+                        fs.Seek(-Package.MEMendFileMarker.Length, SeekOrigin.Current);
+                        string marker = fs.ReadStringASCII(Package.MEMendFileMarker.Length);
+                        if (marker != Package.MEMendFileMarker)
                         {
-                            if (texture.hasImageData() &&
-                                texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
+                            if (ipc)
                             {
-                                Console.WriteLine("Mod: " + mod.modName + " - Package: " + mod.path);
-                                if (ipc)
-                                {
-                                    Console.WriteLine("[IPC]ERROR_VANILLA_MOD_FILE " + mod.modName + " - " + mod.path);
-                                    Console.Out.Flush();
-                                }
-                                break;
+                                Console.WriteLine("[IPC]ERROR_VANILLA_MOD_FILE " + filesToUpdate[i]);
+                                Console.Out.Flush();
                             }
                         }
                     }
                 }
+                catch
+                {
+                    Console.WriteLine("The file could not be opened, skipped: " + GameData.packageFiles[i]);
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]ERROR The file could not be opened: " + GameData.packageFiles[i]);
+                        Console.Out.Flush();
+                    }
+                }
             }
+
             Console.WriteLine("Finished checking for vanilla files after textures installation");
 
             return true;

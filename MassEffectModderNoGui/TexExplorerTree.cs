@@ -34,7 +34,7 @@ namespace MassEffectModder
         public List<FoundTexture> treeScan = null;
         private bool generateBuiltinMapFiles = false; // change to true to enable map files generation
 
-        public bool PrepareListOfTextures(CachePackageMgr cachePackageMgr, bool ipc, bool force = false)
+        public bool PrepareListOfTextures(CachePackageMgr cachePackageMgr, bool ipc)
         {
             treeScan = null;
 
@@ -44,116 +44,8 @@ namespace MassEffectModder
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
             string filename = Path.Combine(path, "me" + (int)GameData.gameType + "map.bin");
-            if (force && File.Exists(filename))
-                File.Delete(filename);
-
-            if (File.Exists(filename))
-            {
-                using (FileStream fs = new FileStream(filename, FileMode.Open, FileAccess.ReadWrite))
-                {
-                    uint tag = fs.ReadUInt32();
-                    uint version = fs.ReadUInt32();
-                    if (tag != textureMapBinTag || version != textureMapBinVersion)
-                    {
-                        fs.Close();
-                        string err = "Detected wrong or old version of textures scan file!" + Environment.NewLine;
-                        err += "You need to restore the game to vanilla state then reinstall optional DLC/PCC mods." + Environment.NewLine;
-                        Console.WriteLine(err);
-                        if (ipc)
-                        {
-                            Console.WriteLine("[IPC]ERROR: Detected wrong or old version of textures scan file!");
-                            Console.Out.Flush();
-                        }
-                        return false;
-                    }
-
-                    uint countTexture = fs.ReadUInt32();
-                    for (int i = 0; i < countTexture; i++)
-                    {
-                        FoundTexture texture = new FoundTexture();
-                        int len = fs.ReadInt32();
-                        texture.name = fs.ReadStringASCII(len);
-                        texture.crc = fs.ReadUInt32();
-                        uint countPackages = fs.ReadUInt32();
-                        texture.list = new List<MatchedTexture>();
-                        for (int k = 0; k < countPackages; k++)
-                        {
-                            MatchedTexture matched = new MatchedTexture();
-                            matched.exportID = fs.ReadInt32();
-                            matched.linkToMaster = fs.ReadInt32();
-                            len = fs.ReadInt32();
-                            matched.path = fs.ReadStringASCII(len);
-                            texture.list.Add(matched);
-                        }
-                        textures.Add(texture);
-                    }
-
-                    List<string> packages = new List<string>();
-                    int numPackages = fs.ReadInt32();
-                    for (int i = 0; i < numPackages; i++)
-                    {
-                        int len = fs.ReadInt32();
-                        string pkgPath = fs.ReadStringASCII(len);
-                        pkgPath = GameData.GamePath + pkgPath;
-                        packages.Add(pkgPath);
-                    }
-                    for (int i = 0; i < packages.Count; i++)
-                    {
-                        if (GameData.packageFiles.Find(s => s.Equals(packages[i], StringComparison.OrdinalIgnoreCase)) == null)
-                        {
-                            if (!force)
-                            {
-                                Console.WriteLine("Detected removal of game files since last game data scan." + Environment.NewLine + Environment.NewLine +
-                                "You need to restore the game to vanilla state then reinstall optional DLC/PCC mods.");
-                                if (ipc)
-                                {
-                                    Console.WriteLine("[IPC]ERROR: Detected removal of game files since last game data scan.");
-                                    Console.Out.Flush();
-                                }
-                                return false;
-                            }
-                        }
-                    }
-                    for (int i = 0; i < GameData.packageFiles.Count; i++)
-                    {
-                        if (packages.Find(s => s.Equals(GameData.packageFiles[i], StringComparison.OrdinalIgnoreCase)) == null)
-                        {
-                            if (!force)
-                            {
-                                Console.WriteLine("Detected additional game files not present in latest game data scan." + Environment.NewLine + Environment.NewLine +
-                                "You need to restore the game to vanilla state then reinstall optional DLC/PCC mods.");
-                                if (ipc)
-                                {
-                                    Console.WriteLine("[IPC]ERROR: Detected additional game files not present in latest game data scan.");
-                                    Console.Out.Flush();
-                                }
-                                return false;
-                            }
-                        }
-                    }
-
-                    treeScan = textures;
-                }
-            }
-
-
             if (File.Exists(filename))
                 File.Delete(filename);
-
-            if (MipMaps.checkGameDataModded(cachePackageMgr))
-            {
-                if (!force)
-                {
-                    Console.WriteLine("Detected modded game. Can not continue." + Environment.NewLine + Environment.NewLine +
-                    "You need to restore the game to vanilla state then reinstall optional DLC/PCC mods.");
-                    if (ipc)
-                    {
-                        Console.WriteLine("[IPC]ERROR Detected modded game. Can not continue.");
-                        Console.Out.Flush();
-                    }
-                    return false;
-                }
-            }
 
             GameData.packageFiles.Sort();
             if (ipc)
