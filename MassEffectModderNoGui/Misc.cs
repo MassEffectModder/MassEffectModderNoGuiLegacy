@@ -1240,7 +1240,7 @@ namespace MassEffectModder
             {
                 if (path != "" && GameData.packageFiles[i].ToLowerInvariant().Contains(path))
                     continue;
-                filesToUpdate.Add(path);
+                filesToUpdate.Add(GameData.packageFiles[i].ToLowerInvariant());
             }
             for (int i = 0; i < filesToUpdate.Count; i++)
             {
@@ -1259,6 +1259,7 @@ namespace MassEffectModder
                         string marker = fs.ReadStringASCII(Package.MEMendFileMarker.Length);
                         if (marker != Package.MEMendFileMarker)
                         {
+                            Console.WriteLine("Altered file: " + filesToUpdate[i]);
                             if (ipc)
                             {
                                 Console.WriteLine("[IPC]ERROR_VANILLA_MOD_FILE " + filesToUpdate[i]);
