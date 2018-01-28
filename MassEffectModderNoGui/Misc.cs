@@ -1252,7 +1252,7 @@ namespace MassEffectModder
                 }
                 try
                 {
-                    using (FileStream fs = new FileStream(filesToUpdate[i], FileMode.Open, FileAccess.Read))
+                    using (FileStream fs = new FileStream(GameData.GamePath + filesToUpdate[i], FileMode.Open, FileAccess.Read))
                     {
                         fs.SeekEnd();
                         fs.Seek(-Package.MEMendFileMarker.Length, SeekOrigin.Current);
@@ -1269,10 +1269,10 @@ namespace MassEffectModder
                 }
                 catch
                 {
-                    Console.WriteLine("The file could not be opened, skipped: " + GameData.packageFiles[i]);
+                    Console.WriteLine("The file could not be opened, skipped: " + filesToUpdate[i]);
                     if (ipc)
                     {
-                        Console.WriteLine("[IPC]ERROR The file could not be opened: " + GameData.packageFiles[i]);
+                        Console.WriteLine("[IPC]ERROR The file could not be opened: " + filesToUpdate[i]);
                         Console.Out.Flush();
                     }
                 }

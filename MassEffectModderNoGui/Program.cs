@@ -560,10 +560,6 @@ namespace MassEffectModder
                 if (!CmdLineTools.ApplyModTag(gameId, alotV, meuitmV))
                     goto fail;
             }
-            else if (cmd.Equals("-quick-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase))
-            {
-                loadEmbeddedDlls();
-            }
             else if (cmd.Equals("-detect-mods", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
