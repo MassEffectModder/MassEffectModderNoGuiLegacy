@@ -487,9 +487,14 @@ namespace MassEffectModder
                     ushort flag = fs.ReadUInt16(); // read flags
                     if ((flag & 0x20) != 0x20) // check for LAA flag
                     {
+                        Console.WriteLine("Patching ME1 for LAA: " + GameData.GameExePath);
                         flag |= 0x20;
                         fs.Skip(-2);
                         fs.WriteUInt16(flag); // write LAA flag
+                    }
+                    else
+                    {
+                        Console.WriteLine("File already has LAA flag enabled: " + GameData.GameExePath);
                     }
                 }
                 // search for "ProductName Mass Effect"
@@ -522,11 +527,19 @@ namespace MassEffectModder
                     // replace to "Mass_Effect"
                     buffer[pos + 34] = 0x5f;
                     File.WriteAllBytes(GameData.GameExePath, buffer);
+                    Console.WriteLine("Patching ME1 for Product Name: " + GameData.GameExePath);
+                }
+                else
+                {
+                    Console.WriteLine("Specific Product Name not found or already changed: " + GameData.GameExePath);
                 }
                 return true;
             }
-
-            return false;
+            else
+            {
+                Console.WriteLine("File not found: " + GameData.GameExePath);
+                return false;
+            }
         }
 
         static public FoundTexture ParseLegacyMe3xScriptMod(List<FoundTexture> textures, string script, string textureName)
