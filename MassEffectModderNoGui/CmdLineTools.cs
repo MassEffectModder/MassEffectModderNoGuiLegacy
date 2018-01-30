@@ -150,7 +150,15 @@ namespace MassEffectModder
             textures = new List<FoundTexture>();
 
             if (!File.Exists(path))
+            {
+                Console.WriteLine("Missing textures scan file!" + Environment.NewLine);
+                if (ipc)
+                {
+                    Console.WriteLine("ERROR_TEXTURE_MAP_MISSING");
+                    Console.Out.Flush();
+                }
                 return false;
+            }
 
             using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
             {
@@ -159,6 +167,11 @@ namespace MassEffectModder
                 if (tag != textureMapBinTag || version != textureMapBinVersion)
                 {
                     Console.WriteLine("Detected wrong or old version of textures scan file!" + Environment.NewLine);
+                    if (ipc)
+                    {
+                        Console.WriteLine("ERROR_TEXTURE_MAP_WRONG");
+                        Console.Out.Flush();
+                    }
                     return false;
                 }
 
