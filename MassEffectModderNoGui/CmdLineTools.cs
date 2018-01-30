@@ -154,7 +154,7 @@ namespace MassEffectModder
                 Console.WriteLine("Missing textures scan file!" + Environment.NewLine);
                 if (ipc)
                 {
-                    Console.WriteLine("ERROR_TEXTURE_MAP_MISSING");
+                    Console.WriteLine("[IPC]ERROR_TEXTURE_MAP_MISSING");
                     Console.Out.Flush();
                 }
                 return false;
@@ -169,7 +169,7 @@ namespace MassEffectModder
                     Console.WriteLine("Detected wrong or old version of textures scan file!" + Environment.NewLine);
                     if (ipc)
                     {
-                        Console.WriteLine("ERROR_TEXTURE_MAP_WRONG");
+                        Console.WriteLine("[IPC]ERROR_TEXTURE_MAP_WRONG");
                         Console.Out.Flush();
                     }
                     return false;
