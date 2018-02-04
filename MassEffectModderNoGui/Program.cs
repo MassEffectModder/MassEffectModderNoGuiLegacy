@@ -514,8 +514,14 @@ namespace MassEffectModder
             }
             else if (cmd.Equals("-repack", StringComparison.OrdinalIgnoreCase))
             {
+                if (gameId != MeType.ME2_TYPE)
+                {
+                    Console.WriteLine("Error: Repack only supported on ME2.");
+                    goto fail;
+                }
+
                 loadEmbeddedDlls();
-                if (!CmdLineTools.RepackGameData(gameId, ipc))
+                if (!CmdLineTools.RepackGameData(ipc))
                     goto fail;
             }
             else if (cmd.Equals("-scan-with-remove", StringComparison.OrdinalIgnoreCase))

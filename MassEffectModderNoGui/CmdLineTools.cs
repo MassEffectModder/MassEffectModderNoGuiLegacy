@@ -1766,16 +1766,10 @@ namespace MassEffectModder
             return true;
         }
 
-        public static bool RepackGameData(MeType gameId, bool ipc)
+        public static bool RepackGameData(bool ipc)
         {
-            if (gameId != MeType.ME2_TYPE)
-            {
-                Console.WriteLine("Error: Repack only supported on ME2.");
-                return false;
-            }
-
             ConfIni configIni = new ConfIni();
-            GameData gameData = new GameData(gameId, configIni);
+            GameData gameData = new GameData(MeType.ME2_TYPE, configIni);
             if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
             {
                 Console.WriteLine("Error: Could not found the game!");
