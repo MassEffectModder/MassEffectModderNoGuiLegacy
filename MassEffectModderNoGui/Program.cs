@@ -218,7 +218,7 @@ namespace MassEffectModder
             Console.WriteLine("     Apply LAA patch to ME1 executable.\n");
             Console.WriteLine("");
             Console.WriteLine("  -repack <game id> [-ipc]\n");
-            Console.WriteLine("     Recompress ME1/ME1 package files to ZLib.\n");
+            Console.WriteLine("     Recompress ME2 package files to ZLib.\n");
             Console.WriteLine("");
             Console.WriteLine("  -scan-with-remove <game id> [-ipc]\n");
             Console.WriteLine("     Scan textures and remove empty mipmaps.\n");

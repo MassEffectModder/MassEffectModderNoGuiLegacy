@@ -1739,8 +1739,8 @@ namespace MassEffectModder
             }
             if (GameData.gameType == MeType.ME1_TYPE)
             {
-                mipMaps.removeMipMapsME1(1, textures, null, ipc, repack);
-                mipMaps.removeMipMapsME1(2, textures, null, ipc, repack);
+                mipMaps.removeMipMapsME1(1, textures, null, ipc, false);
+                mipMaps.removeMipMapsME1(2, textures, null, ipc, false);
             }
             else
             {
@@ -1768,6 +1768,12 @@ namespace MassEffectModder
 
         public static bool RepackGameData(MeType gameId, bool ipc)
         {
+            if (gameId != MeType.ME2_TYPE)
+            {
+                Console.WriteLine("Error: Repack only supported on ME2.");
+                return false;
+            }
+
             ConfIni configIni = new ConfIni();
             GameData gameData = new GameData(gameId, configIni);
             if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
@@ -1777,18 +1783,10 @@ namespace MassEffectModder
             }
 
             gameData.getPackages(true);
-            string path = "";
-            if (gameId == MeType.ME1_TYPE)
-            {
-                path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
-            }
-            if (gameId == MeType.ME2_TYPE)
-            {
-                path = @"\BioGame\CookedPC\BIOC_Materials.pcc".ToLowerInvariant();
-            }
+            string path = @"\BioGame\CookedPC\BIOC_Materials.pcc".ToLowerInvariant();
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
-                if (path != "" && GameData.packageFiles[i].ToLowerInvariant().Contains(path))
+                if (GameData.packageFiles[i].ToLowerInvariant().Contains(path))
                     continue;
                 if (ipc)
                 {
@@ -1913,6 +1911,9 @@ namespace MassEffectModder
             gameData.getPackages(true);
             if (gameId != MeType.ME1_TYPE)
                 gameData.getTfcTextures();
+
+            if (gameId == MeType.ME1_TYPE)
+                repack = false;
 
             string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     Program.MAINEXENAME);
