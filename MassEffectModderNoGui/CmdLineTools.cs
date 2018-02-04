@@ -1800,6 +1800,31 @@ namespace MassEffectModder
             return true;
         }
 
+        public static bool RepackGameDataME1(bool ipc)
+        {
+            string path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
+            for (int i = 0; i < GameData.packageFiles.Count; i++)
+            {
+                if (GameData.packageFiles[i].ToLowerInvariant().Contains(path))
+                    continue;
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / GameData.packageFiles.Count));
+                    Console.Out.Flush();
+                }
+                Package package = new Package(GameData.packageFiles[i], true, true);
+                if (package.compressed && package.compressionType != Package.CompressionType.Zlib)
+                {
+                    package.Dispose();
+                    package = new Package(GameData.packageFiles[i]);
+                    package.SaveToFile(true);
+                }
+            }
+
+            return true;
+        }
+
         public static bool CheckGameData(MeType gameId, bool wihtoutSfars, bool onlyVanilla, bool backupMode, bool ipc)
         {
             ConfIni configIni = new ConfIni();
@@ -1918,6 +1943,9 @@ namespace MassEffectModder
             List<string> modFiles = Directory.GetFiles(inputDir, "*.mem").Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
             modFiles.AddRange(Directory.GetFiles(inputDir, "*.tpf").Where(item => item.EndsWith(".tpf", StringComparison.OrdinalIgnoreCase)));
             bool status = applyMods(modFiles, repack, ipc);
+            // WA Force back to LZO2
+            if (gameId == MeType.ME1_TYPE)
+                RepackGameDataME1(ipc);
             return status;
         }
 
