@@ -1776,12 +1776,12 @@ namespace MassEffectModder
                 return false;
             }
 
-            gameData.getPackages(true);
             if (ipc)
             {
                 Console.WriteLine("[IPC]PHASE Repacking");
                 Console.Out.Flush();
             }
+            gameData.getPackages(true);
             string path = @"\BioGame\CookedPC\BIOC_Materials.pcc".ToLowerInvariant();
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
@@ -1828,12 +1828,12 @@ namespace MassEffectModder
                 return false;
             }
 
-            gameData.getPackages(true);
             if (ipc)
             {
                 Console.WriteLine("[IPC]PHASE Repacking");
                 Console.Out.Flush();
             }
+            gameData.getPackages(true);
             string path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
