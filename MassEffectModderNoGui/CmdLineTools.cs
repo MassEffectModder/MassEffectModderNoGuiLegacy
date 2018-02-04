@@ -1820,6 +1820,15 @@ namespace MassEffectModder
 
         public static bool RepackGameDataME1(bool ipc)
         {
+            ConfIni configIni = new ConfIni();
+            GameData gameData = new GameData(MeType.ME1_TYPE, configIni);
+            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
+            {
+                Console.WriteLine("Error: Could not found the game!");
+                return false;
+            }
+
+            gameData.getPackages(true);
             if (ipc)
             {
                 Console.WriteLine("[IPC]PHASE Repacking");
