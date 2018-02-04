@@ -1803,6 +1803,7 @@ namespace MassEffectModder
         public static bool RepackGameDataME1(bool ipc)
         {
             Console.WriteLine("[IPC]SET_STAGE_LABEL Finalizing packages");
+            Console.Out.Flush();
             string path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
@@ -1813,7 +1814,7 @@ namespace MassEffectModder
                     Console.Out.Flush();
                 }
                 Package package = new Package(GameData.packageFiles[i], true, true);
-                if (package.compressed && package.compressionType != Package.CompressionType.Zlib)
+                if (package.compressed && package.compressionType == Package.CompressionType.Zlib)
                 {
                     package.Dispose();
                     package = new Package(GameData.packageFiles[i]);
