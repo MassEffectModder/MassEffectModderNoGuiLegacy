@@ -1802,6 +1802,7 @@ namespace MassEffectModder
 
         public static bool RepackGameDataME1(bool ipc)
         {
+            Console.WriteLine("[IPC]SET_STAGE_LABEL Finalizing packages");
             string path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
@@ -1809,8 +1810,6 @@ namespace MassEffectModder
                     continue;
                 if (ipc)
                 {
-                    Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / GameData.packageFiles.Count));
                     Console.Out.Flush();
                 }
                 Package package = new Package(GameData.packageFiles[i], true, true);
