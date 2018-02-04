@@ -1778,7 +1778,7 @@ namespace MassEffectModder
 
             if (ipc)
             {
-                Console.WriteLine("[IPC]PHASE Repacking");
+                Console.WriteLine("[IPC]PHASE Repacking game files");
                 Console.Out.Flush();
             }
             gameData.getPackages(true);
@@ -1830,7 +1830,7 @@ namespace MassEffectModder
 
             if (ipc)
             {
-                Console.WriteLine("[IPC]PHASE Repacking");
+                Console.WriteLine("[IPC]PHASE Repacking game files");
                 Console.Out.Flush();
             }
             gameData.getPackages(true);
