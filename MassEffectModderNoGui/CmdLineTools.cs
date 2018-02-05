@@ -1803,6 +1803,7 @@ namespace MassEffectModder
                         package = new Package(GameData.packageFiles[i]);
                         package.SaveToFile(true);
                     }
+                    package.Dispose();
                 }
                 catch
                 {
@@ -1855,6 +1856,7 @@ namespace MassEffectModder
                         package = new Package(GameData.packageFiles[i]);
                         package.SaveToFile(true);
                     }
+                    package.Dispose();
                 }
                 catch
                 {
@@ -2648,6 +2650,7 @@ namespace MassEffectModder
                     int exportID = textures[i].list[0].exportID;
                     Package package = new Package(packagePath);
                     Texture texture = new Texture(package, exportID, package.getExportData(exportID));
+                    package.Dispose();
                     if (textureTfcFilter != "" && texture.properties.exists("TextureFileCacheName"))
                     {
                         string archive = texture.properties.getProperty("TextureFileCacheName").valueName;
