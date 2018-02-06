@@ -24,7 +24,7 @@ namespace MassEffectModder
     static partial class Misc
     {
         const string Mod_ME1FasterElevators = "ME1 Faster Elevators v1.1";
-        const string Mod_ME1Controller = "ME1 Controller v1.2.0";
+        const string Mod_ME1Controller = "ME1 Controller v1.2.0/1.2.2";
         const string Mod_ME1SameSexRomances = "ME1 Same-Sex Romances v2.0/3.0/3.1";
         const string Mod_ME2Controller = "ME2 Controller v1.7.2";
         const string Mod_ME2NoMiniGames = "ME2 No Mini Games v2.0.2";
@@ -221,6 +221,12 @@ new MD5ModFileEntry
 {
 path = @"\BioGame\CookedPC\Startup_int.upk",
 md5 = new byte[] { 0x77, 0x87, 0xC6, 0x24, 0x48, 0x8C, 0x71, 0x89, 0xF8, 0xFE, 0x3F, 0xF3, 0x03, 0xA6, 0x93, 0x53, },
+modName = Mod_ME1Controller,
+},
+new MD5ModFileEntry
+{
+path = @"\BioGame\CookedPC\Startup_int.upk",
+md5 = new byte[] { 0xf4, 0x0d, 0xe1, 0xfd, 0xe1, 0x7b, 0xc5, 0x8b, 0x91, 0xc6, 0xc9, 0x57, 0x18, 0xd3, 0x1b, 0x13, },
 modName = Mod_ME1Controller,
 },
 new MD5ModFileEntry
