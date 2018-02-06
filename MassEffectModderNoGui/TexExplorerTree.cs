@@ -211,14 +211,14 @@ namespace MassEffectModder
             {
                 string err = "";
                 err += "---- Start --------------------------------------------" + Environment.NewLine;
-                err += "Issue with open package file: " + packagePath + Environment.NewLine;
+                err += "Issue opening package file: " + packagePath + Environment.NewLine;
                 err += e.Message + Environment.NewLine + Environment.NewLine;
                 err += e.StackTrace + Environment.NewLine + Environment.NewLine;
                 err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
                 Console.WriteLine(err);
                 if (ipc)
                 {
-                    Console.WriteLine("[IPC]ERROR Issue with open package file: " + packagePath);
+                    Console.WriteLine("[IPC]ERROR Issue opening package file: " + packagePath);
                     Console.Out.Flush();
                 }
                 return;

@@ -85,14 +85,14 @@ namespace MassEffectModder
                 {
                     string err = "";
                     err += "---- Start --------------------------------------------" + Environment.NewLine;
-                    err += "Issue with open package file: " + GameData.packageFiles[i] + Environment.NewLine;
+                    err += "Issue opening package file: " + GameData.packageFiles[i] + Environment.NewLine;
                     err += e.Message + Environment.NewLine + Environment.NewLine;
                     err += e.StackTrace + Environment.NewLine + Environment.NewLine;
                     err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
                     Console.WriteLine(err);
                     if (ipc)
                     {
-                        Console.WriteLine("[IPC]ERROR Issue with open package file: " + GameData.packageFiles[i]);
+                        Console.WriteLine("[IPC]ERROR Issue opening package file: " + GameData.packageFiles[i]);
                         Console.Out.Flush();
                     }
                     continue;
@@ -245,14 +245,14 @@ skip:
                 {
                     string err = "";
                     err += "---- Start --------------------------------------------" + Environment.NewLine;
-                    err += "Issue with open package file: " + GameData.packageFiles[i] + Environment.NewLine;
+                    err += "Issue opening package file: " + GameData.packageFiles[i] + Environment.NewLine;
                     err += e.Message + Environment.NewLine + Environment.NewLine;
                     err += e.StackTrace + Environment.NewLine + Environment.NewLine;
                     err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
                     Console.WriteLine(err);
                     if (ipc)
                     {
-                        Console.WriteLine("[IPC]ERROR Issue with open package file: " + GameData.packageFiles[i]);
+                        Console.WriteLine("[IPC]ERROR Issue opening package file: " + GameData.packageFiles[i]);
                         Console.Out.Flush();
                     }
                     continue;

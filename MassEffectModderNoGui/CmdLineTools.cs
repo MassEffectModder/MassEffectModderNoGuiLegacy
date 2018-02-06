@@ -2814,11 +2814,11 @@ namespace MassEffectModder
                             }
                             catch
                             {
-                                Console.WriteLine("Error: Issue with open texture data: " +
+                                Console.WriteLine("Error: Issue opening texture data: " +
                                     package.exportsTable[i].objectName + "mipmap: " + m + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
                                 if (ipc)
                                 {
-                                    Console.WriteLine("[IPC]ERROR_TEXTURE_SCAN_DIAGNOSTIC Issue with open texture data: " +
+                                    Console.WriteLine("[IPC]ERROR_TEXTURE_SCAN_DIAGNOSTIC Issue opening texture data: " +
                                         package.exportsTable[i].objectName + "mipmap: " + m + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
                                     Console.Out.Flush();
                                 }
