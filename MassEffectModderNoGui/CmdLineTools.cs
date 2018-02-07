@@ -2708,32 +2708,8 @@ namespace MassEffectModder
                 Console.Out.Flush();
             }
 
-            string path = "";
-            if (GameData.gameType == MeType.ME1_TYPE)
-            {
-                path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
-            }
-            if (GameData.gameType == MeType.ME2_TYPE)
-            {
-                path = @"\BioGame\CookedPC\BIOC_Materials.pcc".ToLowerInvariant();
-            }
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
-                bool marked = false;
-                if (path != "" && !GameData.packageFiles[i].ToLowerInvariant().Contains(path))
-                {
-                    using (FileStream fs = new FileStream(GameData.packageFiles[i], FileMode.Open, FileAccess.Read))
-                    {
-                        fs.SeekEnd();
-                        fs.Seek(-Package.MEMendFileMarker.Length, SeekOrigin.Current);
-                        string marker = fs.ReadStringASCII(Package.MEMendFileMarker.Length);
-                        if (marker == Package.MEMendFileMarker)
-                        {
-                            marked = true;
-                        }
-                    }
-                }
-
                 Package package;
                 Console.WriteLine("Package " + (i + 1) + " of " + GameData.packageFiles.Count + " - " + GameData.RelativeGameData(GameData.packageFiles[i]));
                 if (ipc)
@@ -2791,7 +2767,7 @@ namespace MassEffectModder
                         if (!texture.hasImageData())
                             continue;
 
-                        if (marked && texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
+                        if (texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
                         {
                             Console.WriteLine("ERROR: Empty mipmaps not removed in texture: " +
                                 package.exportsTable[e].objectName + " in package: " +
