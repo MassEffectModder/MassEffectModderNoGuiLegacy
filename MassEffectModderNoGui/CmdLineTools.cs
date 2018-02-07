@@ -1721,7 +1721,7 @@ namespace MassEffectModder
                 return false;
             }
 
-            gameData.getPackages(true);
+            gameData.getPackages();
             if (gameId != MeType.ME1_TYPE)
                 gameData.getTfcTextures();
 
@@ -1781,7 +1781,7 @@ namespace MassEffectModder
                 Console.WriteLine("[IPC]PHASE Repacking game files");
                 Console.Out.Flush();
             }
-            gameData.getPackages(true);
+            gameData.getPackages();
             string path = @"\BioGame\CookedPC\BIOC_Materials.pcc".ToLowerInvariant();
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
@@ -1834,7 +1834,7 @@ namespace MassEffectModder
                 Console.WriteLine("[IPC]PHASE Repacking game files");
                 Console.Out.Flush();
             }
-            gameData.getPackages(true);
+            gameData.getPackages();
             string path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
@@ -1974,7 +1974,7 @@ namespace MassEffectModder
                 return false;
             }
 
-            gameData.getPackages(true);
+            gameData.getPackages();
             if (gameId != MeType.ME1_TYPE)
                 gameData.getTfcTextures();
 
@@ -2004,7 +2004,7 @@ namespace MassEffectModder
                 return false;
             }
 
-            gameData.getPackages(true);
+            gameData.getPackages();
             gameData.getTfcTextures();
 
             string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -2619,7 +2619,7 @@ namespace MassEffectModder
                 return false;
             }
 
-            gameData.getPackages(true);
+            gameData.getPackages();
             if (gameId != MeType.ME1_TYPE)
                 gameData.getTfcTextures();
 

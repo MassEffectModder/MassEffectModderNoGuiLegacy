@@ -1150,7 +1150,7 @@ namespace MassEffectModder
                 return false;
             }
 
-            gameData.getPackages(true);
+            gameData.getPackages();
 
             string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     Program.MAINEXENAME);
@@ -1236,7 +1236,7 @@ namespace MassEffectModder
                 return false;
             }
 
-            gameData.getPackages(true);
+            gameData.getPackages();
 
             Console.WriteLine("\nChecking for vanilla files after textures installation...");
             string path = "";
