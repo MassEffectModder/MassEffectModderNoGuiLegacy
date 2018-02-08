@@ -212,7 +212,7 @@ namespace MassEffectModder
                         Console.WriteLine("Detected removal of game files since last game data scan." + Environment.NewLine + Environment.NewLine);
                         if (ipc)
                         {
-                            Console.WriteLine("[IPC]ERROR: Detected removal of game files since last game data scan.");
+                            Console.WriteLine("[IPC]ERROR_REMOVED_FILE Detected removal of game files since last game data scan.");
                             Console.Out.Flush();
                         }
                         return false;
@@ -225,7 +225,7 @@ namespace MassEffectModder
                         Console.WriteLine("Detected additional game files not present in latest game data scan." + Environment.NewLine + Environment.NewLine);
                         if (ipc)
                         {
-                            Console.WriteLine("[IPC]ERROR: Detected additional game files not present in latest game data scan.");
+                            Console.WriteLine("[IPC]ERROR_ADDED_FILE Detected additional game files not present in latest game data scan.");
                             Console.Out.Flush();
                         }
                         return false;
