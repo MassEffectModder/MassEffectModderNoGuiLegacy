@@ -219,6 +219,7 @@ namespace MassEffectModder
             Console.WriteLine("");
             Console.WriteLine("  -repack <game id> [-ipc]\n");
             Console.WriteLine("     Recompress ME2 package files to ZLib.\n");
+            Console.WriteLine("     Compress back ME3 DLC package files.\n");
             Console.WriteLine("");
             Console.WriteLine("  -scan-with-remove <game id> [-ipc]\n");
             Console.WriteLine("     Scan textures and remove empty mipmaps.\n");
@@ -520,6 +521,9 @@ namespace MassEffectModder
                         goto fail;
                 if (gameId == MeType.ME2_TYPE)
                     if (!CmdLineTools.RepackGameDataME2(ipc))
+                        goto fail;
+                if (gameId == MeType.ME3_TYPE)
+                    if (!CmdLineTools.RepackGameDataME3(ipc))
                         goto fail;
             }
             else if (cmd.Equals("-scan-with-remove", StringComparison.OrdinalIgnoreCase))

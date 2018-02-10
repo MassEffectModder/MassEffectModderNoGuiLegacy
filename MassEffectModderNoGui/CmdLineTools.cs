@@ -1766,6 +1766,59 @@ namespace MassEffectModder
             return true;
         }
 
+        public static bool RepackGameDataME1(bool ipc)
+        {
+            ConfIni configIni = new ConfIni();
+            GameData gameData = new GameData(MeType.ME1_TYPE, configIni);
+            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
+            {
+                Console.WriteLine("Error: Could not found the game!");
+                return false;
+            }
+
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]PHASE Repacking game files");
+                Console.Out.Flush();
+            }
+            gameData.getPackages();
+            string path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
+            for (int i = 0; i < GameData.packageFiles.Count; i++)
+            {
+                if (GameData.packageFiles[i].ToLowerInvariant().Contains(path))
+                    continue;
+                Console.WriteLine("File: " + GameData.packageFiles[i]);
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / GameData.packageFiles.Count));
+                    Console.Out.Flush();
+                }
+                try
+                {
+                    Package package = new Package(GameData.packageFiles[i], true, true);
+                    if (package.compressed && package.compressionType == Package.CompressionType.Zlib)
+                    {
+                        package.Dispose();
+                        package = new Package(GameData.packageFiles[i]);
+                        package.SaveToFile(true);
+                    }
+                    package.Dispose();
+                }
+                catch
+                {
+                    Console.WriteLine("Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]ERROR Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                        Console.Out.Flush();
+                    }
+                }
+            }
+
+            return true;
+        }
+
         public static bool RepackGameDataME2(bool ipc)
         {
             ConfIni configIni = new ConfIni();
@@ -1819,10 +1872,10 @@ namespace MassEffectModder
             return true;
         }
 
-        public static bool RepackGameDataME1(bool ipc)
+        public static bool RepackGameDataME3(bool ipc)
         {
             ConfIni configIni = new ConfIni();
-            GameData gameData = new GameData(MeType.ME1_TYPE, configIni);
+            GameData gameData = new GameData(MeType.ME3_TYPE, configIni);
             if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
             {
                 Console.WriteLine("Error: Could not found the game!");
@@ -1835,11 +1888,8 @@ namespace MassEffectModder
                 Console.Out.Flush();
             }
             gameData.getPackages();
-            string path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
-                if (GameData.packageFiles[i].ToLowerInvariant().Contains(path))
-                    continue;
                 Console.WriteLine("File: " + GameData.packageFiles[i]);
                 if (ipc)
                 {
@@ -1850,11 +1900,11 @@ namespace MassEffectModder
                 try
                 {
                     Package package = new Package(GameData.packageFiles[i], true, true);
-                    if (package.compressed && package.compressionType == Package.CompressionType.Zlib)
+                    if (!package.compressed)
                     {
                         package.Dispose();
                         package = new Package(GameData.packageFiles[i]);
-                        package.SaveToFile(true);
+                        package.SaveToFile(false, true);
                     }
                     package.Dispose();
                 }
