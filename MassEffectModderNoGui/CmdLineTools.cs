@@ -1673,16 +1673,10 @@ namespace MassEffectModder
         {
             ConfIni configIni = new ConfIni();
             GameData gameData = new GameData(gameId, configIni);
-            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
-            {
-                Console.WriteLine("Error: Could not found the game!");
-                return false;
-            }
-
             string path = gameData.EngineConfigIniPath;
             bool exist = File.Exists(path);
             if (!exist)
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                return true;
             ConfIni engineConf = new ConfIni(path);
             LODSettings.removeLOD(gameId, engineConf);
 
@@ -1693,16 +1687,10 @@ namespace MassEffectModder
         {
             ConfIni configIni = new ConfIni();
             GameData gameData = new GameData(gameId, configIni);
-            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
-            {
-                Console.WriteLine("Error: Could not found the game!");
-                return false;
-            }
-
             string path = gameData.EngineConfigIniPath;
             bool exist = File.Exists(path);
             if (!exist)
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                return true;
             ConfIni engineConf = new ConfIni(path);
             string log = "";
             LODSettings.readLOD(gameId, engineConf, ref log);
