@@ -253,6 +253,13 @@ namespace MassEffectModder
             Console.WriteLine("           Naming pattern used for package in base directory:");
             Console.WriteLine("             B<pkg filename length>-<pkg filename>-E<pkg export id>.bin");
             Console.WriteLine("             example: B23-BioH_EDI_00_Explore.pcc-E5090.bin");
+            Console.WriteLine("        XDELTA - package export xdelta3 patch data");
+            Console.WriteLine("           Naming pattern used for package in DLC:");
+            Console.WriteLine("             D<DLC dir length>-<DLC dir>-<pkg filename length>-<pkg filename>-E<pkg export id>.xdelta");
+            Console.WriteLine("             example: D10-DLC_HEN_PR-23-BioH_EDI_02_Explore.pcc-E6101.xdelta");
+            Console.WriteLine("           Naming pattern used for package in base directory:");
+            Console.WriteLine("             B<pkg filename length>-<pkg filename>-E<pkg export id>.xdelta");
+            Console.WriteLine("             example: B23-BioH_EDI_00_Explore.pcc-E5090.xdelta");
             Console.WriteLine("        DDS, BMP, TGA, PNG, JPG, JPEG");
             Console.WriteLine("           input format supported for DDS images:");
             Console.WriteLine("              DXT1, DXT3, DTX5, ATI2, V8U8, G8, RGBA, RGB");
