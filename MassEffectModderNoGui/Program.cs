@@ -582,20 +582,17 @@ namespace MassEffectModder
             }
             else if (cmd.Equals("-apply-lods-gfx", StringComparison.OrdinalIgnoreCase))
             {
-                bool limit2k = false;
                 bool softShadowsME1 = false;
                 bool meuitmMode = false;
                 for (int l = 0; l < args.Length; l++)
                 {
-                    if (args[l].ToLowerInvariant() == "-limit2k")
-                        limit2k = true;
                     if (args[l].ToLowerInvariant() == "-soft-shadows-mode")
                         softShadowsME1 = true;
                     if (args[l].ToLowerInvariant() == "-meuitm-mode")
                         meuitmMode = true;
                 }
 
-                if (!CmdLineTools.ApplyLODAndGfxSettings(gameId, limit2k, softShadowsME1, meuitmMode))
+                if (!CmdLineTools.ApplyLODAndGfxSettings(gameId, softShadowsME1, meuitmMode))
                     goto fail;
             }
             else if (cmd.Equals("-remove-lods", StringComparison.OrdinalIgnoreCase))
