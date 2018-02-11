@@ -1919,6 +1919,8 @@ namespace MassEffectModder
                 }
             }
 
+            TOCBinFile.UpdateAllTOCBinFiles();
+
             return true;
         }
 
