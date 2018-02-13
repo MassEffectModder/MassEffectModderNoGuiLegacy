@@ -19,13 +19,17 @@
  *
  */
 
+using Microsoft.Win32;
 using StreamHelpers;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text;
 using System.Windows.Forms;
 
@@ -72,12 +76,27 @@ namespace MassEffectModder
             }
             try
             {
-                using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Write))
+                using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.ReadWrite))
                 {
-                    fs.SeekEnd();
-                    fs.WriteInt32(MeuitmV);
-                    fs.WriteInt32(AlotV);
-                    fs.WriteInt32(int.Parse(Application.ProductVersion));
+                    fs.Seek(-16, SeekOrigin.End);
+                    int prevMeuitmV = fs.ReadInt32();
+                    int prevAlotV = fs.ReadInt32();
+                    int prevProductV = fs.ReadInt32();
+                    uint memiTag = fs.ReadUInt32();
+                    if (memiTag == MEMI_TAG)
+                    {
+                        if (prevProductV < 10 || prevProductV == 4352 || prevProductV == 16777472) // default before MEM v178
+                            prevProductV = prevAlotV = prevMeuitmV = 0;
+                    }
+                    else
+                        prevProductV = prevAlotV = prevMeuitmV = 0;
+                    if (MeuitmV != 0)
+                        prevMeuitmV = MeuitmV;
+                    if (AlotV != 0)
+                        prevAlotV = AlotV;
+                    fs.WriteInt32(prevMeuitmV);
+                    fs.WriteInt32(prevAlotV);
+                    fs.WriteInt32((int)(prevProductV & 0xffff0000) | int.Parse(Application.ProductVersion));
                     fs.WriteUInt32(MEMI_TAG);
                 }
             }
@@ -238,8 +257,230 @@ namespace MassEffectModder
             return true;
         }
 
+        static public bool checkWriteAccessDir(string path)
+        {
+            try
+            {
+                using (FileStream fs = File.Create(Path.Combine(path, Path.GetRandomFileName()), 1, FileOptions.DeleteOnClose)) { }
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        static public bool checkWriteAccessFile(string path)
+        {
+            try
+            {
+                using (FileStream fs = File.OpenWrite(path)) { }
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        static public bool isRunAsAdministrator()
+        {
+            return (new WindowsPrincipal(WindowsIdentity.GetCurrent())).IsInRole(WindowsBuiltInRole.Administrator);
+        }
+
+        static public bool CheckAndCorrectAccessToGame(MeType gameId)
+        {
+            bool writeAccess = false;
+            if (checkWriteAccessDir(GameData.MainData))
+                writeAccess = true;
+            if (writeAccess && gameId == MeType.ME1_TYPE)
+            {
+                writeAccess = checkWriteAccessFile(GameData.GamePath + @"\BioGame\CookedPC\Packages\GameObjects\Characters\Humanoids\HumanMale\BIOG_HMM_HED_PROMorph.upk");
+            }
+            if (writeAccess && gameId == MeType.ME2_TYPE)
+            {
+                writeAccess = checkWriteAccessFile(GameData.GamePath + @"\BioGame\CookedPC\BioD_CitAsL.pcc");
+            }
+            if (writeAccess && gameId == MeType.ME3_TYPE)
+            {
+                writeAccess = checkWriteAccessFile(GameData.GamePath + @"\BioGame\CookedPCConsole\BioA_CitSam_000LevelTrans.pcc");
+            }
+
+            bool uac = false;
+            int? value = (int?)Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", "EnableLUA", null);
+            if (value != null && value > 0)
+                uac = true;
+
+            bool registryExists = false;
+            if (gameId == MeType.ME1_TYPE)
+            {
+                string keyRegistry = @"SOFTWARE\WOW6432Node\AGEIA Technologies";
+                RegistryKey key;
+                if (isRunAsAdministrator())
+                {
+                    string userName = WindowsIdentity.GetCurrent().Name;
+                    key = Registry.LocalMachine.CreateSubKey(keyRegistry);
+                    RegistrySecurity security = new RegistrySecurity();
+                    security = key.GetAccessControl();
+                    security.AddAccessRule(new RegistryAccessRule(userName, RegistryRights.WriteKey |
+                        RegistryRights.ReadKey | RegistryRights.Delete |
+                        RegistryRights.FullControl, InheritanceFlags.ContainerInherit |
+                        InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+                    key.SetAccessControl(security);
+                    key.Close();
+                    registryExists = true;
+                }
+                else
+                {
+                    try
+                    {
+                        key = Registry.LocalMachine.OpenSubKey(keyRegistry, true);
+                    }
+                    catch
+                    {
+                        key = null;
+                    }
+
+                    if (key != null)
+                    {
+                        key.Close();
+                        registryExists = true;
+                    }
+                }
+            }
+
+            string msg;
+            if (!uac && ((gameId == MeType.ME1_TYPE && !registryExists) || !writeAccess))
+            {
+                msg = "MEM is not able to";
+                if (!writeAccess)
+                {
+                    msg += " grant write access to game folders";
+                }
+                if (gameId == MeType.ME1_TYPE && !registryExists)
+                {
+                    if (!writeAccess)
+                        msg += " and";
+                    msg += " fix a ME1 launch issue";
+                }
+                msg += " because MEM does not have administrative rights and UAC is disabled.";
+                Console.WriteLine(msg);
+                return false;
+            }
+
+            if (!writeAccess || (gameId == MeType.ME1_TYPE && !registryExists))
+            {
+                msg = "Some";
+                if (!writeAccess)
+                {
+                    msg += " game folders";
+                }
+                if (gameId == MeType.ME1_TYPE && !registryExists)
+                {
+                    if (!writeAccess)
+                        msg += " and";
+                    msg += " registry keys";
+                }
+
+                msg += " are not writeable by your user account.\nMEM will attempt to grant access to";
+
+                if (!writeAccess)
+                {
+                    msg += " game folders";
+                }
+                if (gameId == MeType.ME1_TYPE && !registryExists)
+                {
+                    if (!writeAccess)
+                        msg += " and";
+                    msg += " registry keys";
+                }
+
+                msg += " with PermissionsGranter.exe program.\n\n";
+
+                if (!writeAccess)
+                {
+                    msg += "Game folder: " + GameData.GamePath + "\n\n";
+                }
+                if (gameId == MeType.ME1_TYPE && !registryExists)
+                {
+                    msg += "Registry: HKLM\\SOFTWARE\\WOW6432Node\\AGEIA Technologies\n";
+                    msg += "(Fixes a ME1 launch issue)";
+                }
+
+                Console.WriteLine(msg, "Granting permissions");
+
+                bool failedAccess = true;
+                string userName = WindowsIdentity.GetCurrent().Name;
+                try
+                {
+                    Process process = new Process();
+                    process.StartInfo.FileName = Path.Combine(Program.dllPath, "PermissionsGranter.exe");
+                    process.StartInfo.Arguments = "\"" + userName + "\"";
+                    if (gameId == MeType.ME1_TYPE && !registryExists)
+                        process.StartInfo.Arguments += " -create-hklm-reg-key \"SOFTWARE\\WOW6432Node\\AGEIA Technologies\"";
+                    if (!writeAccess)
+                        process.StartInfo.Arguments += " \"" + GameData.GamePath + "\"";
+                    process.StartInfo.CreateNoWindow = true;
+                    process.StartInfo.UseShellExecute = true;
+                    process.StartInfo.Verb = "runas";
+                    process.Start();
+                    process.WaitForExit(60000);
+                    if (process.ExitCode == 0)
+                        failedAccess = false;
+                }
+                catch
+                {
+                    failedAccess = true;
+                }
+
+                if (failedAccess)
+                {
+                    msg = "MEM is not able to";
+                    if (!writeAccess)
+                    {
+                        msg += " grant write access to game folders";
+                    }
+                    if (gameId == MeType.ME1_TYPE && !registryExists)
+                    {
+                        if (!writeAccess)
+                            msg += " and";
+                        msg += " fix a ME1 launch issue";
+                    }
+                    msg += " because MEM does not have administrative rights.";
+                    Console.WriteLine(msg);
+                    return false;
+                }
+
+                registryExists = true;
+            }
+
+            if (gameId == MeType.ME1_TYPE)
+                Misc.ApplyLAAForME1Exe();
+
+            if (gameId == MeType.ME1_TYPE && registryExists)
+            {
+                string gameExePath = GameData.GameExePath;
+                RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers", true);
+                if (key != null)
+                {
+                    string entry = (string)key.GetValue(gameExePath, null);
+                    if (entry != null)
+                    {
+                        entry = entry.Replace("RUNASADMIN", "");
+                        entry = entry.Replace("WINXPSP3", "");
+                        key.SetValue(gameExePath, entry);
+                    }
+                    key.Close();
+                }
+
+                Misc.ChangeProductNameForME1Exe();
+            }
+
+            return true;
+        }
+
         static public bool convertDataModtoMem(string inputDir, string memFilePath,
-            MeType gameId, ref string errors, bool onlyIndividual = false, bool ipc = false)
+            MeType gameId, ref string errors, bool ipc = false)
         {
             string[] files = null;
 
@@ -249,18 +490,10 @@ namespace MassEffectModder
 
             List<string> list;
             List<string> list2;
-            if (!onlyIndividual)
-            {
-                list = Directory.GetFiles(inputDir, "*.mem", SearchOption.AllDirectories).Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
-                list.Sort();
-                list2 = Directory.GetFiles(inputDir, "*.tpf", SearchOption.AllDirectories).Where(item => item.EndsWith(".tpf", StringComparison.OrdinalIgnoreCase)).ToList();
-                list2.AddRange(Directory.GetFiles(inputDir, "*.mod", SearchOption.AllDirectories).Where(item => item.EndsWith(".mod", StringComparison.OrdinalIgnoreCase)));
-            }
-            else
-            {
-                list = new List<string>();
-                list2 = new List<string>();
-            }
+            list = Directory.GetFiles(inputDir, "*.mem", SearchOption.AllDirectories).Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
+            list.Sort();
+            list2 = Directory.GetFiles(inputDir, "*.tpf", SearchOption.AllDirectories).Where(item => item.EndsWith(".tpf", StringComparison.OrdinalIgnoreCase)).ToList();
+            list2.AddRange(Directory.GetFiles(inputDir, "*.mod", SearchOption.AllDirectories).Where(item => item.EndsWith(".mod", StringComparison.OrdinalIgnoreCase)));
             list2.AddRange(Directory.GetFiles(inputDir, "*.bin", SearchOption.AllDirectories).Where(item => item.EndsWith(".bin", StringComparison.OrdinalIgnoreCase)));
             list2.AddRange(Directory.GetFiles(inputDir, "*.xdelta", SearchOption.AllDirectories).Where(item => item.EndsWith(".xdelta", StringComparison.OrdinalIgnoreCase)));
             list2.AddRange(Directory.GetFiles(inputDir, "*.dds", SearchOption.AllDirectories).Where(item => item.EndsWith(".dds", StringComparison.OrdinalIgnoreCase)));
@@ -648,7 +881,7 @@ namespace MassEffectModder
                                     if (Path.GetExtension(filename).ToLowerInvariant() != ".def" &&
                                         Path.GetExtension(filename).ToLowerInvariant() != ".log")
                                     {
-                                        errors += "Skipping file: " + filename + " not found in definition file, entry: " + 
+                                        errors += "Skipping file: " + filename + " not found in definition file, entry: " +
                                             (i + 1) + " - mod: " + relativeFilePath + Environment.NewLine;
                                         Console.WriteLine("Skipping file: " + filename + " not found in definition file, entry: " +
                                             (i + 1) + " - mod: " + relativeFilePath);
@@ -1075,7 +1308,7 @@ namespace MassEffectModder
         static public bool ConvertToMEM(MeType gameId, string inputDir, string memFile, bool ipc)
         {
             string errors = "";
-            bool status = convertDataModtoMem(inputDir, memFile, gameId, ref errors, false, ipc);
+            bool status = convertDataModtoMem(inputDir, memFile, gameId, ref errors, ipc);
             if (errors != "")
                 Console.WriteLine("Error: Some errors have occured");
 
@@ -1689,7 +1922,12 @@ namespace MassEffectModder
                 return false;
             }
 
-            return Misc.VerifyME1Exe(gameData);
+            if (!Misc.ApplyLAAForME1Exe())
+                return false;
+            if (!Misc.ChangeProductNameForME1Exe())
+                return false;
+
+            return true;
         }
 
         public static bool ApplyLODAndGfxSettings(MeType gameId, bool softShadowsME1, bool meuitmMode)
@@ -2047,7 +2285,260 @@ namespace MassEffectModder
             return true;
         }
 
-        public static bool InstallMods(MeType gameId, string inputDir, bool ipc, bool repack = false)
+        static private bool detectMod(int gameId)
+        {
+            string path;
+            if (gameId == 1)
+                path = GameData.GamePath + @"\BioGame\CookedPC\testVolumeLight_VFX.upk";
+            else if (gameId == 2)
+                path = GameData.GamePath + @"\BioGame\CookedPC\BIOC_Materials.pcc";
+            else
+                path = GameData.GamePath + @"\BIOGame\CookedPCConsole\adv_combat_tutorial_xbox_D_Int.afc";
+            try
+            {
+                using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
+                {
+                    fs.Seek(-4, SeekOrigin.End);
+                    if (fs.ReadUInt32() == MEMI_TAG)
+                        return true;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
+            return false;
+        }
+
+        private static bool ScanTextures(MeType gameId, bool ipc, bool repack = false)
+        {
+            Console.WriteLine("Scan textures started...");
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_SCAN");
+                Console.Out.Flush();
+            }
+
+            TreeScan treeScan = new TreeScan();
+            if (!treeScan.PrepareListOfTextures(null, ipc))
+                return false;
+            textures = treeScan.treeScan;
+            Console.WriteLine("Scan textures finished.\n");
+
+            return true;
+        }
+
+        private static bool RemoveMipmaps(MeType gameId, bool ipc, bool repack = false)
+        {
+            MipMaps mipMaps = new MipMaps();
+            Console.WriteLine("Remove mipmaps started...");
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_REMOVEMIPMAPS");
+                Console.Out.Flush();
+            }
+
+            if (GameData.gameType == MeType.ME1_TYPE)
+            {
+                mipMaps.removeMipMapsME1(1, textures, null, ipc, false);
+                mipMaps.removeMipMapsME1(2, textures, null, ipc, false);
+            }
+            else
+            {
+                mipMaps.removeMipMapsME2ME3(textures, null, ipc, repack);
+            }
+
+            Console.WriteLine("Remove mipmaps finished.\n");
+
+            return true;
+        }
+
+        static private void RepackME(MeType gameId, bool ipc)
+        {
+            Console.WriteLine("Repack started...");
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_REPACK");
+                Console.Out.Flush();
+            }
+
+            string markerPath = "";
+            if (gameId == MeType.ME1_TYPE)
+                markerPath = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
+            else if (gameId == MeType.ME2_TYPE)
+                markerPath = @"\BioGame\CookedPC\BIOC_Materials.pcc".ToLowerInvariant();
+            for (int i = 0; i < GameData.packageFiles.Count; i++)
+            {
+                if (markerPath != "" && GameData.packageFiles[i].ToLowerInvariant().Contains(markerPath))
+                    continue;
+                Console.WriteLine("File: " + GameData.packageFiles[i]);
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / GameData.packageFiles.Count));
+                    Console.Out.Flush();
+                }
+                try
+                {
+                    Package package = new Package(GameData.packageFiles[i], true, true);
+                    if (package.compressed &&
+                        ((gameId == MeType.ME1_TYPE && package.compressionType == Package.CompressionType.Zlib) ||
+                        (gameId == MeType.ME2_TYPE && package.compressionType != Package.CompressionType.Zlib)))
+                    {
+                        package.Dispose();
+                        package = new Package(GameData.packageFiles[i]);
+                        package.SaveToFile(true);
+                    }
+                    else if ((gameId == MeType.ME2_TYPE || gameId == MeType.ME3_TYPE) && !package.compressed)
+                    {
+                        package.Dispose();
+                        package = new Package(GameData.packageFiles[i]);
+                        package.SaveToFile(true, true);
+                    }
+                    package.Dispose();
+                }
+                catch
+                {
+                    Console.WriteLine("Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]ERROR Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                        Console.Out.Flush();
+                    }
+                }
+            }
+            Console.WriteLine("Repack finished.\n");
+        }
+
+        public static bool InstallMods(MeType gameId, string inputDir, bool ipc, bool repack, bool guiInstaller)
+        {
+            textures = new List<FoundTexture>();
+            ConfIni configIni = new ConfIni();
+            GameData gameData = new GameData(gameId, configIni);
+            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
+            {
+                Console.WriteLine("Error: Could not found the game!");
+                return false;
+            }
+
+            if (!guiInstaller)
+            {
+                Console.WriteLine("Prepare...\n");
+                if (gameId == MeType.ME1_TYPE && !File.Exists(gameData.EngineConfigIniPath))
+                {
+                    Console.WriteLine("Missing game configuration file.\nYou need atleast once launch the game first.");
+                    return false;
+                }
+
+                bool writeAccess = CheckAndCorrectAccessToGame(gameId);
+                if (!writeAccess)
+                {
+                    Console.WriteLine("Error: Detected no write access to game folders");
+                    return false;
+                }
+
+                List<string> badMods = Misc.detectBrokenMod(gameId);
+                if (badMods.Count != 0)
+                {
+                    Console.WriteLine("Error: Detected not compatible mods: \n\n");
+                    for (int l = 0; l < badMods.Count; l++)
+                    {
+                        Console.WriteLine(badMods[l] + Environment.NewLine);
+                    }
+                    return false;
+                }
+            }
+
+            bool modded = detectMod((int)gameId);
+            if (ipc)
+            {
+                if (!modded)
+                {
+                    if (gameId == MeType.ME3_TYPE)
+                        Console.WriteLine("[IPC]STAGE_UNPACKDLC");
+                    Console.WriteLine("[IPC]STAGE_SCAN");
+                }
+                Console.WriteLine("[IPC]STAGE_INSTALLTEXTURES");
+                Console.WriteLine("[IPC]STAGE_SAVING");
+                if (gameId == MeType.ME1_TYPE || (!modded && repack))
+                    Console.WriteLine("[IPC]STAGE_REPACK");
+                if (!modded)
+                    Console.WriteLine("[IPC]STAGE_REMOVEMIPMAPS");
+                Console.Out.Flush();
+            }
+
+            if (gameId == MeType.ME3_TYPE)
+            {
+                Console.WriteLine("Unpacking DLCs started...");
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_UNPACKDLC");
+                    Console.Out.Flush();
+                }
+
+                ME3DLC.unpackAllDLC(ipc);
+
+                Console.WriteLine("Unpacking DLCs finished.\n");
+            }
+
+            gameData.getPackages();
+            if (gameId != MeType.ME1_TYPE)
+                gameData.getTfcTextures();
+
+            if (gameId == MeType.ME1_TYPE)
+                repack = false;
+
+            if (modded)
+            {
+                string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                        Program.MAINEXENAME);
+                string mapFile = Path.Combine(path, "me" + (int)gameId + "map.bin");
+                if (!loadTexturesMapFile(mapFile, ipc))
+                    return false;
+            }
+            else
+            {
+                ScanTextures(gameId, ipc, repack);
+            }
+
+
+            List<string> modFiles = Directory.GetFiles(inputDir, "*.mem").Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
+            modFiles.AddRange(Directory.GetFiles(inputDir, "*.tpf").Where(item => item.EndsWith(".tpf", StringComparison.OrdinalIgnoreCase)));
+
+            bool status = applyMods(modFiles, repack, ipc);
+
+
+            if (!modded)
+                RemoveMipmaps(gameId, ipc, repack);
+
+
+            if (gameId == MeType.ME1_TYPE || (!modded && repack))
+                RepackME(gameId, ipc);
+
+
+            if (!guiInstaller)
+            {
+                if (!applyModTag((int)gameId, 0, 0))
+                    Console.WriteLine("Failed applying stamp for installation!");
+
+                Console.WriteLine("Updating LODs and other settings started...");
+                string path = gameData.EngineConfigIniPath;
+                bool exist = File.Exists(path);
+                if (!exist)
+                    Directory.CreateDirectory(Path.GetDirectoryName(path));
+                ConfIni engineConf = new ConfIni(path);
+                LODSettings.updateLOD(gameId, engineConf);
+                LODSettings.updateGFXSettings(gameId, engineConf, false, false);
+                Console.WriteLine("Updating LODs and other settings finished");
+            }
+
+            Console.WriteLine("Installation finished.");
+
+            return true;
+        }
+
+        public static bool InstallModsOld(MeType gameId, string inputDir, bool ipc, bool repack)
         {
             textures = new List<FoundTexture>();
             ConfIni configIni = new ConfIni();
@@ -2146,6 +2637,13 @@ namespace MassEffectModder
                 }
                 else
                     throw new Exception();
+            }
+
+            Console.WriteLine("Process textures started...");
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_INSTALLTEXTURES");
+                Console.Out.Flush();
             }
 
             for (int i = 0; i < files.Count; i++)
@@ -2432,13 +2930,16 @@ namespace MassEffectModder
                     }
                 }
             }
+            Console.WriteLine("Process textures finished.\n");
 
+            Console.WriteLine("Saving packages started...");
             if (ipc)
             {
                 Console.WriteLine("[IPC]PHASE Saving packages");
                 Console.Out.Flush();
             }
             cachePackageMgr.CloseAllWithSave(repack, ipc);
+            Console.WriteLine("Saving packages finished.\n");
 
             return status;
         }

@@ -105,6 +105,23 @@ namespace MassEffectModder
                         }
                     }
                 }
+                else if (resources[l].EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (resources[l].Contains("PermissionsGranter.exe"))
+                    {
+                        string exePath = Path.Combine(dllPath, "PermissionsGranter.exe");
+                        if (!Directory.Exists(dllPath))
+                            Directory.CreateDirectory(dllPath);
+
+                        using (Stream s = Assembly.GetEntryAssembly().GetManifestResourceStream(resources[l]))
+                        {
+                            byte[] buf = s.ReadToBuffer(s.Length);
+                            if (File.Exists(exePath))
+                                File.Delete(exePath);
+                            File.WriteAllBytes(exePath, buf);
+                        }
+                    }
+                }
             }
         }
 
@@ -506,8 +523,25 @@ namespace MassEffectModder
             else if (cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
-                if (!CmdLineTools.InstallMods(gameId, input, ipc, repack))
-                    goto fail;
+                bool newWay = false;
+                bool guiInstaller = false;
+                for (int l = 0; l < args.Length; l++)
+                {
+                    if (args[l].ToLowerInvariant() == "-new-way")
+                        newWay = true;
+                    if (args[l].ToLowerInvariant() == "-gui-installer")
+                        guiInstaller = true;
+                }
+                if (newWay)
+                {
+                    if (!CmdLineTools.InstallMods(gameId, input, ipc, repack, guiInstaller))
+                        goto fail;
+                }
+                else
+                {
+                    if (!CmdLineTools.InstallModsOld(gameId, input, ipc, repack))
+                        goto fail;
+                }
             }
             else if (cmd.Equals("-unpack-dlcs", StringComparison.OrdinalIgnoreCase))
             {
