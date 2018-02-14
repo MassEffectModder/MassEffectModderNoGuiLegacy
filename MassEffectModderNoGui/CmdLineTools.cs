@@ -2456,15 +2456,15 @@ namespace MassEffectModder
                 if (!modded)
                 {
                     if (gameId == MeType.ME3_TYPE)
-                        Console.WriteLine("[IPC]STAGE_UNPACKDLC");
-                    Console.WriteLine("[IPC]STAGE_SCAN");
+                        Console.WriteLine("[IPC]STAGE_ADD STAGE_UNPACKDLC");
+                    Console.WriteLine("[IPC]STAGE_ADD STAGE_SCAN");
                 }
-                Console.WriteLine("[IPC]STAGE_INSTALLTEXTURES");
-                Console.WriteLine("[IPC]STAGE_SAVING");
-                if (gameId == MeType.ME1_TYPE || (!modded && repack))
-                    Console.WriteLine("[IPC]STAGE_REPACK");
+                Console.WriteLine("[IPC]STAGE_ADD STAGE_INSTALLTEXTURES");
+                Console.WriteLine("[IPC]STAGE_ADD STAGE_SAVING");
                 if (!modded)
-                    Console.WriteLine("[IPC]STAGE_REMOVEMIPMAPS");
+                    Console.WriteLine("[IPC]STAGE_ADD STAGE_REMOVEMIPMAPS");
+                if (gameId == MeType.ME1_TYPE || (!modded && repack))
+                    Console.WriteLine("[IPC]STAGE_ADD STAGE_REPACK");
                 Console.Out.Flush();
             }
 
@@ -2533,7 +2533,7 @@ namespace MassEffectModder
                 Console.WriteLine("Updating LODs and other settings finished");
             }
 
-            Console.WriteLine("Installation finished.");
+            Console.WriteLine("\nInstallation finished.");
 
             return true;
         }
@@ -2648,7 +2648,7 @@ namespace MassEffectModder
 
             for (int i = 0; i < files.Count; i++)
             {
-                Console.WriteLine("Mod: " + (i + 1) + " of " + files.Count + " started: " + Path.GetFileName(files[i]) + Environment.NewLine);
+                Console.WriteLine("Mod: " + (i + 1) + " of " + files.Count + " started: " + Path.GetFileName(files[i]));
                 if (ipc)
                 {
                     Console.WriteLine("[IPC]PROCESSING_FILE " + files[i]);
