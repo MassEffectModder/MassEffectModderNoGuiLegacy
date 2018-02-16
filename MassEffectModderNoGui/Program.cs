@@ -401,8 +401,6 @@ namespace MassEffectModder
                 cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-extract-mod", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-extract-mem", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-repack", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-scan-with-remove", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-apply-mod-tag", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-quick-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-mods", StringComparison.OrdinalIgnoreCase) ||
@@ -482,9 +480,6 @@ namespace MassEffectModder
             if (cmd.Equals("-convert-to-mem", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-extract-mem", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-unpack-dlcs", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-repack", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-scan-with-remove", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-quick-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-bad-mods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-mods", StringComparison.OrdinalIgnoreCase) ||
@@ -503,17 +498,6 @@ namespace MassEffectModder
                 }
             }
 
-            if (cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-convert-to-mem", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-scan-with-remove", StringComparison.OrdinalIgnoreCase))
-            {
-                for (int l = 0; l < args.Length; l++)
-                {
-                    if (args[l].ToLowerInvariant() == "-repack")
-                        repack = true;
-                }
-            }
-
             if (cmd.Equals("-convert-to-mem", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
@@ -523,54 +507,21 @@ namespace MassEffectModder
             else if (cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
-                bool newWay = false;
                 bool guiInstaller = false;
                 for (int l = 0; l < args.Length; l++)
                 {
-                    if (args[l].ToLowerInvariant() == "-new-way")
-                        newWay = true;
+                    if (args[l].ToLowerInvariant() == "-repack")
+                        repack = true;
                     if (args[l].ToLowerInvariant() == "-gui-installer")
                         guiInstaller = true;
                 }
-                if (newWay)
-                {
-                    if (!CmdLineTools.InstallMods(gameId, input, ipc, repack, guiInstaller))
-                        goto fail;
-                }
-                else
-                {
-                    if (!CmdLineTools.InstallModsOld(gameId, input, ipc, repack))
-                        goto fail;
-                }
-            }
-            else if (cmd.Equals("-unpack-dlcs", StringComparison.OrdinalIgnoreCase))
-            {
-                loadEmbeddedDlls();
-                if (!CmdLineTools.UnpackDLCs(ipc))
+                if (!CmdLineTools.InstallMods(gameId, input, ipc, repack, guiInstaller))
                     goto fail;
+
             }
             else if (cmd.Equals("-apply-me1-laa", StringComparison.OrdinalIgnoreCase))
             {
                 if (!CmdLineTools.ApplyME1LAAPatch())
-                    goto fail;
-            }
-            else if (cmd.Equals("-repack", StringComparison.OrdinalIgnoreCase))
-            {
-                loadEmbeddedDlls();
-                if (gameId == MeType.ME1_TYPE)
-                    if (!CmdLineTools.RepackGameDataME1(ipc))
-                        goto fail;
-                if (gameId == MeType.ME2_TYPE)
-                    if (!CmdLineTools.RepackGameDataME2(ipc))
-                        goto fail;
-                if (gameId == MeType.ME3_TYPE)
-                    if (!CmdLineTools.RepackGameDataME3(ipc))
-                        goto fail;
-            }
-            else if (cmd.Equals("-scan-with-remove", StringComparison.OrdinalIgnoreCase))
-            {
-                loadEmbeddedDlls();
-                if (!CmdLineTools.ScanAndMipMapsRemoval(gameId, ipc, repack))
                     goto fail;
             }
             else if (cmd.Equals("-apply-mod-tag", StringComparison.OrdinalIgnoreCase))
@@ -741,7 +692,7 @@ namespace MassEffectModder
             else if (cmd.Equals("-extract-mem", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
-                if (!CmdLineTools.extractMEM(gameId, input, output ,ipc))
+                if (!CmdLineTools.extractMEM(gameId, input, output, ipc))
                     goto fail;
             }
             else if (cmd.Equals("-convert-image", StringComparison.OrdinalIgnoreCase))
