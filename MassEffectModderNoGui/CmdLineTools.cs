@@ -2101,12 +2101,6 @@ namespace MassEffectModder
         private static bool ScanTextures(MeType gameId, bool ipc, bool repack = false)
         {
             Console.WriteLine("Scan textures started...");
-            if (ipc)
-            {
-                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_SCAN");
-                Console.Out.Flush();
-            }
-
             TreeScan treeScan = new TreeScan();
             if (!treeScan.PrepareListOfTextures(null, ipc))
                 return false;
@@ -2155,16 +2149,18 @@ namespace MassEffectModder
                 markerPath = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
             else if (gameId == MeType.ME2_TYPE)
                 markerPath = @"\BioGame\CookedPC\BIOC_Materials.pcc".ToLowerInvariant();
+            int lastProgress = -1;
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
                 if (markerPath != "" && GameData.packageFiles[i].ToLowerInvariant().Contains(markerPath))
                     continue;
                 Console.WriteLine("File: " + GameData.packageFiles[i]);
-                if (ipc)
+                int newProgress = (i * 100 / GameData.packageFiles.Count);
+                if (ipc && lastProgress != newProgress)
                 {
-                    Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / GameData.packageFiles.Count));
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                     Console.Out.Flush();
+                    lastProgress = newProgress;
                 }
                 try
                 {
@@ -2403,6 +2399,7 @@ namespace MassEffectModder
                 Console.Out.Flush();
             }
 
+            int lastProgress = -1;
             for (int i = 0; i < files.Count; i++)
             {
                 Console.WriteLine("Mod: " + (i + 1) + " of " + files.Count + " started: " + Path.GetFileName(files[i]));
@@ -2485,11 +2482,12 @@ namespace MassEffectModder
                                 pkgPath = fs.ReadStringASCIINull();
                             }
 
-                            if (ipc)
+                            int newProgress = currentNumberOfTotalMods * 100 / totalNumberOfMods;
+                            if (ipc && lastProgress != newProgress)
                             {
-                                Console.WriteLine("[IPC]PROCESSING_MOD " + modFiles[l].name);
-                                Console.WriteLine("[IPC]OVERALL_PROGRESS " + (currentNumberOfTotalMods * 100 / totalNumberOfMods));
+                                Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                                 Console.Out.Flush();
+                                lastProgress = newProgress;
                             }
 
                             dst = MipMaps.decompressData(fs, size);
@@ -2626,11 +2624,12 @@ namespace MassEffectModder
                                     continue;
                                 }
 
-                                if (ipc)
+                                int newProgress = currentNumberOfTotalMods * 100 / totalNumberOfMods;
+                                if (ipc && lastProgress != newProgress)
                                 {
-                                    Console.WriteLine("[IPC]PROCESSING_MOD " + filename);
-                                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + (currentNumberOfTotalMods * 100 / totalNumberOfMods));
+                                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                                     Console.Out.Flush();
+                                    lastProgress = newProgress;
                                 }
 
                                 FoundTexture foundTexture = textures.Find(s => s.crc == crc);
@@ -2692,7 +2691,7 @@ namespace MassEffectModder
             Console.WriteLine("Saving packages started...");
             if (ipc)
             {
-                Console.WriteLine("[IPC]PHASE Saving packages");
+                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_SAVING");
                 Console.Out.Flush();
             }
             cachePackageMgr.CloseAllWithSave(repack, ipc);
@@ -3056,21 +3055,18 @@ namespace MassEffectModder
                 gameData.getTfcTextures();
 
             Console.WriteLine("Starting checking textures...");
-            if (ipc)
-            {
-                Console.WriteLine("[IPC]PHASE Checking textures");
-                Console.Out.Flush();
-            }
 
+            int lastProgress = -1;
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
                 Package package;
                 Console.WriteLine("Package " + (i + 1) + " of " + GameData.packageFiles.Count + " - " + GameData.RelativeGameData(GameData.packageFiles[i]));
-                if (ipc)
+                int newProgress = i * 100 / GameData.packageFiles.Count;
+                if (ipc && lastProgress != newProgress)
                 {
-                    Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / GameData.packageFiles.Count));
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                     Console.Out.Flush();
+                    lastProgress = newProgress;
                 }
                 try
                 {

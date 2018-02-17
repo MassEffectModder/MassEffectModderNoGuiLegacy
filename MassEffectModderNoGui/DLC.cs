@@ -248,17 +248,19 @@ namespace MassEffectModder
             string originInstallFiles = Path.Combine(GameData.DLCData, "__metadata");
             if (Directory.Exists(originInstallFiles))
                 Directory.Move(originInstallFiles, tmpDlcDir + "\\__metadata");
+            int lastProgress = -1;
             for (int i = 0; i < sfarFiles.Count; i++)
             {
                 string DLCname = Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(sfarFiles[i])));
                 string outPath = Path.Combine(tmpDlcDir, DLCname);
                 Directory.CreateDirectory(outPath);
                 ME3DLC dlc = new ME3DLC();
-                if (ipc)
+                int newProgress = i * 100 / sfarFiles.Count;
+                if (ipc && lastProgress != newProgress)
                 {
-                    Console.WriteLine("[IPC]PROCESSING_FILE " + sfarFiles[i]);
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / sfarFiles.Count));
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                     Console.Out.Flush();
+                    lastProgress = newProgress;
                 }
                 dlc.extract(sfarFiles[i], outPath);
             }

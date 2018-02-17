@@ -66,14 +66,16 @@ namespace MassEffectModder
 
         public void CloseAllWithSave(bool forceZlib = false, bool ipc = false)
         {
+            int lastProgress = -1;
             for (int i = 0; i < packages.Count; i++)
             {
                 Package pkg = packages[i];
-                if (ipc)
+                int newProgress = i * 100 / packages.Count;
+                if (ipc && lastProgress != newProgress)
                 {
-                    Console.WriteLine("[IPC]PROCESSING_FILE " + Path.GetFileName(packages[i].packagePath));
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / packages.Count));
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                     Console.Out.Flush();
+                    lastProgress = newProgress;
                 }
                 pkg.SaveToFile(forceZlib);
                 pkg.Dispose();

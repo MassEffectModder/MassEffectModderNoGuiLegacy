@@ -50,16 +50,18 @@ namespace MassEffectModder
             GameData.packageFiles.Sort();
             if (ipc)
             {
-                Console.WriteLine("[IPC]PHASE Scanning textures");
+                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_SCAN");
                 Console.Out.Flush();
             }
+            int lastProgress = -1;
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
-                if (ipc)
+                int newProgress = i * 100 / GameData.packageFiles.Count;
+                if (ipc && lastProgress != newProgress)
                 {
-                    Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / GameData.packageFiles.Count));
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                     Console.Out.Flush();
+                    lastProgress = newProgress;
                 }
                 FindTextures(textures, GameData.packageFiles[i], cachePackageMgr, ipc);
             }

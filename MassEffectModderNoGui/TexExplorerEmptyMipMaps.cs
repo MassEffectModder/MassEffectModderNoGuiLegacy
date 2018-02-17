@@ -64,14 +64,17 @@ namespace MassEffectModder
         public void removeMipMapsME1(int phase, List<FoundTexture> textures, CachePackageMgr cachePackageMgr,
             bool ipc, bool forceZlib = false)
         {
+            int lastProgress = -1;
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
                 bool modified = false;
                 Package package = null;
-                if (ipc)
+                int newProgress = (GameData.packageFiles.Count * (phase - 1) + i + 1) * 100 / (GameData.packageFiles.Count * 2);
+                if (ipc && lastProgress != newProgress)
                 {
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + ((GameData.packageFiles.Count * (phase - 1) + i + 1) * 100 / (GameData.packageFiles.Count * 2)));
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                     Console.Out.Flush();
+                    lastProgress = newProgress;
                 }
 
                 try
@@ -224,14 +227,17 @@ skip:
         public void removeMipMapsME2ME3(List<FoundTexture> textures, CachePackageMgr cachePackageMgr,
             bool ipc, bool forceZlib = false)
         {
+            int lastProgress = -1;
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
                 bool modified = false;
                 Package package = null;
-                if (ipc)
+                int newProgress = i * 100 / GameData.packageFiles.Count;
+                if (ipc && lastProgress != newProgress)
                 {
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / GameData.packageFiles.Count));
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                     Console.Out.Flush();
+                    lastProgress = newProgress;
                 }
 
                 try

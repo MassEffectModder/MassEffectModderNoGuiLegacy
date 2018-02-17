@@ -809,13 +809,15 @@ namespace MassEffectModder
             if (generateMd5Entries)
                 fs = new FileStream("MD5ModFileEntry" + (int)gameType + ".cs", FileMode.Create, FileAccess.Write);
 
+            int lastProgress = -1;
             for (int l = 0; l < packageMainFiles.Count; l++)
             {
-                if (ipc)
+                int newProgress = (l + progress) * 100 / allFilesCount;
+                if (ipc && lastProgress != newProgress)
                 {
-                    Console.WriteLine("[IPC]PROCESSING_FILE " + packageMainFiles[l]);
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + ((l + progress) * 100 / allFilesCount));
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                     Console.Out.Flush();
+                    lastProgress = newProgress;
                 }
                 byte[] md5 = calculateMD5(packageMainFiles[l]);
                 bool found = false;
@@ -913,11 +915,12 @@ namespace MassEffectModder
             {
                 for (int l = 0; l < packageDLCFiles.Count; l++)
                 {
-                    if (ipc)
+                    int newProgress = (l + progress) * 100 / allFilesCount;
+                    if (ipc && lastProgress != newProgress)
                     {
-                        Console.WriteLine("[IPC]PROCESSING_FILE " + packageDLCFiles[l]);
-                        Console.WriteLine("[IPC]OVERALL_PROGRESS " + ((l + progress) * 100 / allFilesCount));
+                        Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                         Console.Out.Flush();
+                        lastProgress = newProgress;
                     }
                     byte[] md5 = calculateMD5(packageDLCFiles[l]);
                     bool found = false;
@@ -1016,11 +1019,12 @@ namespace MassEffectModder
             {
                 for (int l = 0; l < sfarFiles.Count; l++)
                 {
-                    if (ipc)
+                    int newProgress = (l + progress) * 100 / allFilesCount;
+                    if (ipc && lastProgress != newProgress)
                     {
-                        Console.WriteLine("[IPC]PROCESSING_FILE " + sfarFiles[l]);
-                        Console.WriteLine("[IPC]OVERALL_PROGRESS " + ((l + progress) * 100 / allFilesCount));
+                        Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                         Console.Out.Flush();
+                        lastProgress = newProgress;
                     }
                     byte[] md5 = calculateMD5(sfarFiles[l]);
                     bool found = false;
@@ -1079,11 +1083,12 @@ namespace MassEffectModder
             {
                 for (int l = 0; l < tfcFiles.Count; l++)
                 {
-                    if (ipc)
+                    int newProgress = (l + progress) * 100 / allFilesCount;
+                    if (ipc && lastProgress != newProgress)
                     {
-                        Console.WriteLine("[IPC]PROCESSING_FILE " + tfcFiles[l]);
-                        Console.WriteLine("[IPC]OVERALL_PROGRESS " + ((l + progress) * 100 / allFilesCount));
+                        Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                         Console.Out.Flush();
+                        lastProgress = newProgress;
                     }
                     byte[] md5 = calculateMD5(tfcFiles[l]);
                     bool found = false;
@@ -1258,13 +1263,15 @@ namespace MassEffectModder
                     continue;
                 filesToUpdate.Add(GameData.packageFiles[i].ToLowerInvariant());
             }
+            int lastProgress = -1;
             for (int i = 0; i < filesToUpdate.Count; i++)
             {
-                if (ipc)
+                int newProgress = (i + 1) * 100 / filesToUpdate.Count;
+                if (ipc && lastProgress != newProgress)
                 {
-                    Console.WriteLine("[IPC]PROCESSING_FILE " + filesToUpdate[i]);
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + ((i + 1) * 100 / filesToUpdate.Count));
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                     Console.Out.Flush();
+                    lastProgress = newProgress;
                 }
                 try
                 {
