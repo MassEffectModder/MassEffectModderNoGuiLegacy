@@ -1981,6 +1981,219 @@ namespace MassEffectModder
             return true;
         }
 
+        public static bool ScanAndMipMapsRemoval(MeType gameId, bool ipc, bool repack = false)
+        {
+            ConfIni configIni = new ConfIni();
+            GameData gameData = new GameData(gameId, configIni);
+            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
+            {
+                Console.WriteLine("Error: Could not found the game!");
+                return false;
+            }
+
+            gameData.getPackages();
+            if (gameId != MeType.ME1_TYPE)
+                gameData.getTfcTextures();
+
+            TreeScan treeScan = new TreeScan();
+            if (!treeScan.PrepareListOfTextures(null, ipc))
+                return false;
+            textures = treeScan.treeScan;
+
+            MipMaps mipMaps = new MipMaps();
+            Console.WriteLine("Remove mipmaps started..." + Environment.NewLine);
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]PHASE Removing empty mipmaps");
+                Console.Out.Flush();
+            }
+            if (GameData.gameType == MeType.ME1_TYPE)
+            {
+                mipMaps.removeMipMapsME1(1, textures, null, ipc, false);
+                mipMaps.removeMipMapsME1(2, textures, null, ipc, false);
+            }
+            else
+            {
+                mipMaps.removeMipMapsME2ME3(textures, null, ipc, repack);
+            }
+            Console.WriteLine("Remove mipmaps finished" + Environment.NewLine + Environment.NewLine);
+
+            return true;
+        }
+
+        public static bool UnpackDLCs(bool ipc)
+        {
+            ConfIni configIni = new ConfIni();
+            GameData gameData = new GameData(MeType.ME3_TYPE, configIni);
+            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
+            {
+                Console.WriteLine("Error: Could not found the game!");
+                return false;
+            }
+
+            ME3DLC.unpackAllDLC(ipc);
+
+            return true;
+        }
+
+        public static bool RepackGameDataME1(bool ipc)
+        {
+            ConfIni configIni = new ConfIni();
+            GameData gameData = new GameData(MeType.ME1_TYPE, configIni);
+            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
+            {
+                Console.WriteLine("Error: Could not found the game!");
+                return false;
+            }
+
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]PHASE Repacking game files");
+                Console.Out.Flush();
+            }
+            gameData.getPackages();
+            string path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
+            for (int i = 0; i < GameData.packageFiles.Count; i++)
+            {
+                if (GameData.packageFiles[i].ToLowerInvariant().Contains(path))
+                    continue;
+                Console.WriteLine("File: " + GameData.packageFiles[i]);
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / GameData.packageFiles.Count));
+                    Console.Out.Flush();
+                }
+                try
+                {
+                    Package package = new Package(GameData.packageFiles[i], true, true);
+                    if (package.compressed && package.compressionType == Package.CompressionType.Zlib)
+                    {
+                        package.Dispose();
+                        package = new Package(GameData.packageFiles[i]);
+                        package.SaveToFile(true);
+                    }
+                    package.Dispose();
+                }
+                catch
+                {
+                    Console.WriteLine("Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]ERROR Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                        Console.Out.Flush();
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        public static bool RepackGameDataME2(bool ipc)
+        {
+            ConfIni configIni = new ConfIni();
+            GameData gameData = new GameData(MeType.ME2_TYPE, configIni);
+            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
+            {
+                Console.WriteLine("Error: Could not found the game!");
+                return false;
+            }
+
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]PHASE Repacking game files");
+                Console.Out.Flush();
+            }
+            gameData.getPackages();
+            string path = @"\BioGame\CookedPC\BIOC_Materials.pcc".ToLowerInvariant();
+            for (int i = 0; i < GameData.packageFiles.Count; i++)
+            {
+                if (GameData.packageFiles[i].ToLowerInvariant().Contains(path))
+                    continue;
+                Console.WriteLine("File: " + GameData.packageFiles[i]);
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / GameData.packageFiles.Count));
+                    Console.Out.Flush();
+                }
+                try
+                {
+                    Package package = new Package(GameData.packageFiles[i], true, true);
+                    if (package.compressed && package.compressionType != Package.CompressionType.Zlib)
+                    {
+                        package.Dispose();
+                        package = new Package(GameData.packageFiles[i]);
+                        package.SaveToFile(true);
+                    }
+                    package.Dispose();
+                }
+                catch
+                {
+                    Console.WriteLine("Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]ERROR Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                        Console.Out.Flush();
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        public static bool RepackGameDataME3(bool ipc)
+        {
+            ConfIni configIni = new ConfIni();
+            GameData gameData = new GameData(MeType.ME3_TYPE, configIni);
+            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
+            {
+                Console.WriteLine("Error: Could not found the game!");
+                return false;
+            }
+
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]PHASE Repacking game files");
+                Console.Out.Flush();
+            }
+            gameData.getPackages();
+            for (int i = 0; i < GameData.packageFiles.Count; i++)
+            {
+                Console.WriteLine("File: " + GameData.packageFiles[i]);
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
+                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + (i * 100 / GameData.packageFiles.Count));
+                    Console.Out.Flush();
+                }
+                try
+                {
+                    Package package = new Package(GameData.packageFiles[i], true, true);
+                    if (!package.compressed)
+                    {
+                        package.Dispose();
+                        package = new Package(GameData.packageFiles[i]);
+                        package.SaveToFile(false, true);
+                    }
+                    package.Dispose();
+                }
+                catch
+                {
+                    Console.WriteLine("Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]ERROR Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                        Console.Out.Flush();
+                    }
+                }
+            }
+
+            TOCBinFile.UpdateAllTOCBinFiles();
+
+            return true;
+        }
+
         public static bool CheckGameData(MeType gameId, bool wihtoutSfars, bool onlyVanilla, bool backupMode, bool ipc)
         {
             ConfIni configIni = new ConfIni();
@@ -2319,6 +2532,36 @@ namespace MassEffectModder
             Console.WriteLine("\nInstallation finished.");
 
             return true;
+        }
+
+        public static bool InstallModsOld(MeType gameId, string inputDir, bool ipc, bool repack)
+        {
+            textures = new List<FoundTexture>();
+            ConfIni configIni = new ConfIni();
+            GameData gameData = new GameData(gameId, configIni);
+            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
+            {
+                Console.WriteLine("Error: Could not found the game!");
+                return false;
+            }
+
+            gameData.getPackages();
+            if (gameId != MeType.ME1_TYPE)
+                gameData.getTfcTextures();
+
+            if (gameId == MeType.ME1_TYPE)
+                repack = false;
+
+            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    Program.MAINEXENAME);
+            string mapFile = Path.Combine(path, "me" + (int)gameId + "map.bin");
+            if (!loadTexturesMapFile(mapFile, ipc))
+                return false;
+
+            List<string> modFiles = Directory.GetFiles(inputDir, "*.mem").Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
+            modFiles.AddRange(Directory.GetFiles(inputDir, "*.tpf").Where(item => item.EndsWith(".tpf", StringComparison.OrdinalIgnoreCase)));
+            bool status = applyMods(modFiles, repack, ipc);
+            return status;
         }
 
         static public bool applyMEMSpecialModME3(string memFile, string tfcName, byte[] guid)
