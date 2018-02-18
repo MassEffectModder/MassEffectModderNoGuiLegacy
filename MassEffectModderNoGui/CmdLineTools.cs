@@ -1995,10 +1995,17 @@ namespace MassEffectModder
             if (gameId != MeType.ME1_TYPE)
                 gameData.getTfcTextures();
 
+            Console.WriteLine("Scanning textures started..." + Environment.NewLine);
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]PHASE Scanning textures");
+                Console.Out.Flush();
+            }
             TreeScan treeScan = new TreeScan();
             if (!treeScan.PrepareListOfTextures(null, ipc))
                 return false;
             textures = treeScan.treeScan;
+            Console.WriteLine("Scanning textures finished." + Environment.NewLine);
 
             MipMaps mipMaps = new MipMaps();
             Console.WriteLine("Remove mipmaps started..." + Environment.NewLine);
@@ -2935,6 +2942,7 @@ namespace MassEffectModder
             if (ipc)
             {
                 Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_SAVING");
+                Console.WriteLine("[IPC]PHASE Saving packages");
                 Console.Out.Flush();
             }
             cachePackageMgr.CloseAllWithSave(repack, ipc);

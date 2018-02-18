@@ -258,6 +258,7 @@ namespace MassEffectModder
                 int newProgress = i * 100 / sfarFiles.Count;
                 if (ipc && lastProgress != newProgress)
                 {
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + sfarFiles[i]);
                     Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                     Console.Out.Flush();
                     lastProgress = newProgress;

@@ -48,11 +48,6 @@ namespace MassEffectModder
                 File.Delete(filename);
 
             GameData.packageFiles.Sort();
-            if (ipc)
-            {
-                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_SCAN");
-                Console.Out.Flush();
-            }
             int lastProgress = -1;
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
