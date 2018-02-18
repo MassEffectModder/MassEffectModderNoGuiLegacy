@@ -1,7 +1,7 @@
 /*
  * MassEffectModder
  *
- * Copyright (C) 2014-2017 Pawel Kolodziejski <aquadran at users.sourceforge.net>
+ * Copyright (C) 2014-2018 Pawel Kolodziejski <aquadran at users.sourceforge.net>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -51,6 +51,11 @@ namespace MassEffectModder
             int lastProgress = -1;
             for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
+                    Console.Out.Flush();
+                }
                 int newProgress = i * 100 / GameData.packageFiles.Count;
                 if (ipc && lastProgress != newProgress)
                 {
@@ -74,7 +79,6 @@ namespace MassEffectModder
                             string basePkgName = slaveTexture.basePackageName;
                             if (basePkgName == Path.GetFileNameWithoutExtension(slaveTexture.path).ToUpperInvariant())
                                 throw new Exception();
-                            bool found = false;
                             for (int j = 0; j < textures[k].list.Count; j++)
                             {
                                 if (!textures[k].list[j].slave &&
@@ -83,13 +87,8 @@ namespace MassEffectModder
                                 {
                                     slaveTexture.linkToMaster = j;
                                     textures[k].list[t] = slaveTexture;
-                                    found = true;
                                     break;
                                 }
-                            }
-                            if (!found)
-                            {
-                                Console.WriteLine("Error: not able match 'slave' texture: + " + textures[k].name + " to 'master'.");
                             }
                         }
                     }
@@ -206,17 +205,20 @@ namespace MassEffectModder
             }
             catch (Exception e)
             {
-                string err = "";
-                err += "---- Start --------------------------------------------" + Environment.NewLine;
-                err += "Issue opening package file: " + packagePath + Environment.NewLine;
-                err += e.Message + Environment.NewLine + Environment.NewLine;
-                err += e.StackTrace + Environment.NewLine + Environment.NewLine;
-                err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
-                Console.WriteLine(err);
                 if (ipc)
                 {
                     Console.WriteLine("[IPC]ERROR Issue opening package file: " + packagePath);
                     Console.Out.Flush();
+                }
+                else
+                {
+                    string err = "";
+                    err += "---- Start --------------------------------------------" + Environment.NewLine;
+                    err += "Issue opening package file: " + packagePath + Environment.NewLine;
+                    err += e.Message + Environment.NewLine + Environment.NewLine;
+                    err += e.StackTrace + Environment.NewLine + Environment.NewLine;
+                    err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
+                    Console.WriteLine(err);
                 }
                 return;
             }
@@ -260,11 +262,14 @@ namespace MassEffectModder
                     }
                     if (crc == 0)
                     {
-                        Console.WriteLine("Error: Texture " + package.exportsTable[i].objectName + " is broken in package: " + packagePath + ", skipping..." + Environment.NewLine);
                         if (ipc)
                         {
                             Console.WriteLine("[IPC]ERROR Texture " + package.exportsTable[i].objectName + " is broken in package: " + packagePath + ", skipping...");
                             Console.Out.Flush();
+                        }
+                        else
+                        {
+                            Console.WriteLine("Error: Texture " + package.exportsTable[i].objectName + " is broken in package: " + packagePath + ", skipping..." + Environment.NewLine);
                         }
                         continue;
                     }

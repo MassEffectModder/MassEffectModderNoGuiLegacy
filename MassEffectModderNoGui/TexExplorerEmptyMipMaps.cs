@@ -1,7 +1,7 @@
 /*
  * MassEffectModder
  *
- * Copyright (C) 2014-2017 Pawel Kolodziejski <aquadran at users.sourceforge.net>
+ * Copyright (C) 2014-2018 Pawel Kolodziejski <aquadran at users.sourceforge.net>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -86,17 +86,20 @@ namespace MassEffectModder
                 }
                 catch (Exception e)
                 {
-                    string err = "";
-                    err += "---- Start --------------------------------------------" + Environment.NewLine;
-                    err += "Issue opening package file: " + GameData.packageFiles[i] + Environment.NewLine;
-                    err += e.Message + Environment.NewLine + Environment.NewLine;
-                    err += e.StackTrace + Environment.NewLine + Environment.NewLine;
-                    err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
-                    Console.WriteLine(err);
                     if (ipc)
                     {
                         Console.WriteLine("[IPC]ERROR Issue opening package file: " + GameData.packageFiles[i]);
                         Console.Out.Flush();
+                    }
+                    else
+                    {
+                        string err = "";
+                        err += "---- Start --------------------------------------------" + Environment.NewLine;
+                        err += "Issue opening package file: " + GameData.packageFiles[i] + Environment.NewLine;
+                        err += e.Message + Environment.NewLine + Environment.NewLine;
+                        err += e.StackTrace + Environment.NewLine + Environment.NewLine;
+                        err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
+                        Console.WriteLine(err);
                     }
                     continue;
                 }
@@ -140,11 +143,14 @@ namespace MassEffectModder
                             }
                             if (foundListEntry == -1)
                             {
-                                Console.WriteLine("Error: Texture " + package.exportsTable[l].objectName + " not found in package: " + GameData.packageFiles[i] + ", skipping..." + Environment.NewLine);
                                 if (ipc)
                                 {
                                     Console.WriteLine("[IPC]ERROR Texture " + package.exportsTable[l].objectName + " not found in package: " + GameData.packageFiles[i] + ", skipping...");
                                     Console.Out.Flush();
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Error: Texture " + package.exportsTable[l].objectName + " not found in package: " + GameData.packageFiles[i] + ", skipping..." + Environment.NewLine);
                                 }
                                 goto skip;
                             }
@@ -167,11 +173,14 @@ namespace MassEffectModder
                                 {
                                     if (texture.mipMapsList.Count != masterTexture.mipMapsList.Count)
                                     {
-                                        Console.WriteLine("Error: Texture " + package.exportsTable[l].objectName + " in package: " + GameData.packageFiles[i] + " has wrong reference, skipping..." + Environment.NewLine);
                                         if (ipc)
                                         {
                                             Console.WriteLine("[IPC]ERROR Texture " + package.exportsTable[l].objectName + " in package: " + GameData.packageFiles[i] + " has wrong reference, skipping..." + Environment.NewLine);
                                             Console.Out.Flush();
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("Error: Texture " + package.exportsTable[l].objectName + " in package: " + GameData.packageFiles[i] + " has wrong reference, skipping..." + Environment.NewLine);
                                         }
                                         goto skip;
                                     }
@@ -249,17 +258,20 @@ skip:
                 }
                 catch (Exception e)
                 {
-                    string err = "";
-                    err += "---- Start --------------------------------------------" + Environment.NewLine;
-                    err += "Issue opening package file: " + GameData.packageFiles[i] + Environment.NewLine;
-                    err += e.Message + Environment.NewLine + Environment.NewLine;
-                    err += e.StackTrace + Environment.NewLine + Environment.NewLine;
-                    err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
-                    Console.WriteLine(err);
                     if (ipc)
                     {
                         Console.WriteLine("[IPC]ERROR Issue opening package file: " + GameData.packageFiles[i]);
                         Console.Out.Flush();
+                    }
+                    else
+                    {
+                        string err = "";
+                        err += "---- Start --------------------------------------------" + Environment.NewLine;
+                        err += "Issue opening package file: " + GameData.packageFiles[i] + Environment.NewLine;
+                        err += e.Message + Environment.NewLine + Environment.NewLine;
+                        err += e.StackTrace + Environment.NewLine + Environment.NewLine;
+                        err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
+                        Console.WriteLine(err);
                     }
                     continue;
                 }

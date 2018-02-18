@@ -1171,7 +1171,15 @@ namespace MassEffectModder
                 uint version = fs.ReadUInt32();
                 if (tag != CmdLineTools.textureMapBinTag || version != CmdLineTools.textureMapBinVersion)
                 {
-                    Console.WriteLine("Detected wrong or old version of textures scan file!" + Environment.NewLine);
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]ERROR_TEXTURE_MAP_WRONG");
+                        Console.Out.Flush();
+                    }
+                    else
+                    {
+                        Console.WriteLine("Detected wrong or old version of textures scan file!" + Environment.NewLine);
+                    }
                     return false;
                 }
 
@@ -1205,11 +1213,14 @@ namespace MassEffectModder
                 {
                     if (GameData.packageFiles.Find(s => s.Equals(packages[i], StringComparison.OrdinalIgnoreCase)) == null)
                     {
-                        Console.WriteLine("File: " + GameData.RelativeGameData(packages[i]));
                         if (ipc)
                         {
                             Console.WriteLine("[IPC]ERROR_REMOVED_FILE " + GameData.RelativeGameData(packages[i]));
                             Console.Out.Flush();
+                        }
+                        else
+                        {
+                            Console.WriteLine("File: " + GameData.RelativeGameData(packages[i]));
                         }
                     }
                 }
@@ -1220,11 +1231,14 @@ namespace MassEffectModder
                 {
                     if (packages.Find(s => s.Equals(GameData.packageFiles[i], StringComparison.OrdinalIgnoreCase)) == null)
                     {
-                        Console.WriteLine("File: " + GameData.RelativeGameData(GameData.packageFiles[i]));
                         if (ipc)
                         {
                             Console.WriteLine("[IPC]ERROR_ADDED_FILE " + GameData.RelativeGameData(GameData.packageFiles[i]));
                             Console.Out.Flush();
+                        }
+                        else
+                        {
+                            Console.WriteLine("File: " + GameData.RelativeGameData(GameData.packageFiles[i]));
                         }
                     }
                 }
@@ -1282,22 +1296,28 @@ namespace MassEffectModder
                         string marker = fs.ReadStringASCII(Package.MEMendFileMarker.Length);
                         if (marker != Package.MEMendFileMarker)
                         {
-                            Console.WriteLine("Replaced file: " + filesToUpdate[i]);
                             if (ipc)
                             {
                                 Console.WriteLine("[IPC]ERROR_VANILLA_MOD_FILE " + filesToUpdate[i]);
                                 Console.Out.Flush();
+                            }
+                            else
+                            {
+                                Console.WriteLine("Replaced file: " + filesToUpdate[i]);
                             }
                         }
                     }
                 }
                 catch
                 {
-                    Console.WriteLine("The file could not be opened, skipped: " + filesToUpdate[i]);
                     if (ipc)
                     {
                         Console.WriteLine("[IPC]ERROR The file could not be opened: " + filesToUpdate[i]);
                         Console.Out.Flush();
+                    }
+                    else
+                    {
+                        Console.WriteLine("The file could not be opened, skipped: " + filesToUpdate[i]);
                     }
                 }
             }

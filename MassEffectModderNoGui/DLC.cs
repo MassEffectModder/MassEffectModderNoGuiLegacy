@@ -255,10 +255,14 @@ namespace MassEffectModder
                 string outPath = Path.Combine(tmpDlcDir, DLCname);
                 Directory.CreateDirectory(outPath);
                 ME3DLC dlc = new ME3DLC();
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + sfarFiles[i]);
+                    Console.Out.Flush();
+                }
                 int newProgress = i * 100 / sfarFiles.Count;
                 if (ipc && lastProgress != newProgress)
                 {
-                    Console.WriteLine("[IPC]PROCESSING_FILE " + sfarFiles[i]);
                     Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                     Console.Out.Flush();
                     lastProgress = newProgress;
@@ -287,6 +291,10 @@ namespace MassEffectModder
                     Console.WriteLine("[IPC]ERROR Failed move DLCTemp!");
                     Console.Out.Flush();
                 }
+                else
+                {
+                    Console.WriteLine("Failed move DLCTemp!");
+                }
             }
             try
             {
@@ -298,6 +306,10 @@ namespace MassEffectModder
                 {
                     Console.WriteLine("[IPC]ERROR Failed move DLCTemp!");
                     Console.Out.Flush();
+                }
+                else
+                {
+                    Console.WriteLine("Failed move DLCTemp!");
                 }
             }
         }
