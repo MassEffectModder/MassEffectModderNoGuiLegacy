@@ -553,6 +553,7 @@ namespace MassEffectModder
                 if (ipc && lastProgress != newProgress)
                 {
                     Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
+                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                     Console.Out.Flush();
                     lastProgress = newProgress;
                 }
@@ -1874,6 +1875,7 @@ namespace MassEffectModder
                             if (ipc && lastProgress != newProgress)
                             {
                                 Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
+                                Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                                 Console.Out.Flush();
                                 lastProgress = newProgress;
                             }
@@ -2140,6 +2142,7 @@ namespace MassEffectModder
                 if (ipc && lastProgress != newProgress)
                 {
                     Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
+                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                     Console.Out.Flush();
                     lastProgress = newProgress;
                 }
@@ -2206,6 +2209,7 @@ namespace MassEffectModder
                 if (ipc && lastProgress != newProgress)
                 {
                     Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
+                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                     Console.Out.Flush();
                     lastProgress = newProgress;
                 }
@@ -2269,6 +2273,7 @@ namespace MassEffectModder
                 if (ipc && lastProgress != newProgress)
                 {
                     Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
+                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                     Console.Out.Flush();
                     lastProgress = newProgress;
                 }
@@ -2436,6 +2441,11 @@ namespace MassEffectModder
         {
             Console.WriteLine("Scan textures started...");
             TreeScan treeScan = new TreeScan();
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_SCAN");
+                Console.Out.Flush();
+            }
             if (!treeScan.PrepareListOfTextures(null, ipc))
                 return false;
             textures = treeScan.treeScan;
@@ -2500,7 +2510,7 @@ namespace MassEffectModder
                 int newProgress = (i * 100 / GameData.packageFiles.Count);
                 if (ipc && lastProgress != newProgress)
                 {
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
+                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                     Console.Out.Flush();
                     lastProgress = newProgress;
                 }
@@ -2659,6 +2669,12 @@ namespace MassEffectModder
                 LODSettings.updateLOD(gameId, engineConf);
                 LODSettings.updateGFXSettings(gameId, engineConf, false, false);
                 Console.WriteLine("Updating LODs and other settings finished");
+            }
+
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_DONE");
+                Console.Out.Flush();
             }
 
             Console.WriteLine("\nInstallation finished.");
@@ -2869,11 +2885,17 @@ namespace MassEffectModder
                                     pkgPath = fs.ReadStringASCIINull();
                                 }
 
+                                if (ipc)
+                                {
+                                    Console.WriteLine("[IPC]PROCESSING_TEXTURE_INSTALL " + modFiles[l].name);
+                                    Console.Out.Flush();
+                                }
                                 int newProgress = currentNumberOfTotalMods * 100 / totalNumberOfMods;
                                 if (ipc && lastProgress != newProgress)
                                 {
                                     Console.WriteLine("[IPC]PROCESSING_MOD " + modFiles[l].name);
                                     Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
+                                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                                     Console.Out.Flush();
                                     lastProgress = newProgress;
                                 }
@@ -3012,11 +3034,17 @@ namespace MassEffectModder
                                         continue;
                                     }
 
+                                    if (ipc)
+                                    {
+                                        Console.WriteLine("[IPC]PROCESSING_TEXTURE_INSTALL " + filename);
+                                        Console.Out.Flush();
+                                    }
                                     int newProgress = currentNumberOfTotalMods * 100 / totalNumberOfMods;
                                     if (ipc && lastProgress != newProgress)
                                     {
                                         Console.WriteLine("[IPC]PROCESSING_MOD " + filename);
                                         Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
+                                        Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                                         Console.Out.Flush();
                                         lastProgress = newProgress;
                                     }
@@ -3490,6 +3518,7 @@ namespace MassEffectModder
                 if (ipc && lastProgress != newProgress)
                 {
                     Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
+                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                     Console.Out.Flush();
                     lastProgress = newProgress;
                 }

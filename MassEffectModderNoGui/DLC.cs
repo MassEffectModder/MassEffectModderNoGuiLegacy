@@ -64,6 +64,25 @@ namespace MassEffectModder
             }
         }
 
+        static private int getNumberOfFiles(string path)
+        {
+            if (!File.Exists(path))
+                throw new Exception("filename missing");
+            using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read))
+            {
+                uint tag = stream.ReadUInt32();
+                if (tag != SfarTag)
+                    throw new Exception("Wrong SFAR tag");
+                uint sfarVersion = stream.ReadUInt32();
+                if (sfarVersion != SfarVersion)
+                    throw new Exception("Wrong SFAR version");
+
+                uint dataOffset = stream.ReadUInt32();
+                uint entriesOffset = stream.ReadUInt32();
+                return stream.ReadInt32();
+            }
+        }
+
         private void loadHeader(MemoryStream stream)
         {
             uint tag = stream.ReadUInt32();
@@ -140,7 +159,7 @@ namespace MassEffectModder
                 throw new Exception("filenames entry not found");
         }
 
-        public void extract(string SFARfilename, string outPath)
+        public void extract(string SFARfilename, string outPath, bool ipc, ref int currentProgress, int totalNumber)
         {
             if (!File.Exists(SFARfilename))
                 throw new Exception("filename missing");
@@ -163,12 +182,21 @@ namespace MassEffectModder
                     outputFile.WriteUInt32(LZMATag);
                 }
 
-                for (int i = 0; i < filesCount; i++)
+                int lastProgress = -1;
+                for (int i = 0; i < filesCount; i++, currentProgress++)
                 {
                     if (filenamesIndex == i)
                         continue;
                     if (filesList[i].filenamePath == null)
                         throw new Exception("filename missing");
+
+                    int newProgress = currentProgress / totalNumber;
+                    if (ipc && lastProgress != newProgress)
+                    {
+                        Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+                        Console.Out.Flush();
+                        lastProgress = newProgress;
+                    }
 
                     int pos = filesList[i].filenamePath.IndexOf("\\BIOGame\\DLC\\", StringComparison.OrdinalIgnoreCase);
                     string filename = filesList[i].filenamePath.Substring(pos + ("\\BIOGame\\DLC\\").Length).Replace('/', '\\');
@@ -248,7 +276,18 @@ namespace MassEffectModder
             string originInstallFiles = Path.Combine(GameData.DLCData, "__metadata");
             if (Directory.Exists(originInstallFiles))
                 Directory.Move(originInstallFiles, tmpDlcDir + "\\__metadata");
-            int lastProgress = -1;
+
+            int totalNumFiles = 0;
+            int currentProgress = 0;
+            if (ipc)
+            {
+                for (int i = 0; i < sfarFiles.Count; i++)
+                {
+                    string DLCname = Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(sfarFiles[i])));
+                    totalNumFiles += getNumberOfFiles(sfarFiles[i]);
+                }
+            }
+
             for (int i = 0; i < sfarFiles.Count; i++)
             {
                 string DLCname = Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(sfarFiles[i])));
@@ -260,14 +299,7 @@ namespace MassEffectModder
                     Console.WriteLine("[IPC]PROCESSING_FILE " + sfarFiles[i]);
                     Console.Out.Flush();
                 }
-                int newProgress = i * 100 / sfarFiles.Count;
-                if (ipc && lastProgress != newProgress)
-                {
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
-                    Console.Out.Flush();
-                    lastProgress = newProgress;
-                }
-                dlc.extract(sfarFiles[i], outPath);
+                dlc.extract(sfarFiles[i], outPath, ipc, ref currentProgress, totalNumFiles);
             }
 
             sfarFiles = Directory.GetFiles(GameData.DLCData, "Default.sfar", SearchOption.AllDirectories).ToList();
