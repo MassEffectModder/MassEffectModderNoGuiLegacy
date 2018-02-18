@@ -225,7 +225,7 @@ namespace MassEffectModder
             Console.WriteLine("  -check-game-data-for-backup <game id> [-ipc]\n");
             Console.WriteLine("     Check game data with md5 database for backup purpose.\n");
             Console.WriteLine("");
-            Console.WriteLine("  -install-mods <game id> <input dir> [-repack] [-ipc] [-gui-installer]\n");
+            Console.WriteLine("  -install-mods <game id> <input dir> [-repack] [-ipc] [-alot-mode]\n");
             Console.WriteLine("     Install MEM/TPF mods from input directory.\n");
             Console.WriteLine("");
             Console.WriteLine("  -unpack-dlcs [-ipc]\n");
@@ -529,7 +529,7 @@ namespace MassEffectModder
                 {
                     if (args[l].ToLowerInvariant() == "-new-way")
                         newWay = true;
-                    if (args[l].ToLowerInvariant() == "-gui-installer")
+                    if (args[l].ToLowerInvariant() == "-alot-mode")
                         guiInstaller = true;
                 }
                 if (newWay)
