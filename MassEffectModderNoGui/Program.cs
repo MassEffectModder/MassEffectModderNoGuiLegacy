@@ -226,7 +226,7 @@ namespace MassEffectModder
             Console.WriteLine("     Check game data with md5 database for backup purpose.\n");
             Console.WriteLine("");
             Console.WriteLine("  -install-mods <game id> <input dir> [-repack] [-ipc] [-alot-mode]\n");
-            Console.WriteLine("     Install MEM/TPF mods from input directory.\n");
+            Console.WriteLine("     Install MEM mods from input directory.\n");
             Console.WriteLine("");
             Console.WriteLine("  -unpack-dlcs [-ipc]\n");
             Console.WriteLine("     Unpack ME3 DLCs.\n");

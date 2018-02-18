@@ -2642,7 +2642,6 @@ namespace MassEffectModder
 
 
             List<string> modFiles = Directory.GetFiles(inputDir, "*.mem").Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
-            modFiles.AddRange(Directory.GetFiles(inputDir, "*.tpf").Where(item => item.EndsWith(".tpf", StringComparison.OrdinalIgnoreCase)));
 
             bool status = applyMods(modFiles, repack, ipc);
 
@@ -2707,7 +2706,6 @@ namespace MassEffectModder
                 return false;
 
             List<string> modFiles = Directory.GetFiles(inputDir, "*.mem").Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
-            modFiles.AddRange(Directory.GetFiles(inputDir, "*.tpf").Where(item => item.EndsWith(".tpf", StringComparison.OrdinalIgnoreCase)));
             bool status = applyMods(modFiles, repack, ipc);
             return status;
         }
@@ -2750,44 +2748,23 @@ namespace MassEffectModder
 
             for (int i = 0; i < files.Count; i++)
             {
-                if (files[i].EndsWith(".mem", StringComparison.OrdinalIgnoreCase))
+                try
                 {
-                    try
+                    using (FileStream fs = new FileStream(files[i], FileMode.Open, FileAccess.Read))
                     {
-                        using (FileStream fs = new FileStream(files[i], FileMode.Open, FileAccess.Read))
-                        {
-                            uint tag = fs.ReadUInt32();
-                            uint version = fs.ReadUInt32();
-                            if (tag != TextureModTag || version != TextureModVersion)
-                                continue;
-                            fs.JumpTo(fs.ReadInt64());
-                            fs.SkipInt32();
-                            totalNumberOfMods += fs.ReadInt32();
-                        }
-                    }
-                    catch
-                    {
-                        continue;
+                        uint tag = fs.ReadUInt32();
+                        uint version = fs.ReadUInt32();
+                        if (tag != TextureModTag || version != TextureModVersion)
+                            continue;
+                        fs.JumpTo(fs.ReadInt64());
+                        fs.SkipInt32();
+                        totalNumberOfMods += fs.ReadInt32();
                     }
                 }
-                else if (files[i].EndsWith(".tpf", StringComparison.OrdinalIgnoreCase))
+                catch
                 {
-                    ulong numEntries = 0;
-                    IntPtr handle = IntPtr.Zero;
-                    ZlibHelper.Zip zip = new ZlibHelper.Zip();
-                    try
-                    {
-                        handle = zip.Open(files[i], ref numEntries, 1);
-                        zip.Close(handle);
-                        totalNumberOfMods += (int)numEntries;
-                    }
-                    catch
-                    {
-                        continue;
-                    }
+                    continue;
                 }
-                else
-                    throw new Exception();
             }
 
             Console.WriteLine("Process textures started...");
@@ -2812,22 +2789,35 @@ namespace MassEffectModder
 
                 try
                 {
-                    if (files[i].EndsWith(".mem", StringComparison.OrdinalIgnoreCase))
+                    using (FileStream fs = new FileStream(files[i], FileMode.Open, FileAccess.Read))
                     {
-                        using (FileStream fs = new FileStream(files[i], FileMode.Open, FileAccess.Read))
+                        uint tag = fs.ReadUInt32();
+                        uint version = fs.ReadUInt32();
+                        if (tag != TextureModTag || version != TextureModVersion)
                         {
-                            uint tag = fs.ReadUInt32();
-                            uint version = fs.ReadUInt32();
-                            if (tag != TextureModTag || version != TextureModVersion)
+                            if (version != TextureModVersion)
                             {
-                                if (version != TextureModVersion)
-                                {
-                                    Console.WriteLine("File " + files[i] + " was made with an older version of MEM, skipping..." + Environment.NewLine);
-                                }
-                                else
-                                {
-                                    Console.WriteLine("File " + files[i] + " is not a valid MEM mod, skipping..." + Environment.NewLine);
-                                }
+                                Console.WriteLine("File " + files[i] + " was made with an older version of MEM, skipping..." + Environment.NewLine);
+                            }
+                            else
+                            {
+                                Console.WriteLine("File " + files[i] + " is not a valid MEM mod, skipping..." + Environment.NewLine);
+                            }
+                            if (ipc)
+                            {
+                                Console.WriteLine("[IPC]ERROR Bad MEM mod " + files[i]);
+                                Console.Out.Flush();
+                            }
+                            continue;
+                        }
+                        else
+                        {
+                            uint gameType = 0;
+                            fs.JumpTo(fs.ReadInt64());
+                            gameType = fs.ReadUInt32();
+                            if ((MeType)gameType != GameData.gameType)
+                            {
+                                Console.WriteLine("File " + files[i] + " is not a MEM mod valid for this game, skipping..." + Environment.NewLine);
                                 if (ipc)
                                 {
                                     Console.WriteLine("[IPC]ERROR Bad MEM mod " + files[i]);
@@ -2835,285 +2825,118 @@ namespace MassEffectModder
                                 }
                                 continue;
                             }
-                            else
+                        }
+                        int numFiles = fs.ReadInt32();
+                        List<MipMaps.FileMod> modFiles = new List<MipMaps.FileMod>();
+                        for (int k = 0; k < numFiles; k++)
+                        {
+                            MipMaps.FileMod fileMod = new MipMaps.FileMod();
+                            fileMod.tag = fs.ReadUInt32();
+                            fileMod.name = fs.ReadStringASCIINull();
+                            fileMod.offset = fs.ReadInt64();
+                            fileMod.size = fs.ReadInt64();
+                            modFiles.Add(fileMod);
+                        }
+                        numFiles = modFiles.Count;
+                        for (int l = 0; l < numFiles; l++, currentNumberOfTotalMods++)
+                        {
+                            string name = "";
+                            uint crc = 0;
+                            long size = 0, dstLen = 0;
+                            int exportId = -1;
+                            string pkgPath = "";
+                            byte[] dst = null;
+                            fs.JumpTo(modFiles[l].offset);
+                            size = modFiles[l].size;
+                            if (modFiles[l].tag == MipMaps.FileTextureTag)
                             {
-                                uint gameType = 0;
-                                fs.JumpTo(fs.ReadInt64());
-                                gameType = fs.ReadUInt32();
-                                if ((MeType)gameType != GameData.gameType)
-                                {
-                                    Console.WriteLine("File " + files[i] + " is not a MEM mod valid for this game, skipping..." + Environment.NewLine);
-                                    if (ipc)
-                                    {
-                                        Console.WriteLine("[IPC]ERROR Bad MEM mod " + files[i]);
-                                        Console.Out.Flush();
-                                    }
-                                    continue;
-                                }
+                                name = fs.ReadStringASCIINull();
+                                crc = fs.ReadUInt32();
                             }
-                            int numFiles = fs.ReadInt32();
-                            List<MipMaps.FileMod> modFiles = new List<MipMaps.FileMod>();
-                            for (int k = 0; k < numFiles; k++)
+                            else if (modFiles[l].tag == MipMaps.FileBinaryTag)
                             {
-                                MipMaps.FileMod fileMod = new MipMaps.FileMod();
-                                fileMod.tag = fs.ReadUInt32();
-                                fileMod.name = fs.ReadStringASCIINull();
-                                fileMod.offset = fs.ReadInt64();
-                                fileMod.size = fs.ReadInt64();
-                                modFiles.Add(fileMod);
+                                name = modFiles[l].name;
+                                exportId = fs.ReadInt32();
+                                pkgPath = fs.ReadStringASCIINull();
                             }
-                            numFiles = modFiles.Count;
-                            for (int l = 0; l < numFiles; l++, currentNumberOfTotalMods++)
+
+                            if (ipc)
                             {
-                                string name = "";
-                                uint crc = 0;
-                                long size = 0, dstLen = 0;
-                                int exportId = -1;
-                                string pkgPath = "";
-                                byte[] dst = null;
-                                fs.JumpTo(modFiles[l].offset);
-                                size = modFiles[l].size;
-                                if (modFiles[l].tag == MipMaps.FileTextureTag)
-                                {
-                                    name = fs.ReadStringASCIINull();
-                                    crc = fs.ReadUInt32();
-                                }
-                                else if (modFiles[l].tag == MipMaps.FileBinaryTag)
-                                {
-                                    name = modFiles[l].name;
-                                    exportId = fs.ReadInt32();
-                                    pkgPath = fs.ReadStringASCIINull();
-                                }
+                                Console.WriteLine("[IPC]PROCESSING_TEXTURE_INSTALL " + modFiles[l].name);
+                                Console.Out.Flush();
+                            }
+                            int newProgress = currentNumberOfTotalMods * 100 / totalNumberOfMods;
+                            if (ipc && lastProgress != newProgress)
+                            {
+                                Console.WriteLine("[IPC]PROCESSING_MOD " + modFiles[l].name);
+                                Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
+                                Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+                                Console.Out.Flush();
+                                lastProgress = newProgress;
+                            }
 
-                                if (ipc)
-                                {
-                                    Console.WriteLine("[IPC]PROCESSING_TEXTURE_INSTALL " + modFiles[l].name);
-                                    Console.Out.Flush();
-                                }
-                                int newProgress = currentNumberOfTotalMods * 100 / totalNumberOfMods;
-                                if (ipc && lastProgress != newProgress)
-                                {
-                                    Console.WriteLine("[IPC]PROCESSING_MOD " + modFiles[l].name);
-                                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
-                                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-                                    Console.Out.Flush();
-                                    lastProgress = newProgress;
-                                }
+                            dst = MipMaps.decompressData(fs, size);
+                            dstLen = dst.Length;
 
-                                dst = MipMaps.decompressData(fs, size);
-                                dstLen = dst.Length;
-
-                                if (modFiles[l].tag == MipMaps.FileTextureTag)
+                            if (modFiles[l].tag == MipMaps.FileTextureTag)
+                            {
+                                FoundTexture foundTexture;
+                                foundTexture = textures.Find(s => s.crc == crc);
+                                if (foundTexture.crc != 0)
                                 {
-                                    FoundTexture foundTexture;
-                                    foundTexture = textures.Find(s => s.crc == crc);
-                                    if (foundTexture.crc != 0)
+                                    Image image = new Image(dst, Image.ImageFormat.DDS);
+                                    if (!image.checkDDSHaveAllMipmaps())
                                     {
-                                        Image image = new Image(dst, Image.ImageFormat.DDS);
-                                        if (!image.checkDDSHaveAllMipmaps())
-                                        {
-                                            Console.WriteLine("Error in texture: " + name + string.Format("_0x{0:X8}", crc) + " Texture skipped. This texture has not all the required mipmaps" + Environment.NewLine);
-                                            continue;
-                                        }
-                                        string errors = "";
-                                        if (special)
-                                            errors = replaceTextureSpecialME3Mod(image, foundTexture.list, cachePackageMgr, foundTexture.name, crc, tfcName, guid);
-                                        else
-                                            errors = new MipMaps().replaceTexture(image, foundTexture.list, cachePackageMgr, foundTexture.name, crc, false);
-                                        if (errors != "")
-                                        {
-                                            if (ipc)
-                                            {
-                                                Console.WriteLine("[IPC]ERROR Error while replacing texture " + foundTexture.name);
-                                                Console.Out.Flush();
-                                            }
-                                            Console.WriteLine(errors);
-                                        }
+                                        Console.WriteLine("Error in texture: " + name + string.Format("_0x{0:X8}", crc) + " Texture skipped. This texture has not all the required mipmaps" + Environment.NewLine);
+                                        continue;
                                     }
+                                    string errors = "";
+                                    if (special)
+                                        errors = replaceTextureSpecialME3Mod(image, foundTexture.list, cachePackageMgr, foundTexture.name, crc, tfcName, guid);
                                     else
+                                        errors = new MipMaps().replaceTexture(image, foundTexture.list, cachePackageMgr, foundTexture.name, crc, false);
+                                    if (errors != "")
                                     {
-                                        Console.WriteLine("Texture skipped. Texture " + name + string.Format("_0x{0:X8}", crc) + " is not present in your game setup" + Environment.NewLine);
+                                        if (ipc)
+                                        {
+                                            Console.WriteLine("[IPC]ERROR Error while replacing texture " + foundTexture.name);
+                                            Console.Out.Flush();
+                                        }
+                                        Console.WriteLine(errors);
                                     }
-                                }
-                                else if (modFiles[l].tag == MipMaps.FileBinaryTag)
-                                {
-                                    string path = GameData.GamePath + pkgPath;
-                                    if (!File.Exists(path))
-                                    {
-                                        Console.WriteLine("Warning: File " + path + " not exists in your game setup." + Environment.NewLine);
-                                        continue;
-                                    }
-                                    Package pkg = cachePackageMgr.OpenPackage(path);
-                                    pkg.setExportData(exportId, dst);
-                                }
-                                else if (modFiles[l].tag == MipMaps.FileXdeltaTag)
-                                {
-                                    string path = GameData.GamePath + pkgPath;
-                                    if (!File.Exists(path))
-                                    {
-                                        Console.WriteLine("Warning: File " + path + " not exists in your game setup." + Environment.NewLine);
-                                        continue;
-                                    }
-                                    Package pkg = cachePackageMgr.OpenPackage(path);
-                                    byte[] buffer = new Xdelta3Helper.Xdelta3().Decompress(pkg.getExportData(exportId), dst);
-                                    pkg.setExportData(exportId, buffer);
                                 }
                                 else
                                 {
-                                    Console.WriteLine("Unknown tag for file: " + name + Environment.NewLine);
+                                    Console.WriteLine("Texture skipped. Texture " + name + string.Format("_0x{0:X8}", crc) + " is not present in your game setup" + Environment.NewLine);
                                 }
                             }
-                        }
-                    }
-                    else if (files[i].EndsWith(".tpf", StringComparison.OrdinalIgnoreCase))
-                    {
-                        int result;
-                        string fileName = "";
-                        ulong dstLen = 0;
-                        string[] ddsList = null;
-                        ulong numEntries = 0;
-                        IntPtr handle = IntPtr.Zero;
-                        ZlibHelper.Zip zip = new ZlibHelper.Zip();
-                        try
-                        {
-                            int indexTpf = -1;
-                            handle = zip.Open(files[i], ref numEntries, 1);
-                            for (ulong t = 0; t < numEntries; t++)
+                            else if (modFiles[l].tag == MipMaps.FileBinaryTag)
                             {
-                                result = zip.GetCurrentFileInfo(handle, ref fileName, ref dstLen);
-                                fileName = fileName.Trim();
-                                if (result != 0)
-                                    throw new Exception();
-                                if (Path.GetExtension(fileName).ToLowerInvariant() == ".def" ||
-                                    Path.GetExtension(fileName).ToLowerInvariant() == ".log")
+                                string path = GameData.GamePath + pkgPath;
+                                if (!File.Exists(path))
                                 {
-                                    indexTpf = (int)t;
-                                    break;
-                                }
-                                result = zip.GoToNextFile(handle);
-                                if (result != 0)
-                                    throw new Exception();
-                            }
-                            byte[] listText = new byte[dstLen];
-                            result = zip.ReadCurrentFile(handle, listText, dstLen);
-                            if (result != 0)
-                                throw new Exception();
-                            ddsList = Encoding.ASCII.GetString(listText).Trim('\0').Replace("\r", "").TrimEnd('\n').Split('\n');
-
-                            result = zip.GoToFirstFile(handle);
-                            if (result != 0)
-                                throw new Exception();
-
-                            for (uint t = 0; t < numEntries; t++, currentNumberOfTotalMods++)
-                            {
-                                if (i == indexTpf)
-                                {
-                                    result = zip.GoToNextFile(handle);
+                                    Console.WriteLine("Warning: File " + path + " not exists in your game setup." + Environment.NewLine);
                                     continue;
                                 }
-                                try
-                                {
-                                    uint crc = 0;
-                                    result = zip.GetCurrentFileInfo(handle, ref fileName, ref dstLen);
-                                    if (result != 0)
-                                        throw new Exception();
-                                    fileName = fileName.Trim();
-                                    foreach (string dds in ddsList)
-                                    {
-                                        string ddsFile = dds.Split('|')[1];
-                                        if (ddsFile.ToLowerInvariant().Trim() != fileName.ToLowerInvariant())
-                                            continue;
-                                        crc = uint.Parse(dds.Split('|')[0].Substring(2), System.Globalization.NumberStyles.HexNumber);
-                                        break;
-                                    }
-                                    string filename = Path.GetFileName(fileName);
-                                    if (crc == 0)
-                                    {
-                                        Console.WriteLine("Skipping file: " + filename + " not found in definition file, entry: " + (i + 1) + " - mod: " + files[i] + Environment.NewLine);
-                                        zip.GoToNextFile(handle);
-                                        continue;
-                                    }
-
-                                    if (ipc)
-                                    {
-                                        Console.WriteLine("[IPC]PROCESSING_TEXTURE_INSTALL " + filename);
-                                        Console.Out.Flush();
-                                    }
-                                    int newProgress = currentNumberOfTotalMods * 100 / totalNumberOfMods;
-                                    if (ipc && lastProgress != newProgress)
-                                    {
-                                        Console.WriteLine("[IPC]PROCESSING_MOD " + filename);
-                                        Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
-                                        Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-                                        Console.Out.Flush();
-                                        lastProgress = newProgress;
-                                    }
-
-                                    FoundTexture foundTexture = textures.Find(s => s.crc == crc);
-                                    if (foundTexture.crc != 0)
-                                    {
-                                        byte[] data = new byte[dstLen];
-                                        result = zip.ReadCurrentFile(handle, data, dstLen);
-                                        if (result != 0)
-                                        {
-                                            Console.WriteLine("Error in texture: " + foundTexture.name + string.Format("_0x{0:X8}", crc) + ", skipping texture, entry: " + (i + 1) + " - mod: " + files[i] + Environment.NewLine);
-                                            zip.GoToNextFile(handle);
-                                            continue;
-                                        }
-                                        Image image = new Image(data, Path.GetExtension(filename));
-                                        string errors = "";
-                                        errors = new MipMaps().replaceTexture(image, foundTexture.list, cachePackageMgr, foundTexture.name, crc, false);
-                                        if (errors != "")
-                                        {
-                                            if (ipc)
-                                            {
-                                                Console.WriteLine("[IPC]ERROR Error while replacing texture " + foundTexture.name);
-                                                Console.Out.Flush();
-                                            }
-                                            else
-                                            {
-                                                Console.WriteLine(errors);
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine("Texture skipped. File " + filename + string.Format(" - 0x{0:X8}", crc) + " is not present in your game setup - mod: " + files[i] + Environment.NewLine);
-                                        zip.GoToNextFile(handle);
-                                        continue;
-                                    }
-                                }
-                                catch
-                                {
-                                    if (ipc)
-                                    {
-                                        Console.WriteLine("[IPC]ERROR Skipping not compatible content, entry: " + (i + 1) + " file: " + fileName + " - mod: " + files[i]);
-                                        Console.Out.Flush();
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine("Skipping not compatible content, entry: " + (i + 1) + " file: " + fileName + " - mod: " + files[i] + Environment.NewLine);
-                                    }
-                                }
-                                result = zip.GoToNextFile(handle);
+                                Package pkg = cachePackageMgr.OpenPackage(path);
+                                pkg.setExportData(exportId, dst);
                             }
-                            zip.Close(handle);
-                            handle = IntPtr.Zero;
-                        }
-                        catch
-                        {
-                            if (ipc)
+                            else if (modFiles[l].tag == MipMaps.FileXdeltaTag)
                             {
-                                Console.WriteLine("[IPC]ERROR Skipping not compatible mod: " + files[i]);
-                                Console.Out.Flush();
+                                string path = GameData.GamePath + pkgPath;
+                                if (!File.Exists(path))
+                                {
+                                    Console.WriteLine("Warning: File " + path + " not exists in your game setup." + Environment.NewLine);
+                                    continue;
+                                }
+                                Package pkg = cachePackageMgr.OpenPackage(path);
+                                byte[] buffer = new Xdelta3Helper.Xdelta3().Decompress(pkg.getExportData(exportId), dst);
+                                pkg.setExportData(exportId, buffer);
                             }
                             else
                             {
-                                Console.WriteLine("Mod is not compatible: " + files[i] + Environment.NewLine);
+                                Console.WriteLine("Unknown tag for file: " + name + Environment.NewLine);
                             }
-                            if (handle != IntPtr.Zero)
-                                zip.Close(handle);
-                            handle = IntPtr.Zero;
                         }
                     }
                 }
