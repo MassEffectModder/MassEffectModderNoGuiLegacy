@@ -190,7 +190,7 @@ namespace MassEffectModder
                     if (filesList[i].filenamePath == null)
                         throw new Exception("filename missing");
 
-                    int newProgress = currentProgress / totalNumber;
+                    int newProgress = (100 * currentProgress) / totalNumber;
                     if (ipc && lastProgress != newProgress)
                     {
                         Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
