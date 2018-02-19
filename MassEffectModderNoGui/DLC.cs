@@ -176,7 +176,7 @@ namespace MassEffectModder
                     outputFile.WriteUInt32(SfarVersion);
                     outputFile.WriteUInt32(HeaderSize);
                     outputFile.WriteUInt32(HeaderSize);
-                    outputFile.WriteUInt32((uint)filesList.Count);
+                    outputFile.WriteUInt32(0);
                     outputFile.WriteUInt32(HeaderSize);
                     outputFile.WriteUInt32((uint)MaxBlockSize);
                     outputFile.WriteUInt32(LZMATag);
