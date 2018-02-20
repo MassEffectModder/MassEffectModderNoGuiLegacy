@@ -2615,6 +2615,17 @@ namespace MassEffectModder
             if (gameId == MeType.ME1_TYPE)
                 repack = false;
 
+            if (!modded)
+                ScanTextures(gameId, ipc, repack);
+
+
+            Console.WriteLine("Process textures started...");
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_INSTALLTEXTURES");
+                Console.Out.Flush();
+            }
+            List<string> modFiles = Directory.GetFiles(inputDir, "*.mem").Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
             if (modded)
             {
                 string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -2623,14 +2634,6 @@ namespace MassEffectModder
                 if (!loadTexturesMapFile(mapFile, ipc))
                     return false;
             }
-            else
-            {
-                ScanTextures(gameId, ipc, repack);
-            }
-
-
-            List<string> modFiles = Directory.GetFiles(inputDir, "*.mem").Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
-
             bool status = applyMods(modFiles, repack, ipc);
 
 
@@ -2753,13 +2756,6 @@ namespace MassEffectModder
                 {
                     continue;
                 }
-            }
-
-            Console.WriteLine("Process textures started...");
-            if (ipc)
-            {
-                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_INSTALLTEXTURES");
-                Console.Out.Flush();
             }
 
             int lastProgress = -1;
