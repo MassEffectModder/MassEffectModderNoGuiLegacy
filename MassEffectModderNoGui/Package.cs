@@ -81,9 +81,9 @@ namespace MassEffectModder
         public string packagePath;
         MemoryStream packageData;
         List<Chunk> chunks;
-        List<NameEntry> namesTable;
+        public List<NameEntry> namesTable;
         uint namesTableEnd;
-        List<ImportEntry> importsTable;
+        public List<ImportEntry> importsTable;
         uint importsTableEnd;
         public List<ExportEntry> exportsTable;
         List<int> dependsTable;
@@ -1017,6 +1017,15 @@ namespace MassEffectModder
 
             if (forceCompressed && forceDecompressed)
                 throw new Exception("force de/compression can't be both enabled!");
+
+            if (!appendMarker)
+            {
+                packageFile.SeekEnd();
+                packageFile.Seek(-MEMendFileMarker.Length, SeekOrigin.Current);
+                string marker = packageFile.ReadStringASCII(MEMendFileMarker.Length);
+                if (marker == MEMendFileMarker)
+                    appendMarker = true;
+            }
 
             MemoryStream tempOutput = new MemoryStream();
 

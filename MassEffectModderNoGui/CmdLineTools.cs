@@ -2603,7 +2603,8 @@ namespace MassEffectModder
                     Console.Out.Flush();
                 }
 
-                ME3DLC.unpackAllDLC(ipc);
+                if (!modded)
+                    ME3DLC.unpackAllDLC(ipc);
 
                 Console.WriteLine("Unpacking DLCs finished.\n");
             }
