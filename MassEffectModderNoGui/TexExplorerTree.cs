@@ -34,7 +34,7 @@ namespace MassEffectModder
         public List<FoundTexture> treeScan = null;
         private bool generateBuiltinMapFiles = false; // change to true to enable map files generation
 
-        public bool PrepareListOfTextures(CachePackageMgr cachePackageMgr, bool ipc)
+        public bool PrepareListOfTextures(bool ipc)
         {
             treeScan = null;
 
@@ -64,7 +64,7 @@ namespace MassEffectModder
                     Console.Out.Flush();
                     lastProgress = newProgress;
                 }
-                FindTextures(textures, GameData.packageFiles[i], cachePackageMgr, ipc);
+                FindTextures(textures, GameData.packageFiles[i], ipc);
             }
 
             if (GameData.gameType == MeType.ME1_TYPE)
@@ -193,16 +193,13 @@ namespace MassEffectModder
             return true;
         }
 
-        private void FindTextures(List<FoundTexture> textures, string packagePath, CachePackageMgr cachePackageMgr, bool ipc)
+        private void FindTextures(List<FoundTexture> textures, string packagePath, bool ipc)
         {
             Package package = null;
 
             try
             {
-                if (cachePackageMgr != null)
-                    package = cachePackageMgr.OpenPackage(packagePath);
-                else
-                    package = new Package(packagePath);
+                package = new Package(packagePath);
             }
             catch (Exception e)
             {
@@ -307,14 +304,7 @@ namespace MassEffectModder
                 }
             }
 
-            if (cachePackageMgr == null)
-            {
-                package.Dispose();
-            }
-            else
-            {
-                package.DisposeCache();
-            }
+            package.Dispose();
         }
     }
 }

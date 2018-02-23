@@ -2054,7 +2054,7 @@ namespace MassEffectModder
                 Console.Out.Flush();
             }
             TreeScan treeScan = new TreeScan();
-            if (!treeScan.PrepareListOfTextures(null, ipc))
+            if (!treeScan.PrepareListOfTextures(ipc))
                 return false;
             textures = treeScan.treeScan;
             Console.WriteLine("Scanning textures finished." + Environment.NewLine);
@@ -2068,12 +2068,12 @@ namespace MassEffectModder
             }
             if (GameData.gameType == MeType.ME1_TYPE)
             {
-                mipMaps.removeMipMapsME1(1, textures, null, ipc, false);
-                mipMaps.removeMipMapsME1(2, textures, null, ipc, false);
+                mipMaps.removeMipMapsME1(1, textures, ipc, false);
+                mipMaps.removeMipMapsME1(2, textures, ipc, false);
             }
             else
             {
-                mipMaps.removeMipMapsME2ME3(textures, null, ipc, repack);
+                mipMaps.removeMipMapsME2ME3(textures, ipc, repack);
             }
             Console.WriteLine("Remove mipmaps finished" + Environment.NewLine + Environment.NewLine);
 
@@ -2434,7 +2434,7 @@ namespace MassEffectModder
                 Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_SCAN");
                 Console.Out.Flush();
             }
-            if (!treeScan.PrepareListOfTextures(null, ipc))
+            if (!treeScan.PrepareListOfTextures(ipc))
                 return false;
             textures = treeScan.treeScan;
             Console.WriteLine("Scan textures finished.\n");
@@ -2454,12 +2454,12 @@ namespace MassEffectModder
 
             if (GameData.gameType == MeType.ME1_TYPE)
             {
-                mipMaps.removeMipMapsME1(1, textures, null, ipc, false);
-                mipMaps.removeMipMapsME1(2, textures, null, ipc, false);
+                mipMaps.removeMipMapsME1(1, textures, ipc, false);
+                mipMaps.removeMipMapsME1(2, textures, ipc, false);
             }
             else
             {
-                mipMaps.removeMipMapsME2ME3(textures, null, ipc, repack);
+                mipMaps.removeMipMapsME2ME3(textures, ipc, repack);
             }
 
             Console.WriteLine("Remove mipmaps finished.\n");

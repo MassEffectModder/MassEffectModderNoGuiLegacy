@@ -61,8 +61,7 @@ namespace MassEffectModder
             }
         }
 
-        public void removeMipMapsME1(int phase, List<FoundTexture> textures, CachePackageMgr cachePackageMgr,
-            bool ipc, bool forceZlib = false)
+        public void removeMipMapsME1(int phase, List<FoundTexture> textures, bool ipc, bool forceZlib = false)
         {
             int lastProgress = -1;
             for (int i = 0; i < GameData.packageFiles.Count; i++)
@@ -80,10 +79,7 @@ namespace MassEffectModder
 
                 try
                 {
-                    if (cachePackageMgr != null)
-                        package = cachePackageMgr.OpenPackage(GameData.packageFiles[i]);
-                    else
-                        package = new Package(GameData.packageFiles[i], true);
+                    package = new Package(GameData.packageFiles[i], true);
                 }
                 catch (Exception e)
                 {
@@ -163,10 +159,7 @@ namespace MassEffectModder
 
                                 MatchedTexture foundMasterTex = foundTexture.list[foundTexture.list[foundListEntry].linkToMaster];
                                 Package masterPkg = null;
-                                if (cachePackageMgr != null)
-                                    masterPkg = cachePackageMgr.OpenPackage(GameData.GamePath + foundMasterTex.path);
-                                else
-                                    masterPkg = new Package(GameData.GamePath + foundMasterTex.path);
+                                masterPkg = new Package(GameData.GamePath + foundMasterTex.path);
                                 int masterExportId = foundMasterTex.exportID;
                                 byte[] masterData = masterPkg.getExportData(masterExportId);
                                 masterPkg.DisposeCache();
@@ -197,10 +190,9 @@ namespace MassEffectModder
                                         }
                                     }
                                 }
-                                if (cachePackageMgr == null)
-                                    masterPkg.Dispose();
+                                masterPkg.Dispose();
                             }
-skip:
+                            skip:
                             using (MemoryStream newData = new MemoryStream())
                             {
                                 newData.WriteFromBuffer(texture.properties.toArray());
@@ -211,31 +203,23 @@ skip:
                         }
                     }
                 }
-                if (cachePackageMgr == null)
+                if (modified)
                 {
-                    if (modified)
-                    {
-                        if (package.compressed && package.compressionType != Package.CompressionType.Zlib)
-                            package.SaveToFile(forceZlib);
-                        else
-                            package.SaveToFile();
-                    }
+                    if (package.compressed && package.compressionType != Package.CompressionType.Zlib)
+                        package.SaveToFile(forceZlib);
                     else
-                    {
-                        package.Dispose();
-                        AddMarkerToPackages(GameData.packageFiles[i]);
-                    }
-                    package.Dispose();
+                        package.SaveToFile();
                 }
                 else
                 {
-                    package.DisposeCache();
+                    package.Dispose();
+                    AddMarkerToPackages(GameData.packageFiles[i]);
                 }
+                package.Dispose();
             }
         }
 
-        public void removeMipMapsME2ME3(List<FoundTexture> textures, CachePackageMgr cachePackageMgr,
-            bool ipc, bool forceZlib = false)
+        public void removeMipMapsME2ME3(List<FoundTexture> textures, bool ipc, bool forceZlib = false)
         {
             int lastProgress = -1;
             for (int i = 0; i < GameData.packageFiles.Count; i++)
@@ -253,10 +237,7 @@ skip:
 
                 try
                 {
-                    if (cachePackageMgr != null)
-                        package = cachePackageMgr.OpenPackage(GameData.packageFiles[i]);
-                    else
-                        package = new Package(GameData.packageFiles[i], true);
+                    package = new Package(GameData.packageFiles[i], true);
                 }
                 catch (Exception e)
                 {
@@ -277,7 +258,7 @@ skip:
                     }
                     continue;
                 }
-                
+
                 for (int l = 0; l < package.exportsTable.Count; l++)
                 {
                     int id = package.getClassNameId(package.exportsTable[l].classId);
@@ -309,26 +290,19 @@ skip:
                         }
                     }
                 }
-                if (cachePackageMgr == null)
+                if (modified)
                 {
-                    if (modified)
-                    {
-                        if (package.compressed && package.compressionType != Package.CompressionType.Zlib)
-                            package.SaveToFile(forceZlib);
-                        else
-                            package.SaveToFile();
-                    }
+                    if (package.compressed && package.compressionType != Package.CompressionType.Zlib)
+                        package.SaveToFile(forceZlib);
                     else
-                    {
-                        package.Dispose();
-                        AddMarkerToPackages(GameData.packageFiles[i]);
-                    }
-                    package.Dispose();
+                        package.SaveToFile();
                 }
                 else
                 {
-                    package.DisposeCache();
+                    package.Dispose();
+                    AddMarkerToPackages(GameData.packageFiles[i]);
                 }
+                package.Dispose();
             }
             if (GameData.gameType == MeType.ME3_TYPE)
             {
