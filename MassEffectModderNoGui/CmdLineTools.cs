@@ -2097,66 +2097,10 @@ namespace MassEffectModder
 
         public static bool RepackGameDataME1(bool ipc)
         {
-            ConfIni configIni = new ConfIni();
-            GameData gameData = new GameData(MeType.ME1_TYPE, configIni);
-            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
-            {
-                Console.WriteLine("Error: Could not found the game!");
-                return false;
-            }
-
             if (ipc)
             {
                 Console.WriteLine("[IPC]PHASE Repacking game files");
                 Console.Out.Flush();
-            }
-            gameData.getPackages();
-            string path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
-            int lastProgress = -1;
-            for (int i = 0; i < GameData.packageFiles.Count; i++)
-            {
-                if (GameData.packageFiles[i].ToLowerInvariant().Contains(path))
-                    continue;
-                if (ipc)
-                {
-                    Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
-                    Console.Out.Flush();
-                }
-                else
-                {
-                    Console.WriteLine("File: " + GameData.packageFiles[i]);
-                }
-                int newProgress = (i * 100 / GameData.packageFiles.Count);
-                if (ipc && lastProgress != newProgress)
-                {
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
-                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-                    Console.Out.Flush();
-                    lastProgress = newProgress;
-                }
-                try
-                {
-                    Package package = new Package(GameData.packageFiles[i], true, true);
-                    if (package.compressed && package.compressionType == Package.CompressionType.Zlib)
-                    {
-                        package.Dispose();
-                        package = new Package(GameData.packageFiles[i]);
-                        package.SaveToFile(true);
-                    }
-                    package.Dispose();
-                }
-                catch
-                {
-                    if (ipc)
-                    {
-                        Console.WriteLine("[IPC]ERROR Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
-                        Console.Out.Flush();
-                    }
-                    else
-                    {
-                        Console.WriteLine("Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
-                    }
-                }
             }
 
             return true;
@@ -2467,7 +2411,7 @@ namespace MassEffectModder
             return true;
         }
 
-        static private void RepackME(MeType gameId, bool ipc)
+        static private void RepackME23(MeType gameId, bool ipc)
         {
             Console.WriteLine("Repack started...");
             if (ipc)
@@ -2477,9 +2421,7 @@ namespace MassEffectModder
             }
 
             string markerPath = "";
-            if (gameId == MeType.ME1_TYPE)
-                markerPath = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
-            else if (gameId == MeType.ME2_TYPE)
+            if (gameId == MeType.ME2_TYPE)
                 markerPath = @"\BioGame\CookedPC\BIOC_Materials.pcc".ToLowerInvariant();
             int lastProgress = -1;
             for (int i = 0; i < GameData.packageFiles.Count; i++)
@@ -2506,8 +2448,7 @@ namespace MassEffectModder
                 {
                     Package package = new Package(GameData.packageFiles[i], true, true);
                     if (package.compressed &&
-                        ((gameId == MeType.ME1_TYPE && package.compressionType == Package.CompressionType.Zlib) ||
-                        (gameId == MeType.ME2_TYPE && package.compressionType != Package.CompressionType.Zlib)))
+                        (gameId == MeType.ME2_TYPE && package.compressionType != Package.CompressionType.Zlib))
                     {
                         package.Dispose();
                         package = new Package(GameData.packageFiles[i]);
@@ -2576,6 +2517,9 @@ namespace MassEffectModder
                 }
             }
 
+            if (gameId == MeType.ME1_TYPE)
+                repack = false;
+
             bool modded = detectMod((int)gameId);
             if (ipc)
             {
@@ -2589,7 +2533,7 @@ namespace MassEffectModder
                 Console.WriteLine("[IPC]STAGE_ADD STAGE_SAVING");
                 if (!modded)
                     Console.WriteLine("[IPC]STAGE_ADD STAGE_REMOVEMIPMAPS");
-                if (gameId == MeType.ME1_TYPE || (!modded && repack))
+                if (!modded && repack)
                     Console.WriteLine("[IPC]STAGE_ADD STAGE_REPACK");
                 Console.Out.Flush();
             }
@@ -2612,9 +2556,6 @@ namespace MassEffectModder
             gameData.getPackages();
             if (gameId != MeType.ME1_TYPE)
                 gameData.getTfcTextures();
-
-            if (gameId == MeType.ME1_TYPE)
-                repack = false;
 
             if (!modded)
                 ScanTextures(gameId, ipc, repack);
@@ -2642,8 +2583,8 @@ namespace MassEffectModder
                 RemoveMipmaps(gameId, ipc, repack);
 
 
-            if (gameId == MeType.ME1_TYPE || (!modded && repack))
-                RepackME(gameId, ipc);
+            if (!modded && repack)
+                RepackME23(gameId, ipc);
 
 
             if (!guiInstaller)
