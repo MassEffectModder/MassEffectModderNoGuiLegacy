@@ -2538,7 +2538,7 @@ namespace MassEffectModder
                 Console.Out.Flush();
             }
 
-            if (gameId == MeType.ME3_TYPE)
+            if (gameId == MeType.ME3_TYPE && !modded)
             {
                 Console.WriteLine("Unpacking DLCs started...");
                 if (ipc)
@@ -2547,8 +2547,7 @@ namespace MassEffectModder
                     Console.Out.Flush();
                 }
 
-                if (!modded)
-                    ME3DLC.unpackAllDLC(ipc);
+                ME3DLC.unpackAllDLC(ipc);
 
                 Console.WriteLine("Unpacking DLCs finished.\n");
             }
