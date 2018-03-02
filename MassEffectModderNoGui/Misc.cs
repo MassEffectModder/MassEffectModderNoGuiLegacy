@@ -816,7 +816,6 @@ namespace MassEffectModder
                 int newProgress = (l + progress) * 100 / allFilesCount;
                 if (ipc && lastProgress != newProgress)
                 {
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                     Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                     Console.Out.Flush();
                     lastProgress = newProgress;
@@ -920,7 +919,6 @@ namespace MassEffectModder
                     int newProgress = (l + progress) * 100 / allFilesCount;
                     if (ipc && lastProgress != newProgress)
                     {
-                        Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                         Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                         Console.Out.Flush();
                         lastProgress = newProgress;
@@ -1025,7 +1023,6 @@ namespace MassEffectModder
                     int newProgress = (l + progress) * 100 / allFilesCount;
                     if (ipc && lastProgress != newProgress)
                     {
-                        Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                         Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                         Console.Out.Flush();
                         lastProgress = newProgress;
@@ -1090,7 +1087,6 @@ namespace MassEffectModder
                     int newProgress = (l + progress) * 100 / allFilesCount;
                     if (ipc && lastProgress != newProgress)
                     {
-                        Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                         Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                         Console.Out.Flush();
                         lastProgress = newProgress;
@@ -1288,7 +1284,6 @@ namespace MassEffectModder
                 int newProgress = (i + 1) * 100 / filesToUpdate.Count;
                 if (ipc && lastProgress != newProgress)
                 {
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                     Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                     Console.Out.Flush();
                     lastProgress = newProgress;

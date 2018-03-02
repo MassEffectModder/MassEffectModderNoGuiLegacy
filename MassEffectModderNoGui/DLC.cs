@@ -194,7 +194,6 @@ namespace MassEffectModder
                     if (ipc && lastProgress != newProgress)
                     {
                         Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-                        Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                         Console.Out.Flush();
                         lastProgress = newProgress;
                     }

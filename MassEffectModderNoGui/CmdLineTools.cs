@@ -540,7 +540,6 @@ namespace MassEffectModder
                 int newProgress = (n * 100) / files.Count();
                 if (ipc && lastProgress != newProgress)
                 {
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                     Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                     Console.Out.Flush();
                     lastProgress = newProgress;
@@ -1511,7 +1510,7 @@ namespace MassEffectModder
             return true;
         }
 
-        static public bool extractTPF(string inputDir, string outputDir)
+        static public bool extractTPF(string inputDir, string outputDir, bool ipc)
         {
             Console.WriteLine("Extract TPF files started...");
 
@@ -1530,7 +1529,15 @@ namespace MassEffectModder
 
             foreach (string file in files)
             {
-                Console.WriteLine("Extract TPF: " + file);
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + file);
+                    Console.Out.Flush();
+                }
+                else
+                {
+                    Console.WriteLine("Extract TPF: " + file);
+                }
                 string outputTPFdir = outputDir + "\\" + Path.GetFileNameWithoutExtension(file);
                 if (!Directory.Exists(outputTPFdir))
                     Directory.CreateDirectory(outputTPFdir);
@@ -1596,7 +1603,7 @@ namespace MassEffectModder
             return status;
         }
 
-        static public bool extractMOD(MeType gameId, string inputDir, string outputDir)
+        static public bool extractMOD(MeType gameId, string inputDir, string outputDir, bool ipc)
         {
             loadTexturesMap(gameId);
 
@@ -1614,7 +1621,15 @@ namespace MassEffectModder
 
             foreach (string file in files)
             {
-                Console.WriteLine("Extract MOD: " + file);
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + file);
+                    Console.Out.Flush();
+                }
+                else
+                {
+                    Console.WriteLine("Extract MOD: " + file);
+                }
                 string outputMODdir = outputDir + "\\" + Path.GetFileNameWithoutExtension(file);
                 if (!Directory.Exists(outputMODdir))
                     Directory.CreateDirectory(outputMODdir);
@@ -1849,12 +1864,7 @@ namespace MassEffectModder
                                 pkgPath = fs.ReadStringASCIINull();
                             }
 
-                            if (ipc)
-                            {
-                                Console.WriteLine("[IPC]PROCESSING_MOD Extracting MEM mod: " + relativeFilePath);
-                                Console.Out.Flush();
-                            }
-                            else
+                            if (!ipc)
                             {
                                 Console.WriteLine("Processing MEM mod " + relativeFilePath +
                                         " - File " + (i + 1) + " of " + numFiles + " - " + name);
@@ -1862,7 +1872,6 @@ namespace MassEffectModder
                             int newProgress = currentNumberOfTotalMods * 100 / totalNumberOfMods;
                             if (ipc && lastProgress != newProgress)
                             {
-                                Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                                 Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                                 Console.Out.Flush();
                                 lastProgress = newProgress;
@@ -2029,213 +2038,6 @@ namespace MassEffectModder
             string log = "";
             LODSettings.readLOD(gameId, engineConf, ref log);
             Console.WriteLine(log);
-
-            return true;
-        }
-
-        public static bool ScanAndMipMapsRemoval(MeType gameId, bool ipc, bool repack = false)
-        {
-            ConfIni configIni = new ConfIni();
-            GameData gameData = new GameData(gameId, configIni);
-            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
-            {
-                Console.WriteLine("Error: Could not found the game!");
-                return false;
-            }
-
-            gameData.getPackages();
-            if (gameId != MeType.ME1_TYPE)
-                gameData.getTfcTextures();
-
-            Console.WriteLine("Scanning textures started..." + Environment.NewLine);
-            if (ipc)
-            {
-                Console.WriteLine("[IPC]PHASE Scanning textures");
-                Console.Out.Flush();
-            }
-            TreeScan treeScan = new TreeScan();
-            if (!treeScan.PrepareListOfTextures(ipc))
-                return false;
-            textures = treeScan.treeScan;
-            Console.WriteLine("Scanning textures finished." + Environment.NewLine);
-
-            MipMaps mipMaps = new MipMaps();
-            Console.WriteLine("Remove mipmaps started..." + Environment.NewLine);
-            if (ipc)
-            {
-                Console.WriteLine("[IPC]PHASE Removing empty mipmaps");
-                Console.Out.Flush();
-            }
-            if (GameData.gameType == MeType.ME1_TYPE)
-            {
-                mipMaps.removeMipMapsME1(1, textures, ipc, false);
-                mipMaps.removeMipMapsME1(2, textures, ipc, false);
-            }
-            else
-            {
-                mipMaps.removeMipMapsME2ME3(textures, ipc, repack);
-            }
-            Console.WriteLine("Remove mipmaps finished" + Environment.NewLine + Environment.NewLine);
-
-            return true;
-        }
-
-        public static bool UnpackDLCs(bool ipc)
-        {
-            ConfIni configIni = new ConfIni();
-            GameData gameData = new GameData(MeType.ME3_TYPE, configIni);
-            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
-            {
-                Console.WriteLine("Error: Could not found the game!");
-                return false;
-            }
-
-            ME3DLC.unpackAllDLC(ipc);
-
-            return true;
-        }
-
-        public static bool RepackGameDataME1(bool ipc)
-        {
-            if (ipc)
-            {
-                Console.WriteLine("[IPC]PHASE Repacking game files");
-                Console.Out.Flush();
-            }
-
-            return true;
-        }
-
-        public static bool RepackGameDataME2(bool ipc)
-        {
-            ConfIni configIni = new ConfIni();
-            GameData gameData = new GameData(MeType.ME2_TYPE, configIni);
-            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
-            {
-                Console.WriteLine("Error: Could not found the game!");
-                return false;
-            }
-
-            if (ipc)
-            {
-                Console.WriteLine("[IPC]PHASE Repacking game files");
-                Console.Out.Flush();
-            }
-            gameData.getPackages();
-            string path = @"\BioGame\CookedPC\BIOC_Materials.pcc".ToLowerInvariant();
-            int lastProgress = -1;
-            for (int i = 0; i < GameData.packageFiles.Count; i++)
-            {
-                if (GameData.packageFiles[i].ToLowerInvariant().Contains(path))
-                    continue;
-                if (ipc)
-                {
-                    Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
-                    Console.Out.Flush();
-                }
-                else
-                {
-                    Console.WriteLine("File: " + GameData.packageFiles[i]);
-                }
-                int newProgress = (i * 100 / GameData.packageFiles.Count);
-                if (ipc && lastProgress != newProgress)
-                {
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
-                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-                    Console.Out.Flush();
-                    lastProgress = newProgress;
-                }
-                try
-                {
-                    Package package = new Package(GameData.packageFiles[i], true, true);
-                    if (package.compressed && package.compressionType != Package.CompressionType.Zlib)
-                    {
-                        package.Dispose();
-                        package = new Package(GameData.packageFiles[i]);
-                        package.SaveToFile(true);
-                    }
-                    package.Dispose();
-                }
-                catch
-                {
-                    if (ipc)
-                    {
-                        Console.WriteLine("[IPC]ERROR Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
-                        Console.Out.Flush();
-                    }
-                    else
-                    {
-                        Console.WriteLine("Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
-                    }
-                }
-            }
-
-            return true;
-        }
-
-        public static bool RepackGameDataME3(bool ipc)
-        {
-            ConfIni configIni = new ConfIni();
-            GameData gameData = new GameData(MeType.ME3_TYPE, configIni);
-            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
-            {
-                Console.WriteLine("Error: Could not found the game!");
-                return false;
-            }
-
-            if (ipc)
-            {
-                Console.WriteLine("[IPC]PHASE Repacking game files");
-                Console.Out.Flush();
-            }
-            gameData.getPackages();
-            int lastProgress = -1;
-            for (int i = 0; i < GameData.packageFiles.Count; i++)
-            {
-                if (ipc)
-                {
-                    Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
-                    Console.Out.Flush();
-                }
-                else
-                {
-                    Console.WriteLine("File: " + GameData.packageFiles[i]);
-                }
-                int newProgress = (i * 100 / GameData.packageFiles.Count);
-                if (ipc && lastProgress != newProgress)
-                {
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
-                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-                    Console.Out.Flush();
-                    lastProgress = newProgress;
-                }
-
-                try
-                    {
-                    Package package = new Package(GameData.packageFiles[i], true, true);
-                    if (!package.compressed)
-                    {
-                        package.Dispose();
-                        package = new Package(GameData.packageFiles[i]);
-                        package.SaveToFile(false, true);
-                    }
-                    package.Dispose();
-                }
-                catch
-                {
-                    if (ipc)
-                    {
-                        Console.WriteLine("[IPC]ERROR Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
-                        Console.Out.Flush();
-                    }
-                    else
-                    {
-                        Console.WriteLine("Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
-                    }
-                }
-            }
-
-            TOCBinFile.UpdateAllTOCBinFiles();
 
             return true;
         }
@@ -2613,35 +2415,6 @@ namespace MassEffectModder
             return true;
         }
 
-        public static bool InstallModsOld(MeType gameId, string inputDir, bool ipc, bool repack)
-        {
-            textures = new List<FoundTexture>();
-            ConfIni configIni = new ConfIni();
-            GameData gameData = new GameData(gameId, configIni);
-            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
-            {
-                Console.WriteLine("Error: Could not found the game!");
-                return false;
-            }
-
-            gameData.getPackages();
-            if (gameId != MeType.ME1_TYPE)
-                gameData.getTfcTextures();
-
-            if (gameId == MeType.ME1_TYPE)
-                repack = false;
-
-            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    Program.MAINEXENAME);
-            string mapFile = Path.Combine(path, "me" + (int)gameId + "map.bin");
-            if (!loadTexturesMapFile(mapFile, ipc))
-                return false;
-
-            List<string> modFiles = Directory.GetFiles(inputDir, "*.mem").Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
-            bool status = applyMods(modFiles, repack, ipc);
-            return status;
-        }
-
         static public bool applyMEMSpecialModME3(string memFile, string tfcName, byte[] guid)
         {
             textures = new List<FoundTexture>();
@@ -2793,8 +2566,6 @@ namespace MassEffectModder
                             int newProgress = currentNumberOfTotalMods * 100 / totalNumberOfMods;
                             if (ipc && lastProgress != newProgress)
                             {
-                                Console.WriteLine("[IPC]PROCESSING_MOD " + modFiles[l].name);
-                                Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                                 Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                                 Console.Out.Flush();
                                 lastProgress = newProgress;
@@ -2885,7 +2656,6 @@ namespace MassEffectModder
             if (ipc)
             {
                 Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_SAVING");
-                Console.WriteLine("[IPC]PHASE Saving packages");
                 Console.Out.Flush();
             }
             cachePackageMgr.CloseAllWithSave(repack, ipc);
@@ -3265,7 +3035,6 @@ namespace MassEffectModder
                 int newProgress = i * 100 / GameData.packageFiles.Count;
                 if (ipc && lastProgress != newProgress)
                 {
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                     Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                     Console.Out.Flush();
                     lastProgress = newProgress;

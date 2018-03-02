@@ -73,7 +73,6 @@ namespace MassEffectModder
                 int newProgress = i * 100 / packages.Count;
                 if (ipc && lastProgress != newProgress)
                 {
-                    Console.WriteLine("[IPC]OVERALL_PROGRESS " + newProgress);
                     Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                     Console.Out.Flush();
                     lastProgress = newProgress;

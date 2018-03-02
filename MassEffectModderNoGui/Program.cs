@@ -231,18 +231,8 @@ namespace MassEffectModder
             Console.WriteLine("  -install-mods <game id> <input dir> [-repack] [-ipc] [-alot-mode]\n");
             Console.WriteLine("     Install MEM mods from input directory.\n");
             Console.WriteLine("");
-            Console.WriteLine("  -unpack-dlcs [-ipc]\n");
-            Console.WriteLine("     Unpack ME3 DLCs.\n");
-            Console.WriteLine("");
             Console.WriteLine("  -apply-me1-laa\n");
             Console.WriteLine("     Apply LAA patch to ME1 executable.\n");
-            Console.WriteLine("");
-            Console.WriteLine("  -repack <game id> [-ipc]\n");
-            Console.WriteLine("     Recompress ME2 package files to ZLib.\n");
-            Console.WriteLine("     Compress back ME3 DLC package files.\n");
-            Console.WriteLine("");
-            Console.WriteLine("  -scan-with-remove <game id> [-ipc]\n");
-            Console.WriteLine("     Scan textures and remove empty mipmaps.\n");
             Console.WriteLine("");
             Console.WriteLine("  -apply-mod-tag <game id> <alot version> <meuitm version>\n");
             Console.WriteLine("     Apply stamp that mod was installed.\n");
@@ -317,7 +307,7 @@ namespace MassEffectModder
             Console.WriteLine("           Image filename must include texture CRC (0xhhhhhhhh)");
             Console.WriteLine("     output dir: directory where textures converted to DDS are placed");
             Console.WriteLine("");
-            Console.WriteLine("  -extract-mod <game id> <input dir> <output dir>\n");
+            Console.WriteLine("  -extract-mod <game id> <input dir> <output dir> [-ipc]\n");
             Console.WriteLine("     game id: 1 for ME1, 2 for ME2, 3 for ME3");
             Console.WriteLine("     input dir: directory of ME3Explorer MOD file(s)");
             Console.WriteLine("     Can extract textures and package export raw data");
@@ -339,7 +329,7 @@ namespace MassEffectModder
             Console.WriteLine("        B<pkg filename length>-<pkg filename>-E<pkg export id>.bin");
             Console.WriteLine("        example: B23-BioH_EDI_00_Explore.pcc-E5090.bin");
             Console.WriteLine("");
-            Console.WriteLine("  -extract-tpf <input dir> <output dir>\n");
+            Console.WriteLine("  -extract-tpf <input dir> <output dir> [-ipc]\n");
             Console.WriteLine("     input dir: directory containing the TPF file(s) to be extracted");
             Console.WriteLine("     Textures are extracted as they are in the TPF, no additional modifications are made.");
             Console.WriteLine("");
@@ -404,10 +394,7 @@ namespace MassEffectModder
                 cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-extract-mod", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-extract-mem", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-repack", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-scan-with-remove", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-apply-mod-tag", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-quick-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-mods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-bad-mods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-apply-lods-gfx", StringComparison.OrdinalIgnoreCase) ||
@@ -485,10 +472,8 @@ namespace MassEffectModder
             if (cmd.Equals("-convert-to-mem", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-extract-mem", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-unpack-dlcs", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-repack", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-scan-with-remove", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-quick-detect-empty-mipmaps", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-extract-mod", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-extract-mem", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-bad-mods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-mods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-textures", StringComparison.OrdinalIgnoreCase) ||
@@ -507,8 +492,7 @@ namespace MassEffectModder
             }
 
             if (cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-convert-to-mem", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-scan-with-remove", StringComparison.OrdinalIgnoreCase))
+                cmd.Equals("-convert-to-mem", StringComparison.OrdinalIgnoreCase))
             {
                 for (int l = 0; l < args.Length; l++)
                 {
@@ -526,54 +510,18 @@ namespace MassEffectModder
             else if (cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
-                bool newWay = false;
                 bool guiInstaller = false;
                 for (int l = 0; l < args.Length; l++)
                 {
-                    if (args[l].ToLowerInvariant() == "-new-way")
-                        newWay = true;
                     if (args[l].ToLowerInvariant() == "-alot-mode")
                         guiInstaller = true;
                 }
-                if (newWay)
-                {
-                    if (!CmdLineTools.InstallMods(gameId, input, ipc, repack, guiInstaller))
-                        goto fail;
-                }
-                else
-                {
-                    if (!CmdLineTools.InstallModsOld(gameId, input, ipc, repack))
-                        goto fail;
-                }
-            }
-            else if (cmd.Equals("-unpack-dlcs", StringComparison.OrdinalIgnoreCase))
-            {
-                loadEmbeddedDlls();
-                if (!CmdLineTools.UnpackDLCs(ipc))
+                if (!CmdLineTools.InstallMods(gameId, input, ipc, repack, guiInstaller))
                     goto fail;
             }
             else if (cmd.Equals("-apply-me1-laa", StringComparison.OrdinalIgnoreCase))
             {
                 if (!CmdLineTools.ApplyME1LAAPatch())
-                    goto fail;
-            }
-            else if (cmd.Equals("-repack", StringComparison.OrdinalIgnoreCase))
-            {
-                loadEmbeddedDlls();
-                if (gameId == MeType.ME1_TYPE)
-                    if (!CmdLineTools.RepackGameDataME1(ipc))
-                        goto fail;
-                if (gameId == MeType.ME2_TYPE)
-                    if (!CmdLineTools.RepackGameDataME2(ipc))
-                        goto fail;
-                if (gameId == MeType.ME3_TYPE)
-                    if (!CmdLineTools.RepackGameDataME3(ipc))
-                        goto fail;
-            }
-            else if (cmd.Equals("-scan-with-remove", StringComparison.OrdinalIgnoreCase))
-            {
-                loadEmbeddedDlls();
-                if (!CmdLineTools.ScanAndMipMapsRemoval(gameId, ipc, repack))
                     goto fail;
             }
             else if (cmd.Equals("-apply-mod-tag", StringComparison.OrdinalIgnoreCase))
@@ -731,20 +679,20 @@ namespace MassEffectModder
                 else
                 {
                     loadEmbeddedDlls();
-                    if (!CmdLineTools.extractTPF(input, output))
+                    if (!CmdLineTools.extractTPF(input, output, ipc))
                         goto fail;
                 }
             }
             else if (cmd.Equals("-extract-mod", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
-                if (!CmdLineTools.extractMOD(gameId, input, output))
+                if (!CmdLineTools.extractMOD(gameId, input, output, ipc))
                     goto fail;
             }
             else if (cmd.Equals("-extract-mem", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
-                if (!CmdLineTools.extractMEM(gameId, input, output ,ipc))
+                if (!CmdLineTools.extractMEM(gameId, input, output, ipc))
                     goto fail;
             }
             else if (cmd.Equals("-convert-image", StringComparison.OrdinalIgnoreCase))
