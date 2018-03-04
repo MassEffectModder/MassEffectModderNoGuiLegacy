@@ -2592,10 +2592,18 @@ namespace MassEffectModder
 
                             if (modFiles[l].tag == MipMaps.FileTextureTag)
                             {
-                                FoundTexture foundTexture;
-                                foundTexture = textures.Find(s => s.crc == crc);
-                                if (foundTexture.crc != 0)
+                                int index = -1;
+                                for (int t = 0; t < textures.Count; t++)
                                 {
+                                    if (textures[t].crc == crc)
+                                    {
+                                        index = t;
+                                        break;
+                                    }
+                                }
+                                if (index != -1)
+                                {
+                                    FoundTexture foundTexture = textures[index];
                                     Image image = new Image(dst, Image.ImageFormat.DDS);
                                     if (!image.checkDDSHaveAllMipmaps())
                                     {
@@ -2616,6 +2624,7 @@ namespace MassEffectModder
                                         }
                                         Console.WriteLine(errors);
                                     }
+                                    textures[index] = foundTexture;
                                 }
                                 else
                                 {

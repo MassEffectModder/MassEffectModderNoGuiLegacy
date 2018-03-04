@@ -581,7 +581,12 @@ namespace MassEffectModder
                     if (triggerCacheArc)
                         arcTexture = texture;
                 }
-                skip:
+                if (nodeTexture.removeEmptyMips)
+                {
+                    nodeTexture.removeEmptyMips = false;
+                    list[n] = nodeTexture;
+                }
+skip:
                 package = null;
             }
             masterTextures = null;
