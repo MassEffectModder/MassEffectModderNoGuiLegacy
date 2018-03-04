@@ -59,6 +59,8 @@ namespace MassEffectModder
         public string path;
         public int linkToMaster;
         public uint mipmapOffset;
+        public bool removeEmptyMips;
+        public int numMips;
         public List<uint> crcs;
     }
 
@@ -70,7 +72,6 @@ namespace MassEffectModder
         public PixelFormat pixfmt;
         public bool alphadxt1;
         public int width, height;
-        public int numMips;
     }
 
     static class LODSettings

@@ -113,6 +113,13 @@ namespace MassEffectModder
             Stream fs;
             textures = new List<FoundTexture>();
             byte[] buffer = null;
+            List<string> pkgs;
+            if (gameId == MeType.ME1_TYPE)
+                pkgs = Program.tablePkgsME1;
+            else if (gameId == MeType.ME2_TYPE)
+                pkgs = Program.tablePkgsME2;
+            else
+                pkgs = Program.tablePkgsME3;
 
             Assembly assembly = Assembly.GetExecutingAssembly();
             string[] resources = assembly.GetManifestResourceNames();
@@ -143,23 +150,23 @@ namespace MassEffectModder
             for (int i = 0; i < countTexture; i++)
             {
                 FoundTexture texture = new FoundTexture();
-                int len = fs.ReadInt32();
+                int len = fs.ReadByte();
                 texture.name = fs.ReadStringASCII(len);
                 texture.crc = fs.ReadUInt32();
-                texture.width = fs.ReadInt32();
-                texture.height = fs.ReadInt32();
-                texture.pixfmt = (PixelFormat)fs.ReadInt32();
-                texture.alphadxt1 = fs.ReadInt32() != 0;
-                texture.numMips = fs.ReadInt32();
-                uint countPackages = fs.ReadUInt32();
+                texture.width = fs.ReadInt16();
+                texture.height = fs.ReadInt16();
+                texture.pixfmt = (PixelFormat)fs.ReadByte();
+                texture.alphadxt1 = fs.ReadByte() != 0;
+                int countPackages = fs.ReadInt16();
                 texture.list = new List<MatchedTexture>();
                 for (int k = 0; k < countPackages; k++)
                 {
                     MatchedTexture matched = new MatchedTexture();
                     matched.exportID = fs.ReadInt32();
-                    matched.linkToMaster = fs.ReadInt32();
-                    len = fs.ReadInt32();
-                    matched.path = fs.ReadStringASCII(len);
+                    matched.linkToMaster = fs.ReadByte();
+                    matched.removeEmptyMips = fs.ReadByte() != 0;
+                    matched.numMips = fs.ReadByte();
+                    matched.path = pkgs[fs.ReadInt16()];
                     texture.list.Add(matched);
                 }
                 textures.Add(texture);
@@ -721,7 +728,7 @@ namespace MassEffectModder
                                     }
 
                                     if (!image.checkDDSHaveAllMipmaps() ||
-                                        (f.numMips != 1 && image.mipMaps.Count() == 1) ||
+                                        (f.list[0].numMips != 1 && image.mipMaps.Count() == 1) ||
                                         image.pixelFormat != pixelFormat)
                                     {
                                         if (ipc)
@@ -969,7 +976,7 @@ namespace MassEffectModder
                                 }
 
                                 if (!image.checkDDSHaveAllMipmaps() ||
-                                   (foundCrcList[0].numMips != 1 && image.mipMaps.Count() == 1) ||
+                                   (foundCrcList[0].list[0].numMips != 1 && image.mipMaps.Count() == 1) ||
                                     image.pixelFormat != pixelFormat)
                                 {
                                     bool dxt1HasAlpha = false;
@@ -1105,7 +1112,7 @@ namespace MassEffectModder
                         }
 
                         if (!image.checkDDSHaveAllMipmaps() ||
-                           (foundCrcList[0].numMips != 1 && image.mipMaps.Count() == 1) ||
+                           (foundCrcList[0].list[0].numMips != 1 && image.mipMaps.Count() == 1) ||
                             image.pixelFormat != pixelFormat)
                         {
                             if (ipc)

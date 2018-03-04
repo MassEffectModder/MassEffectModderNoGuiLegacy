@@ -53,6 +53,9 @@ namespace MassEffectModder
         public static byte[] tableME1 = null;
         public static byte[] tableME2 = null;
         public static byte[] tableME3 = null;
+        public static List<string> tablePkgsME1 = new List<string>();
+        public static List<string> tablePkgsME2 = new List<string>();
+        public static List<string> tablePkgsME3 = new List<string>();
         public static string MAINEXENAME = "MassEffectModder";
 
         static void loadEmbeddedDlls()
@@ -158,16 +161,16 @@ namespace MassEffectModder
                 throw new Exception();
             tmp = new MemoryStream(decompressed);
             int count = tmp.ReadInt32();
-            List<string> files = new List<string>();
+            tablePkgsME1 = new List<string>();
             for (int l = 0; l < count; l++)
             {
-                files.Add(tmp.ReadStringASCIINull());
+                tablePkgsME1.Add(tmp.ReadStringASCIINull());
             }
             count = tmp.ReadInt32();
             entriesME1 = new Misc.MD5FileEntry[count];
             for (int l = 0; l < count; l++)
             {
-                entriesME1[l].path = files[tmp.ReadInt32()];
+                entriesME1[l].path = tablePkgsME1[tmp.ReadInt32()];
                 entriesME1[l].size = tmp.ReadInt32();
                 entriesME1[l].md5 = tmp.ReadToBuffer(16);
             }
@@ -180,16 +183,16 @@ namespace MassEffectModder
                 throw new Exception();
             tmp = new MemoryStream(decompressed);
             count = tmp.ReadInt32();
-            files = new List<string>();
+            tablePkgsME2 = new List<string>();
             for (int l = 0; l < count; l++)
             {
-                files.Add(tmp.ReadStringASCIINull());
+                tablePkgsME2.Add(tmp.ReadStringASCIINull());
             }
             count = tmp.ReadInt32();
             entriesME2 = new Misc.MD5FileEntry[count];
             for (int l = 0; l < count; l++)
             {
-                entriesME2[l].path = files[tmp.ReadInt32()];
+                entriesME2[l].path = tablePkgsME2[tmp.ReadInt32()];
                 entriesME2[l].size = tmp.ReadInt32();
                 entriesME2[l].md5 = tmp.ReadToBuffer(16);
             }
@@ -202,16 +205,16 @@ namespace MassEffectModder
                 throw new Exception();
             tmp = new MemoryStream(decompressed);
             count = tmp.ReadInt32();
-            files = new List<string>();
+            tablePkgsME3 = new List<string>();
             for (int l = 0; l < count; l++)
             {
-                files.Add(tmp.ReadStringASCIINull());
+                tablePkgsME3.Add(tmp.ReadStringASCIINull());
             }
             count = tmp.ReadInt32();
             entriesME3 = new Misc.MD5FileEntry[count];
             for (int l = 0; l < count; l++)
             {
-                entriesME3[l].path = files[tmp.ReadInt32()];
+                entriesME3[l].path = tablePkgsME3[tmp.ReadInt32()];
                 entriesME3[l].size = tmp.ReadInt32();
                 entriesME3[l].md5 = tmp.ReadToBuffer(16);
             }
@@ -522,12 +525,14 @@ namespace MassEffectModder
             if (cmd.Equals("-convert-to-mem", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
+                loadMD5Tables();
                 if (!CmdLineTools.ConvertToMEM(gameId, input, output, ipc))
                     goto fail;
             }
             else if (cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
+                loadMD5Tables();
                 bool guiInstaller = false;
                 for (int l = 0; l < args.Length; l++)
                 {
@@ -669,12 +674,14 @@ namespace MassEffectModder
                     goto fail;
                 }
                 loadEmbeddedDlls();
+                loadMD5Tables();
                 if (!CmdLineTools.convertGameImage(gameId, input, output))
                     goto fail;
             }
             else if (cmd.Equals("-convert-game-images", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
+                loadMD5Tables();
                 if (!CmdLineTools.convertGameImages(gameId, input, output))
                     goto fail;
             }
@@ -704,6 +711,7 @@ namespace MassEffectModder
             else if (cmd.Equals("-extract-mod", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
+                loadMD5Tables();
                 if (!CmdLineTools.extractMOD(gameId, input, output, ipc))
                     goto fail;
             }
@@ -757,6 +765,7 @@ namespace MassEffectModder
                         goto fail;
                     }
                     loadEmbeddedDlls();
+                    loadMD5Tables();
                     if (!CmdLineTools.convertImage(input, output, format, threshold))
                         goto fail;
                 }
@@ -777,6 +786,7 @@ namespace MassEffectModder
                     tfcFilter = args[3];
 
                 loadEmbeddedDlls();
+                loadMD5Tables();
                 if (cmd.Equals("-extract-all-dds", StringComparison.OrdinalIgnoreCase))
                     if (!CmdLineTools.extractAllTextures(gameId, output, false, tfcFilter))
                         goto fail;
@@ -811,6 +821,7 @@ namespace MassEffectModder
                 else
                     guid = Guid.NewGuid().ToByteArray();
                 loadEmbeddedDlls();
+                loadMD5Tables();
                 if (!CmdLineTools.applyMEMSpecialModME3(input, tfcName, guid))
                     goto fail;
             }
