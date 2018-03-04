@@ -294,6 +294,8 @@ namespace MassEffectModder
                         package.SaveToFile(forceZlib);
                     else
                         package.SaveToFile();
+                    if (forceZlib && CmdLineTools.pkgsToRepack != null)
+                        CmdLineTools.pkgsToRepack.Remove(package.packagePath);
                 }
                 else
                 {

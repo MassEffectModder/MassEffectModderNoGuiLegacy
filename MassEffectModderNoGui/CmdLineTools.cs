@@ -58,6 +58,7 @@ namespace MassEffectModder
         };
 
         static List<FoundTexture> textures;
+        static public List<string> pkgsToRepack = null;
 
         static public bool applyModTag(int gameId, int MeuitmV, int AlotV)
         {
@@ -2229,24 +2230,21 @@ namespace MassEffectModder
                 Console.Out.Flush();
             }
 
-            string markerPath = "";
             if (gameId == MeType.ME2_TYPE)
-                markerPath = @"\BioGame\CookedPC\BIOC_Materials.pcc".ToLowerInvariant();
+                pkgsToRepack.Remove(GameData.GamePath + @"\BioGame\CookedPC\BIOC_Materials.pcc");
             int lastProgress = -1;
-            for (int i = 0; i < GameData.packageFiles.Count; i++)
+            for (int i = 0; i < pkgsToRepack.Count; i++)
             {
-                if (markerPath != "" && GameData.packageFiles[i].ToLowerInvariant().Contains(markerPath))
-                    continue;
                 if (ipc)
                 {
-                    Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + pkgsToRepack[i]);
                     Console.Out.Flush();
                 }
                 else
                 {
-                    Console.WriteLine("File: " + GameData.packageFiles[i]);
+                    Console.WriteLine("File: " + pkgsToRepack[i]);
                 }
-                int newProgress = (i * 100 / GameData.packageFiles.Count);
+                int newProgress = (i * 100 / pkgsToRepack.Count);
                 if (ipc && lastProgress != newProgress)
                 {
                     Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
@@ -2255,18 +2253,18 @@ namespace MassEffectModder
                 }
                 try
                 {
-                    Package package = new Package(GameData.packageFiles[i], true, true);
+                    Package package = new Package(pkgsToRepack[i], true, true);
                     if (package.compressed &&
                         (gameId == MeType.ME2_TYPE && package.compressionType != Package.CompressionType.Zlib))
                     {
                         package.Dispose();
-                        package = new Package(GameData.packageFiles[i]);
+                        package = new Package(pkgsToRepack[i]);
                         package.SaveToFile(true);
                     }
                     else if ((gameId == MeType.ME2_TYPE || gameId == MeType.ME3_TYPE) && !package.compressed)
                     {
                         package.Dispose();
-                        package = new Package(GameData.packageFiles[i]);
+                        package = new Package(pkgsToRepack[i]);
                         package.SaveToFile(true, true);
                     }
                     package.Dispose();
@@ -2275,12 +2273,12 @@ namespace MassEffectModder
                 {
                     if (ipc)
                     {
-                        Console.WriteLine("[IPC]ERROR Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                        Console.WriteLine("[IPC]ERROR Error opening package file: " + GameData.RelativeGameData(pkgsToRepack[i]));
                         Console.Out.Flush();
                     }
                     else
                     {
-                        Console.WriteLine("Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                        Console.WriteLine("Error opening package file: " + GameData.RelativeGameData(pkgsToRepack[i]));
                     }
                 }
             }
@@ -2366,7 +2364,18 @@ namespace MassEffectModder
                 gameData.getTfcTextures();
 
             if (!modded)
+            {
+                if (repack)
+                {
+                    pkgsToRepack = new List<string>();
+                    for (int i = 0; i < GameData.packageFiles.Count; i++)
+                    {
+                        pkgsToRepack.Add(GameData.packageFiles[i]);
+                    }
+                }
+
                 ScanTextures(gameId, ipc, repack);
+            }
 
 
             Console.WriteLine("Process textures started...");

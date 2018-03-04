@@ -79,6 +79,8 @@ namespace MassEffectModder
                 }
                 pkg.SaveToFile(forceZlib);
                 pkg.Dispose();
+                if (forceZlib && CmdLineTools.pkgsToRepack != null)
+                    CmdLineTools.pkgsToRepack.Remove(pkg.packagePath);
             }
 
             if (GameData.gameType == MeType.ME3_TYPE)
