@@ -2208,12 +2208,12 @@ namespace MassEffectModder
 
             if (GameData.gameType == MeType.ME1_TYPE)
             {
-                mipMaps.removeMipMapsME1(1, textures, ipc, false);
-                mipMaps.removeMipMapsME1(2, textures, ipc, false);
+                mipMaps.removeMipMapsME1(1, textures, ipc);
+                mipMaps.removeMipMapsME1(2, textures, ipc);
             }
             else
             {
-                mipMaps.removeMipMapsME2ME3(textures, ipc, repack);
+                mipMaps.removeMipMapsME2ME3(ipc, repack);
             }
 
             Console.WriteLine("Remove mipmaps finished.\n");

@@ -61,7 +61,7 @@ namespace MassEffectModder
             }
         }
 
-        public void removeMipMapsME1(int phase, List<FoundTexture> textures, bool ipc, bool forceZlib = false)
+        public void removeMipMapsME1(int phase, List<FoundTexture> textures, bool ipc)
         {
             int lastProgress = -1;
             for (int i = 0; i < GameData.packageFiles.Count; i++)
@@ -204,10 +204,7 @@ namespace MassEffectModder
                 }
                 if (modified)
                 {
-                    if (package.compressed && package.compressionType != Package.CompressionType.Zlib)
-                        package.SaveToFile(forceZlib);
-                    else
-                        package.SaveToFile();
+                    package.SaveToFile();
                 }
                 else
                 {
@@ -218,7 +215,7 @@ namespace MassEffectModder
             }
         }
 
-        public void removeMipMapsME2ME3(List<FoundTexture> textures, bool ipc, bool forceZlib = false)
+        public void removeMipMapsME2ME3(bool ipc, bool forceZlib = false)
         {
             int lastProgress = -1;
             for (int i = 0; i < GameData.packageFiles.Count; i++)
