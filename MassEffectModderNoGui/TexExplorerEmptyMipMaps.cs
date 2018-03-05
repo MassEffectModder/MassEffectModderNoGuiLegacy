@@ -259,7 +259,7 @@ skip:
             {
                 bool modified = false;
                 Package package = null;
-                int newProgress = i * 100 / GameData.packageFiles.Count;
+                int newProgress = i * 100 / list.Count;
                 if (ipc && lastProgress != newProgress)
                 {
                     Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
@@ -269,20 +269,20 @@ skip:
 
                 try
                 {
-                    package = new Package(GameData.packageFiles[i], true);
+                    package = new Package(GameData.GamePath + list[i].pkgPath, true);
                 }
                 catch (Exception e)
                 {
                     if (ipc)
                     {
-                        Console.WriteLine("[IPC]ERROR Issue opening package file: " + GameData.packageFiles[i]);
+                        Console.WriteLine("[IPC]ERROR Issue opening package file: " + list[i].pkgPath);
                         Console.Out.Flush();
                     }
                     else
                     {
                         string err = "";
                         err += "---- Start --------------------------------------------" + Environment.NewLine;
-                        err += "Issue opening package file: " + GameData.packageFiles[i] + Environment.NewLine;
+                        err += "Issue opening package file: " + list[i].pkgPath + Environment.NewLine;
                         err += e.Message + Environment.NewLine + Environment.NewLine;
                         err += e.StackTrace + Environment.NewLine + Environment.NewLine;
                         err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
@@ -329,7 +329,7 @@ skip:
                 else
                 {
                     package.Dispose();
-                    AddMarkerToPackages(GameData.packageFiles[i]);
+                    AddMarkerToPackages(GameData.GamePath + list[i].pkgPath);
                 }
                 package.Dispose();
             }
