@@ -536,7 +536,7 @@ namespace MassEffectModder
                 bool guiInstaller = false;
                 for (int l = 0; l < args.Length; l++)
                 {
-                    if (args[l].ToLowerInvariant() == "-alot-mode" &&
+                    if (args[l].ToLowerInvariant() == "-alot-mode" ||
                         args[l].ToLowerInvariant() == "-gui-installer")
                     {
                         guiInstaller = true;
