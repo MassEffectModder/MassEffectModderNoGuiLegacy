@@ -2213,7 +2213,7 @@ namespace MassEffectModder
             }
             else
             {
-                mipMaps.removeMipMapsME2ME3(ipc, repack);
+                mipMaps.removeMipMapsME2ME3(textures, ipc, repack);
             }
 
             Console.WriteLine("Remove mipmaps finished.\n");
