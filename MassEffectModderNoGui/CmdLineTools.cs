@@ -164,7 +164,12 @@ namespace MassEffectModder
                 {
                     MatchedTexture matched = new MatchedTexture();
                     matched.exportID = fs.ReadInt32();
-                    matched.linkToMaster = fs.ReadByte();
+                    if (GameData.gameType == MeType.ME1_TYPE)
+                    {
+                        matched.linkToMaster = fs.ReadInt16();
+                        if (matched.linkToMaster != -1)
+                            matched.slave = true;
+                    }
                     matched.removeEmptyMips = fs.ReadByte() != 0;
                     matched.numMips = fs.ReadByte();
                     matched.path = pkgs[fs.ReadInt16()];
