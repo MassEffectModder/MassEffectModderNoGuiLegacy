@@ -105,11 +105,21 @@ namespace MassEffectModder
         {
             int lastProgress = -1;
             List<RemoveMipsEntry> list = prepareListToRemove(textures);
-            for (int i = 0; i < list.Count; i++)
+            int current = -1;
+            string path = GameData.GamePath + @"\BioGame\CookedPC\testVolumeLight_VFX.upk";
+            for (int i = 0; i < GameData.packageFiles.Count; i++)
             {
+                if (path == GameData.packageFiles[i])
+                    continue;
+                if (!list.Exists(s => (GameData.GamePath + s.pkgPath) == GameData.packageFiles[i]))
+                {
+                    AddMarkerToPackages(GameData.packageFiles[i]);
+                    continue;
+                }
+                current++;
                 bool modified = false;
                 Package package = null;
-                int newProgress = (list.Count * (phase - 1) + i + 1) * 100 / (list.Count * 2);
+                int newProgress = (list.Count * (phase - 1) + current + 1) * 100 / (list.Count * 2);
                 if (ipc && lastProgress != newProgress)
                 {
                     Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
@@ -119,20 +129,20 @@ namespace MassEffectModder
 
                 try
                 {
-                    package = new Package(GameData.GamePath + list[i].pkgPath, true);
+                    package = new Package(GameData.GamePath + list[current].pkgPath, true);
                 }
                 catch (Exception e)
                 {
                     if (ipc)
                     {
-                        Console.WriteLine("[IPC]ERROR Issue opening package file: " + list[i].pkgPath);
+                        Console.WriteLine("[IPC]ERROR Issue opening package file: " + list[current].pkgPath);
                         Console.Out.Flush();
                     }
                     else
                     {
                         string err = "";
                         err += "---- Start --------------------------------------------" + Environment.NewLine;
-                        err += "Issue opening package file: " + list[i].pkgPath + Environment.NewLine;
+                        err += "Issue opening package file: " + list[current].pkgPath + Environment.NewLine;
                         err += e.Message + Environment.NewLine + Environment.NewLine;
                         err += e.StackTrace + Environment.NewLine + Environment.NewLine;
                         err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
@@ -141,9 +151,9 @@ namespace MassEffectModder
                     continue;
                 }
 
-                for (int l = 0; l < list[i].exportIDs.Count; l++)
+                for (int l = 0; l < list[current].exportIDs.Count; l++)
                 {
-                    int exportID = list[i].exportIDs[l];
+                    int exportID = list[current].exportIDs[l];
                     using (Texture texture = new Texture(package, exportID, package.getExportData(exportID), false))
                     {
                         if (!texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
@@ -178,12 +188,12 @@ namespace MassEffectModder
                         {
                             if (ipc)
                             {
-                                Console.WriteLine("[IPC]ERROR Texture " + package.exportsTable[exportID].objectName + " not found in package: " + list[i].pkgPath + ", skipping...");
+                                Console.WriteLine("[IPC]ERROR Texture " + package.exportsTable[exportID].objectName + " not found in package: " + list[current].pkgPath + ", skipping...");
                                 Console.Out.Flush();
                             }
                             else
                             {
-                                Console.WriteLine("Error: Texture " + package.exportsTable[exportID].objectName + " not found in package: " + list[i].pkgPath + ", skipping..." + Environment.NewLine);
+                                Console.WriteLine("Error: Texture " + package.exportsTable[exportID].objectName + " not found in package: " + list[current].pkgPath + ", skipping..." + Environment.NewLine);
                             }
                             goto skip;
                         }
@@ -245,7 +255,7 @@ skip:
                 else
                 {
                     package.Dispose();
-                    AddMarkerToPackages(GameData.packageFiles[i]);
+                    AddMarkerToPackages(GameData.GamePath + list[current].pkgPath);
                 }
                 package.Dispose();
             }
@@ -255,11 +265,25 @@ skip:
         {
             int lastProgress = -1;
             List<RemoveMipsEntry> list = prepareListToRemove(textures);
-            for (int i = 0; i < list.Count; i++)
+            int current = -1;
+            string path = "";
+            if (GameData.gameType == MeType.ME2_TYPE)
             {
+                path = GameData.GamePath + @"\BioGame\CookedPC\BIOC_Materials.pcc";
+            }
+            for (int i = 0; i < GameData.packageFiles.Count; i++)
+            {
+                if (path != "" && path == GameData.packageFiles[i])
+                    continue;
+                if (!list.Exists(s => (GameData.GamePath + s.pkgPath) == GameData.packageFiles[i]))
+                {
+                    AddMarkerToPackages(GameData.packageFiles[i]);
+                    continue;
+                }
+                current++;
                 bool modified = false;
                 Package package = null;
-                int newProgress = i * 100 / list.Count;
+                int newProgress = current * 100 / list.Count;
                 if (ipc && lastProgress != newProgress)
                 {
                     Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
@@ -269,20 +293,20 @@ skip:
 
                 try
                 {
-                    package = new Package(GameData.GamePath + list[i].pkgPath, true);
+                    package = new Package(GameData.GamePath + list[current].pkgPath, true);
                 }
                 catch (Exception e)
                 {
                     if (ipc)
                     {
-                        Console.WriteLine("[IPC]ERROR Issue opening package file: " + list[i].pkgPath);
+                        Console.WriteLine("[IPC]ERROR Issue opening package file: " + list[current].pkgPath);
                         Console.Out.Flush();
                     }
                     else
                     {
                         string err = "";
                         err += "---- Start --------------------------------------------" + Environment.NewLine;
-                        err += "Issue opening package file: " + list[i].pkgPath + Environment.NewLine;
+                        err += "Issue opening package file: " + list[current].pkgPath + Environment.NewLine;
                         err += e.Message + Environment.NewLine + Environment.NewLine;
                         err += e.StackTrace + Environment.NewLine + Environment.NewLine;
                         err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
@@ -291,9 +315,9 @@ skip:
                     continue;
                 }
 
-                for (int l = 0; l < list[i].exportIDs.Count; l++)
+                for (int l = 0; l < list[current].exportIDs.Count; l++)
                 {
-                    int exportID = list[i].exportIDs[l];
+                    int exportID = list[current].exportIDs[l];
                     using (Texture texture = new Texture(package, exportID, package.getExportData(exportID), false))
                     {
                         if (!texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
@@ -329,7 +353,7 @@ skip:
                 else
                 {
                     package.Dispose();
-                    AddMarkerToPackages(GameData.GamePath + list[i].pkgPath);
+                    AddMarkerToPackages(GameData.GamePath + list[current].pkgPath);
                 }
                 package.Dispose();
             }
