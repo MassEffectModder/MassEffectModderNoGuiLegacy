@@ -568,6 +568,8 @@ namespace MassEffectModder
                             {
                                 for (int l = 0; l < textures[i].list.Count; l++)
                                 {
+                                    if (textures[i].list[l].path == "")
+                                        continue;
                                     if (textures[i].list[l].exportID == exportId)
                                     {
                                         string pkg = textures[i].list[l].path.Split('\\').Last().Split('.')[0].ToLowerInvariant();
@@ -584,6 +586,8 @@ namespace MassEffectModder
                         {
                             for (int l = 0; l < textures[i].list.Count; l++)
                             {
+                                if (textures[i].list[l].path == "")
+                                    continue;
                                 if (textures[i].list[l].exportID == exportId)
                                 {
                                     string pkg = textures[i].list[l].path.Split('\\').Last().Split('.')[0].ToLowerInvariant();
@@ -605,6 +609,8 @@ namespace MassEffectModder
                         {
                             for (int l = 0; l < textures[i].list.Count; l++)
                             {
+                                if (textures[i].list[l].path == "")
+                                    continue;
                                 string pkg = textures[i].list[l].path.Split('\\').Last().Split('.')[0].ToLowerInvariant();
                                 if (pkg == packageName)
                                 {

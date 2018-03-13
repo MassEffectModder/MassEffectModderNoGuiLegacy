@@ -124,6 +124,8 @@ namespace MassEffectModder
             for (int n = 0; n < list.Count; n++)
             {
                 MatchedTexture nodeTexture = list[n];
+                if (nodeTexture.path == "")
+                    continue;
                 Package package;
                 try
                 {

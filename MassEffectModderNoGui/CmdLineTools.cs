@@ -734,7 +734,7 @@ namespace MassEffectModder
                                     }
 
                                     if (!image.checkDDSHaveAllMipmaps() ||
-                                        (f.list[0].numMips != 1 && image.mipMaps.Count() == 1) ||
+                                       (f.list.Find(s => s.path != "").numMips > 1 && image.mipMaps.Count() <= 1) ||
                                         image.pixelFormat != pixelFormat)
                                     {
                                         if (ipc)
@@ -982,7 +982,7 @@ namespace MassEffectModder
                                 }
 
                                 if (!image.checkDDSHaveAllMipmaps() ||
-                                   (foundCrcList[0].list[0].numMips != 1 && image.mipMaps.Count() == 1) ||
+                                   (foundCrcList[0].list.Find(s => s.path != "").numMips > 1 && image.mipMaps.Count() <= 1) ||
                                     image.pixelFormat != pixelFormat)
                                 {
                                     bool dxt1HasAlpha = false;
@@ -1118,7 +1118,7 @@ namespace MassEffectModder
                         }
 
                         if (!image.checkDDSHaveAllMipmaps() ||
-                           (foundCrcList[0].list[0].numMips != 1 && image.mipMaps.Count() == 1) ||
+                           (foundCrcList[0].list.Find(s => s.path != "").numMips > 1 && image.mipMaps.Count() <= 1) ||
                             image.pixelFormat != pixelFormat)
                         {
                             if (ipc)
@@ -2702,6 +2702,8 @@ namespace MassEffectModder
             for (int n = 0; n < list.Count; n++)
             {
                 MatchedTexture nodeTexture = list[n];
+                if (nodeTexture.path == "")
+                    continue;
                 Package package = cachePackageMgr.OpenPackage(GameData.GamePath + nodeTexture.path);
                 Texture texture = new Texture(package, nodeTexture.exportID, package.getExportData(nodeTexture.exportID));
                 string fmt = texture.properties.getProperty("Format").valueName;
@@ -2987,14 +2989,14 @@ namespace MassEffectModder
                 {
                     new MipMaps().extractTextureToPng(Path.Combine(outputDir, textures[i].name +
                         string.Format("_0x{0:X8}", textures[i].crc) + ".png"), GameData.GamePath +
-                        textures[i].list[0].path, textures[i].list[0].exportID);
+                        textures[i].list.Find(s => s.path != "").path, textures[i].list[0].exportID);
                 }
                 else
                 {
                     string outputFile = Path.Combine(outputDir, textures[i].name +
                         string.Format("_0x{0:X8}", textures[i].crc) + ".dds");
-                    string packagePath = GameData.GamePath + textures[i].list[0].path;
-                    int exportID = textures[i].list[0].exportID;
+                    string packagePath = GameData.GamePath + textures[i].list.Find(s => s.path != "").path;
+                    int exportID = textures[i].list.Find(s => s.path != "").exportID;
                     Package package = new Package(packagePath);
                     Texture texture = new Texture(package, exportID, package.getExportData(exportID));
                     package.Dispose();

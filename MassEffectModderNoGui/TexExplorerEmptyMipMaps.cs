@@ -75,6 +75,8 @@ namespace MassEffectModder
             {
                 for (int t = 0; t < textures[k].list.Count; t++)
                 {
+                    if (textures[k].list[t].path == "")
+                        continue;
                     if (textures[k].list[t].removeEmptyMips)
                     {
                         bool found = false;
@@ -175,6 +177,8 @@ namespace MassEffectModder
                         {
                             for (int t = 0; t < textures[k].list.Count; t++)
                             {
+                                if (textures[k].list[t].path == "")
+                                    continue;
                                 if (textures[k].list[t].exportID == exportID &&
                                     textures[k].list[t].path.ToLowerInvariant() == pkgName)
                                 {
