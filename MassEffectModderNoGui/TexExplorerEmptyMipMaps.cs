@@ -172,6 +172,7 @@ namespace MassEffectModder
 
                         FoundTexture foundTexture = new FoundTexture();
                         int foundListEntry = -1;
+                        int foundTextureEntry = -1;
                         string pkgName = GameData.RelativeGameData(package.packagePath).ToLowerInvariant();
                         for (int k = 0; k < textures.Count; k++)
                         {
@@ -181,6 +182,7 @@ namespace MassEffectModder
                                     textures[k].list[t].path.ToLowerInvariant() == pkgName)
                                 {
                                     foundTexture = textures[k];
+                                    foundTextureEntry = k;
                                     foundListEntry = t;
                                     break;
                                 }
@@ -240,6 +242,9 @@ namespace MassEffectModder
                             }
                             masterPkg.Dispose();
                         }
+                        MatchedTexture m = foundTexture.list[foundListEntry];
+                        m.removeEmptyMips = false;
+                        textures[foundTextureEntry].list[foundListEntry] = m;
 skip:
                         using (MemoryStream newData = new MemoryStream())
                         {
