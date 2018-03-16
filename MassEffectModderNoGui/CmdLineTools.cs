@@ -58,6 +58,7 @@ namespace MassEffectModder
         };
 
         static List<FoundTexture> textures;
+        static TreeScan treeScan;
         static public List<string> pkgsToRepack = null;
 
         static public bool applyModTag(int gameId, int MeuitmV, int AlotV)
@@ -2187,18 +2188,25 @@ namespace MassEffectModder
         private static bool ScanTextures(MeType gameId, bool ipc, bool repack = false)
         {
             Console.WriteLine("Scan textures started...");
-            TreeScan treeScan = new TreeScan();
             if (ipc)
             {
                 Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_SCAN");
                 Console.Out.Flush();
             }
-            if (!treeScan.PrepareListOfTextures(gameId, ipc))
-                return false;
+            treeScan.PrepareListOfTextures(gameId, ipc);
             textures = treeScan.treeScan;
             Console.WriteLine("Scan textures finished.\n");
 
             return true;
+        }
+
+        private static int ScanPackages(MeType gameId, bool ipc)
+        {
+            Console.WriteLine("Scan packages started...");
+            int num = treeScan.PreparePackages(gameId, ipc);
+            Console.WriteLine("Scan packages finished.\n");
+
+            return num;
         }
 
         private static bool RemoveMipmaps(MeType gameId, bool ipc, bool repack = false)
@@ -2293,6 +2301,7 @@ namespace MassEffectModder
         public static bool InstallMods(MeType gameId, string inputDir, bool ipc, bool repack, bool guiInstaller)
         {
             textures = new List<FoundTexture>();
+            treeScan = new TreeScan();
             ConfIni configIni = new ConfIni();
             GameData gameData = new GameData(gameId, configIni);
             if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
@@ -2303,10 +2312,10 @@ namespace MassEffectModder
 
             if (!guiInstaller)
             {
-                Console.WriteLine("Prepare...\n");
+                Console.WriteLine("Getting started...\n");
                 if (gameId == MeType.ME1_TYPE && !File.Exists(gameData.EngineConfigIniPath))
                 {
-                    Console.WriteLine("Missing game configuration file.\nYou need atleast once launch the game first.");
+                    Console.WriteLine("Error: Missing game configuration file.\nYou need atleast once launch the game first.");
                     return false;
                 }
 
@@ -2379,6 +2388,7 @@ namespace MassEffectModder
                     }
                 }
 
+                ScanPackages(gameId, ipc);
                 ScanTextures(gameId, ipc, repack);
             }
 
