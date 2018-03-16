@@ -732,6 +732,21 @@ namespace MassEffectModder
             return mods;
         }
 
+        static public bool unpackSFARisNeeded()
+        {
+            if (Directory.Exists(GameData.DLCData))
+            {
+                List<string> sfarFiles = Directory.GetFiles(GameData.DLCData, "Default.sfar", SearchOption.AllDirectories).ToList();
+                for (int i = 0; i < sfarFiles.Count; i++)
+                {
+                    if (!File.Exists(Path.Combine(Path.GetDirectoryName(sfarFiles[i]), "Mount.dlc")))
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
         static public bool checkGameFiles(MeType gameType, ref string errors, ref List<string> mods,
             bool ipc = false, bool withoutSfars = false, bool onlyVanilla = false, bool backupMode = false, bool generateMd5Entries = false)
         {

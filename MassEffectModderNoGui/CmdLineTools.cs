@@ -2342,11 +2342,14 @@ namespace MassEffectModder
                 repack = false;
 
             bool modded = detectMod((int)gameId);
+            bool unpackNeeded = false;
+            if (gameId == MeType.ME3_TYPE && !modded)
+                unpackNeeded = Misc.unpackSFARisNeeded();
             if (ipc)
             {
                 if (!modded)
                 {
-                    if (gameId == MeType.ME3_TYPE)
+                    if (gameId == MeType.ME3_TYPE && unpackNeeded)
                         Console.WriteLine("[IPC]STAGE_ADD STAGE_UNPACKDLC");
                     Console.WriteLine("[IPC]STAGE_ADD STAGE_SCAN");
                 }
@@ -2359,7 +2362,7 @@ namespace MassEffectModder
                 Console.Out.Flush();
             }
 
-            if (gameId == MeType.ME3_TYPE && !modded)
+            if (gameId == MeType.ME3_TYPE && !modded && unpackNeeded)
             {
                 Console.WriteLine("Unpacking DLCs started...");
                 if (ipc)
