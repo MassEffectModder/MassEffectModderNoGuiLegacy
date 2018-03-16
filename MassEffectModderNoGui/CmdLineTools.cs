@@ -2193,7 +2193,7 @@ namespace MassEffectModder
                 Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_SCAN");
                 Console.Out.Flush();
             }
-            if (!treeScan.PrepareListOfTextures(ipc))
+            if (!treeScan.PrepareListOfTextures(gameId, ipc))
                 return false;
             textures = treeScan.treeScan;
             Console.WriteLine("Scan textures finished.\n");

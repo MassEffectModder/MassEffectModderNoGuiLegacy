@@ -23,6 +23,7 @@ using StreamHelpers;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 
 namespace MassEffectModder
 {
@@ -33,39 +34,244 @@ namespace MassEffectModder
 
         public List<FoundTexture> treeScan = null;
 
-        public bool PrepareListOfTextures(bool ipc)
+        static private void loadTexturesMap(MeType gameId, List<FoundTexture> textures)
+        {
+            Stream fs;
+            byte[] buffer = null;
+            List<string> pkgs;
+            if (gameId == MeType.ME1_TYPE)
+                pkgs = Program.tablePkgsME1;
+            else if (gameId == MeType.ME2_TYPE)
+                pkgs = Program.tablePkgsME2;
+            else
+                pkgs = Program.tablePkgsME3;
+
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            string[] resources = assembly.GetManifestResourceNames();
+            for (int l = 0; l < resources.Length; l++)
+            {
+                if (resources[l].Contains("me" + (int)gameId + "map.bin"))
+                {
+                    using (Stream s = Assembly.GetEntryAssembly().GetManifestResourceStream(resources[l]))
+                    {
+                        buffer = s.ReadToBuffer(s.Length);
+                        break;
+                    }
+                }
+            }
+            if (buffer == null)
+                throw new Exception();
+            MemoryStream tmp = new MemoryStream(buffer);
+            if (tmp.ReadUInt32() != 0x504D5443)
+                throw new Exception();
+            byte[] decompressed = new byte[tmp.ReadUInt32()];
+            byte[] compressed = tmp.ReadToBuffer(tmp.ReadUInt32());
+            if (new ZlibHelper.Zlib().Decompress(compressed, (uint)compressed.Length, decompressed) == 0)
+                throw new Exception();
+            fs = new MemoryStream(decompressed);
+
+            fs.Skip(8);
+            uint countTexture = fs.ReadUInt32();
+            for (int i = 0; i < countTexture; i++)
+            {
+                FoundTexture texture = new FoundTexture();
+                int len = fs.ReadByte();
+                texture.name = fs.ReadStringASCII(len);
+                texture.crc = fs.ReadUInt32();
+                texture.width = fs.ReadInt16();
+                texture.height = fs.ReadInt16();
+                texture.pixfmt = (PixelFormat)fs.ReadByte();
+                texture.alphadxt1 = fs.ReadByte() != 0;
+                int countPackages = fs.ReadInt16();
+                texture.list = new List<MatchedTexture>();
+                for (int k = 0; k < countPackages; k++)
+                {
+                    MatchedTexture matched = new MatchedTexture();
+                    matched.exportID = fs.ReadInt32();
+                    if (gameId == MeType.ME1_TYPE)
+                    {
+                        matched.linkToMaster = fs.ReadInt16();
+                        if (matched.linkToMaster != -1)
+                            matched.slave = true;
+                    }
+                    matched.removeEmptyMips = fs.ReadByte() != 0;
+                    matched.numMips = fs.ReadByte();
+                    matched.path = pkgs[fs.ReadInt16()];
+                    texture.list.Add(matched);
+                }
+                textures.Add(texture);
+            }
+        }
+
+        public bool PrepareListOfTextures(MeType gameId, bool ipc)
         {
             treeScan = null;
+            List<string> pkgs;
+            Misc.MD5FileEntry[] md5Entries;
+            if (gameId == MeType.ME1_TYPE)
+            {
+                pkgs = Program.tablePkgsME1;
+                md5Entries = Program.entriesME1;
+            }
+            else if (gameId == MeType.ME2_TYPE)
+            {
+                pkgs = Program.tablePkgsME2;
+                md5Entries = Program.entriesME2;
+            }
+            else
+            {
+                pkgs = Program.tablePkgsME3;
+                md5Entries = Program.entriesME3;
+            }
 
             List<FoundTexture> textures = new List<FoundTexture>();
             string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     Program.MAINEXENAME);
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
-            string filename = Path.Combine(path, "me" + (int)GameData.gameType + "map.bin");
+            string filename = Path.Combine(path, "me" + (int)gameId + "map.bin");
             if (File.Exists(filename))
                 File.Delete(filename);
 
             GameData.packageFiles.Sort();
+            int count = GameData.packageFiles.Count;
+            for (int i = 0; i < count; i++)
+            {
+                if (GameData.packageFiles[i].Contains("_IT.") ||
+                    GameData.packageFiles[i].Contains("_FR.") ||
+                    GameData.packageFiles[i].Contains("_ES.") ||
+                    GameData.packageFiles[i].Contains("_DE.") ||
+                    GameData.packageFiles[i].Contains("_PLPC.") ||
+                    GameData.packageFiles[i].Contains("_DEU.") ||
+                    GameData.packageFiles[i].Contains("_FRA.") ||
+                    GameData.packageFiles[i].Contains("_ITA.") ||
+                    GameData.packageFiles[i].Contains("_POL."))
+                {
+                    GameData.packageFiles.Add(GameData.packageFiles[i]);
+                    GameData.packageFiles.RemoveAt(i--);
+                    count--;
+                }
+            }
+
+            List<string> addedFiles = new List<string>();
+            List<string> modifiedFiles = new List<string>();
+            {
+                loadTexturesMap(gameId, textures);
+
+                List<string> sortedFiles = new List<string>();
+                for (int i = 0; i < GameData.packageFiles.Count; i++)
+                {
+                    sortedFiles.Add(GameData.RelativeGameData(GameData.packageFiles[i]).ToLowerInvariant());
+                }
+                sortedFiles.Sort();
+
+                for (int k = 0; k < textures.Count; k++)
+                {
+                    for (int t = 0; t < textures[k].list.Count; t++)
+                    {
+                        string pkgPath = textures[k].list[t].path.ToLowerInvariant();
+                        if (sortedFiles.BinarySearch(pkgPath) >= 0)
+                            continue;
+                        MatchedTexture f = textures[k].list[t];
+                        f.path = "";
+                        textures[k].list[t] = f;
+                    }
+                }
+
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]TASK_PROGRESS 0");
+                    Console.Out.Flush();
+                }
+                else
+                {
+                    Console.WriteLine("Scanning packages...");
+                }
+                for (int i = 0; i < GameData.packageFiles.Count; i++)
+                {
+                    int index = -1;
+                    bool modified = true;
+                    bool foundPkg = false;
+                    string package = GameData.RelativeGameData(GameData.packageFiles[i].ToLowerInvariant());
+                    long packageSize = new FileInfo(GameData.packageFiles[i]).Length;
+                    for (int p = 0; p < md5Entries.Length; p++)
+                    {
+                        if (package == md5Entries[p].path.ToLowerInvariant())
+                        {
+                            foundPkg = true;
+                            if (packageSize == md5Entries[p].size)
+                            {
+                                modified = false;
+                                break;
+                            }
+                            index = p;
+                            break;
+                        }
+                    }
+                    if (foundPkg && modified)
+                        modifiedFiles.Add(md5Entries[index].path);
+                    else if (!foundPkg)
+                        addedFiles.Add(GameData.RelativeGameData(GameData.packageFiles[i]));
+                }
+            }
+
             int lastProgress = -1;
-            for (int i = 0; i < GameData.packageFiles.Count; i++)
+            int totalPackages = modifiedFiles.Count + addedFiles.Count;
+            int currentPackage = 0;
+            for (int i = 0; i < modifiedFiles.Count; i++, currentPackage++)
             {
                 if (ipc)
                 {
-                    Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + modifiedFiles[i]);
                     Console.Out.Flush();
                 }
-                int newProgress = i * 100 / GameData.packageFiles.Count;
+                int newProgress = i * 100 / totalPackages;
                 if (ipc && lastProgress != newProgress)
                 {
                     Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                     Console.Out.Flush();
                     lastProgress = newProgress;
                 }
-                FindTextures(textures, GameData.packageFiles[i], ipc);
+                FindTextures(gameId, textures, modifiedFiles[i], true, ipc);
             }
 
-            if (GameData.gameType == MeType.ME1_TYPE)
+            for (int i = 0; i < addedFiles.Count; i++, currentPackage++)
+            {
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + addedFiles[i]);
+                    Console.Out.Flush();
+                }
+                int newProgress = i * 100 / totalPackages;
+                if (ipc && lastProgress != newProgress)
+                {
+                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+                    Console.Out.Flush();
+                    lastProgress = newProgress;
+                }
+                FindTextures(gameId, textures, addedFiles[i], false, ipc);
+            }
+
+            for (int k = 0; k < textures.Count; k++)
+            {
+                bool found = false;
+                for (int t = 0; t < textures[k].list.Count; t++)
+                {
+                    if (textures[k].list[t].path != "")
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    textures[k].list.Clear();
+                    textures.Remove(textures[k]);
+                    k--;
+                }
+            }
+
+            if (gameId == MeType.ME1_TYPE)
             {
                 for (int k = 0; k < textures.Count; k++)
                 {
@@ -85,6 +291,7 @@ namespace MassEffectModder
                                    textures[k].list[j].packageName == basePkgName)
                                 {
                                     slaveTexture.linkToMaster = j;
+                                    slaveTexture.slave = true;
                                     textures[k].list[t] = slaveTexture;
                                     break;
                                 }
@@ -123,6 +330,7 @@ namespace MassEffectModder
                                        textures[k].list[j].packageName == basePkgName)
                                     {
                                         slaveTexture.linkToMaster = j;
+                                        slaveTexture.slave = true;
                                         textures[k].list[t] = slaveTexture;
                                         break;
                                     }
@@ -169,13 +377,13 @@ namespace MassEffectModder
             return true;
         }
 
-        private void FindTextures(List<FoundTexture> textures, string packagePath, bool ipc)
+        private void FindTextures(MeType gameId, List<FoundTexture> textures, string packagePath, bool modified, bool ipc)
         {
             Package package = null;
 
             try
             {
-                package = new Package(packagePath);
+                package = new Package(GameData.GamePath + packagePath);
             }
             catch (Exception e)
             {
@@ -212,10 +420,11 @@ namespace MassEffectModder
                     string name = package.exportsTable[i].objectName;
                     MatchedTexture matchTexture = new MatchedTexture();
                     matchTexture.exportID = i;
-                    matchTexture.path = GameData.RelativeGameData(packagePath);
+                    matchTexture.path = packagePath;
                     matchTexture.packageName = texture.packageName;
                     matchTexture.removeEmptyMips = texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty);
-                    if (GameData.gameType == MeType.ME1_TYPE)
+                    matchTexture.numMips = texture.mipMapsList.FindAll(s => s.storageType != Texture.StorageTypes.empty).Count;
+                    if (gameId == MeType.ME1_TYPE)
                     {
                         matchTexture.basePackageName = texture.basePackageName;
                         matchTexture.slave = texture.slave;
@@ -252,13 +461,36 @@ namespace MassEffectModder
                     FoundTexture foundTexName = textures.Find(s => s.crc == crc);
                     if (foundTexName.crc != 0)
                     {
-                        if (matchTexture.slave || GameData.gameType != MeType.ME1_TYPE)
+                        if (modified && foundTexName.list.Exists(s => (s.exportID == i && s.path.ToLowerInvariant() == packagePath.ToLowerInvariant())))
+                            continue;
+                        if (matchTexture.slave || gameId != MeType.ME1_TYPE)
                             foundTexName.list.Add(matchTexture);
                         else
                             foundTexName.list.Insert(0, matchTexture);
                     }
                     else
                     {
+                        if (modified)
+                        {
+                            for (int k = 0; k < textures.Count; k++)
+                            {
+                                bool found = false;
+                                for (int t = 0; t < textures[k].list.Count; t++)
+                                {
+                                    if (textures[k].list[t].exportID == i &&
+                                        textures[k].list[t].path.ToLowerInvariant() == packagePath.ToLowerInvariant())
+                                    {
+                                        MatchedTexture f = textures[k].list[t];
+                                        f.path = "";
+                                        textures[k].list[t] = f;
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (found)
+                                    break;
+                            }
+                        }
                         FoundTexture foundTex = new FoundTexture();
                         foundTex.list = new List<MatchedTexture>();
                         foundTex.list.Add(matchTexture);
