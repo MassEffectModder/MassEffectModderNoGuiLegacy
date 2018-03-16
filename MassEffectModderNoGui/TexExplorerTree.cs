@@ -118,11 +118,6 @@ namespace MassEffectModder
                 md5Entries = Program.entriesME3;
             }
 
-            if (gameId == MeType.ME3_TYPE && ipc)
-            {
-                Console.WriteLine("[IPC]TASK_PROGRESS 0");
-                Console.Out.Flush();
-            }
             GameData.packageFiles.Sort();
             int count = GameData.packageFiles.Count;
             for (int i = 0; i < count; i++)
