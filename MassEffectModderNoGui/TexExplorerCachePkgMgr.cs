@@ -34,11 +34,11 @@ namespace MassEffectModder
             packages = new List<Package>();
         }
 
-        public Package OpenPackage(string path, bool memMode = false, bool headerOnly = false)
+        public Package OpenPackage(string path)
         {
             if (!packages.Exists(p => p.packagePath.ToLowerInvariant() == path.ToLowerInvariant()))
             {
-                Package pkg = new Package(path, memMode, headerOnly);
+                Package pkg = new Package(path);
                 packages.Add(pkg);
                 return pkg;
             }

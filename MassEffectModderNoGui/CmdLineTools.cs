@@ -2257,7 +2257,7 @@ namespace MassEffectModder
                 }
                 try
                 {
-                    Package package = new Package(pkgsToRepack[i], true, true);
+                    Package package = new Package(pkgsToRepack[i], false, true);
                     if (package.compressed &&
                         (gameId == MeType.ME2_TYPE && package.compressionType != Package.CompressionType.Zlib))
                     {
@@ -3076,7 +3076,7 @@ namespace MassEffectModder
                 }
                 try
                 {
-                    package = new Package(GameData.packageFiles[i]);
+                    package = new Package(GameData.packageFiles[i], true);
                 }
                 catch (Exception e)
                 {
