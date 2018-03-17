@@ -2200,15 +2200,6 @@ namespace MassEffectModder
             return true;
         }
 
-        private static int ScanPackages(MeType gameId, bool ipc)
-        {
-            Console.WriteLine("Scan packages started...");
-            int num = treeScan.PreparePackages(gameId, ipc);
-            Console.WriteLine("Scan packages finished.\n");
-
-            return num;
-        }
-
         private static bool RemoveMipmaps(MeType gameId, bool ipc, bool repack = false)
         {
             MipMaps mipMaps = new MipMaps();
@@ -2391,7 +2382,6 @@ namespace MassEffectModder
                     }
                 }
 
-                ScanPackages(gameId, ipc);
                 ScanTextures(gameId, ipc, repack);
             }
 

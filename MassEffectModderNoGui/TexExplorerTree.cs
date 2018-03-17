@@ -100,8 +100,9 @@ namespace MassEffectModder
             }
         }
 
-        public int PreparePackages(MeType gameId, bool ipc)
+        public void PrepareListOfTextures(MeType gameId, bool ipc)
         {
+            treeScan = null;
             if (gameId == MeType.ME1_TYPE)
             {
                 pkgs = Program.tablePkgsME1;
@@ -116,6 +117,12 @@ namespace MassEffectModder
             {
                 pkgs = Program.tablePkgsME3;
                 md5Entries = Program.entriesME3;
+            }
+
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]TASK_PROGRESS 0");
+                Console.Out.Flush();
             }
 
             GameData.packageFiles.Sort();
@@ -191,16 +198,15 @@ namespace MassEffectModder
                     addedFiles.Add(GameData.RelativeGameData(GameData.packageFiles[i]));
             }
 
-            return modifiedFiles.Count + addedFiles.Count;
-        }
-
-        public void PrepareListOfTextures(MeType gameId, bool ipc)
-        {
-            treeScan = null;
-
             int lastProgress = -1;
             int totalPackages = modifiedFiles.Count + addedFiles.Count;
             int currentPackage = 0;
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]STAGE_WEIGHT STAGE_SCAN " +
+                    string.Format("0.000000", ((float)totalPackages / GameData.packageFiles.Count)));
+                Console.Out.Flush();
+            }
             for (int i = 0; i < modifiedFiles.Count; i++, currentPackage++)
             {
                 if (ipc)
