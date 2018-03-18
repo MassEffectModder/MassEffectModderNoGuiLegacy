@@ -998,12 +998,8 @@ namespace MassEffectModder
                 forceCompressed = false;
 
             if (forceCompressed && packageFileVersion == packageFileVersionME3)
-            {
                 if (exportsTable.Exists(x => x.objectName == "SeekFreeShaderCache" && getClassName(x.classId) == "ShaderCache"))
-                {
                     forceCompressed = false;
-                }
-            }
 
             if (forceZlib && packageFileVersion == packageFileVersionME2 &&
                     compressionType != CompressionType.Zlib)
