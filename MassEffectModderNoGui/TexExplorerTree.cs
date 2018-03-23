@@ -207,7 +207,7 @@ namespace MassEffectModder
             if (ipc)
             {
                 Console.WriteLine("[IPC]STAGE_WEIGHT STAGE_SCAN " +
-                    string.Format("0.000000", ((float)totalPackages / GameData.packageFiles.Count)));
+                    string.Format("{0:0.000000}", ((float)totalPackages / GameData.packageFiles.Count)));
                 Console.Out.Flush();
             }
             for (int i = 0; i < modifiedFiles.Count; i++, currentPackage++)
@@ -217,7 +217,7 @@ namespace MassEffectModder
                     Console.WriteLine("[IPC]PROCESSING_FILE " + modifiedFiles[i]);
                     Console.Out.Flush();
                 }
-                int newProgress = i * 100 / totalPackages;
+                int newProgress = currentPackage * 100 / totalPackages;
                 if (ipc && lastProgress != newProgress)
                 {
                     Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
@@ -234,7 +234,7 @@ namespace MassEffectModder
                     Console.WriteLine("[IPC]PROCESSING_FILE " + addedFiles[i]);
                     Console.Out.Flush();
                 }
-                int newProgress = i * 100 / totalPackages;
+                int newProgress = currentPackage * 100 / totalPackages;
                 if (ipc && lastProgress != newProgress)
                 {
                     Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
