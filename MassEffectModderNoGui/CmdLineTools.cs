@@ -2289,6 +2289,8 @@ namespace MassEffectModder
                         Console.WriteLine("Error opening package file: " + GameData.RelativeGameData(pkgsToRepack[i]));
                     }
                 }
+                if (gameId == MeType.ME3_TYPE)
+                    TOCBinFile.UpdateAllTOCBinFiles();
             }
             Console.WriteLine("Repack finished.\n");
         }
