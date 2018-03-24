@@ -261,6 +261,7 @@ namespace MassEffectModder
                 return;
 
             List<string> sfarFiles = Directory.GetFiles(GameData.DLCData, "Default.sfar", SearchOption.AllDirectories).ToList();
+            int totalSfars = sfarFiles.Count;
             for (int i = 0; i < sfarFiles.Count; i++)
             {
                 if (File.Exists(Path.Combine(Path.GetDirectoryName(sfarFiles[i]), "Mount.dlc")))
@@ -268,6 +269,13 @@ namespace MassEffectModder
             }
             if (sfarFiles.Count() == 0)
                 return;
+
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]STAGE_WEIGHT STAGE_UNPACKDLC " +
+                    string.Format("{0:0.000000}", ((float)sfarFiles.Count / totalSfars)));
+                Console.Out.Flush();
+            }
 
             string tmpDlcDir = Path.Combine(GameData.GamePath, "BIOGame", "DLCTemp");
             if (Directory.Exists(tmpDlcDir))
