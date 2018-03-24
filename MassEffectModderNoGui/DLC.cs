@@ -165,22 +165,23 @@ namespace MassEffectModder
                 throw new Exception("filename missing");
 
             byte[] buffer = File.ReadAllBytes(SFARfilename);
+
+            File.Delete(SFARfilename);
+            using (FileStream outputFile = new FileStream(SFARfilename, FileMode.Create, FileAccess.Write))
+            {
+                outputFile.WriteUInt32(SfarTag);
+                outputFile.WriteUInt32(SfarVersion);
+                outputFile.WriteUInt32(HeaderSize);
+                outputFile.WriteUInt32(HeaderSize);
+                outputFile.WriteUInt32(0);
+                outputFile.WriteUInt32(HeaderSize);
+                outputFile.WriteUInt32((uint)MaxBlockSize);
+                outputFile.WriteUInt32(LZMATag);
+            }
+
             using (MemoryStream stream = new MemoryStream(buffer))
             {
                 loadHeader(stream);
-
-                Directory.CreateDirectory(Path.Combine(outPath, "CookedPCConsole"));
-                using (FileStream outputFile = new FileStream(Path.Combine(outPath, "CookedPCConsole", "Default.sfar"), FileMode.Create, FileAccess.Write))
-                {
-                    outputFile.WriteUInt32(SfarTag);
-                    outputFile.WriteUInt32(SfarVersion);
-                    outputFile.WriteUInt32(HeaderSize);
-                    outputFile.WriteUInt32(HeaderSize);
-                    outputFile.WriteUInt32(0);
-                    outputFile.WriteUInt32(HeaderSize);
-                    outputFile.WriteUInt32((uint)MaxBlockSize);
-                    outputFile.WriteUInt32(LZMATag);
-                }
 
                 int lastProgress = -1;
                 for (int i = 0; i < filesCount; i++, currentProgress++)
@@ -277,14 +278,6 @@ namespace MassEffectModder
                 Console.Out.Flush();
             }
 
-            string tmpDlcDir = Path.Combine(GameData.GamePath, "BIOGame", "DLCTemp");
-            if (Directory.Exists(tmpDlcDir))
-                Directory.Delete(tmpDlcDir, true);
-            Directory.CreateDirectory(tmpDlcDir);
-            string originInstallFiles = Path.Combine(GameData.DLCData, "__metadata");
-            if (Directory.Exists(originInstallFiles))
-                Directory.Move(originInstallFiles, tmpDlcDir + "\\__metadata");
-
             int totalNumFiles = 0;
             int currentProgress = 0;
             if (ipc)
@@ -299,8 +292,7 @@ namespace MassEffectModder
             for (int i = 0; i < sfarFiles.Count; i++)
             {
                 string DLCname = Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(sfarFiles[i])));
-                string outPath = Path.Combine(tmpDlcDir, DLCname);
-                Directory.CreateDirectory(outPath);
+                string outPath = Path.Combine(GameData.DLCData, DLCname);
                 ME3DLC dlc = new ME3DLC();
                 if (ipc)
                 {
@@ -308,49 +300,6 @@ namespace MassEffectModder
                     Console.Out.Flush();
                 }
                 dlc.extract(sfarFiles[i], outPath, ipc, ref currentProgress, totalNumFiles);
-            }
-
-            sfarFiles = Directory.GetFiles(GameData.DLCData, "Default.sfar", SearchOption.AllDirectories).ToList();
-            for (int i = 0; i < sfarFiles.Count; i++)
-            {
-                if (File.Exists(Path.Combine(Path.GetDirectoryName(sfarFiles[i]), "Mount.dlc")))
-                {
-                    string source = Path.GetDirectoryName(Path.GetDirectoryName(sfarFiles[i]));
-                    Directory.Move(source, tmpDlcDir + "\\" + Path.GetFileName(source));
-                }
-            }
-
-            try
-            {
-                Directory.Delete(GameData.DLCData, true);
-            }
-            catch
-            {
-                if (ipc)
-                {
-                    Console.WriteLine("[IPC]ERROR Failed move DLCTemp!");
-                    Console.Out.Flush();
-                }
-                else
-                {
-                    Console.WriteLine("Failed move DLCTemp!");
-                }
-            }
-            try
-            {
-                Directory.Move(tmpDlcDir, GameData.DLCData);
-            }
-            catch
-            {
-                if (ipc)
-                {
-                    Console.WriteLine("[IPC]ERROR Failed move DLCTemp!");
-                    Console.Out.Flush();
-                }
-                else
-                {
-                    Console.WriteLine("Failed move DLCTemp!");
-                }
             }
         }
     }
