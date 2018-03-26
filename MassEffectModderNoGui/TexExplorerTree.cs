@@ -125,7 +125,7 @@ namespace MassEffectModder
 
             if (ipc)
             {
-                Console.WriteLine("[IPC]TASK_PROGRESS 0");
+                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_PRESCAN");
                 Console.Out.Flush();
             }
 
@@ -201,6 +201,11 @@ namespace MassEffectModder
                     addedFiles.Add(GameData.RelativeGameData(GameData.packageFiles[i]));
             }
 
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_SCAN");
+                Console.Out.Flush();
+            }
             int lastProgress = -1;
             int totalPackages = modifiedFiles.Count + addedFiles.Count;
             int currentPackage = 0;

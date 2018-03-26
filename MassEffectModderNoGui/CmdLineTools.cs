@@ -2192,11 +2192,6 @@ namespace MassEffectModder
         private static bool ScanTextures(MeType gameId, bool ipc, bool repack = false)
         {
             Console.WriteLine("Scan textures started...");
-            if (ipc)
-            {
-                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_SCAN");
-                Console.Out.Flush();
-            }
             treeScan.PrepareListOfTextures(gameId, ipc);
             textures = treeScan.treeScan;
             Console.WriteLine("Scan textures finished.\n");
@@ -2348,6 +2343,7 @@ namespace MassEffectModder
                 {
                     if (gameId == MeType.ME3_TYPE && unpackNeeded)
                         Console.WriteLine("[IPC]STAGE_ADD STAGE_UNPACKDLC");
+                    Console.WriteLine("[IPC]STAGE_ADD STAGE_PRESCAN");
                     Console.WriteLine("[IPC]STAGE_ADD STAGE_SCAN");
                 }
                 Console.WriteLine("[IPC]STAGE_ADD STAGE_INSTALLTEXTURES");
