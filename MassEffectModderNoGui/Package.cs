@@ -817,8 +817,16 @@ namespace MassEffectModder
         {
             if (!mod)
             {
-                packageStream.JumpTo(namesOffset);
-                output.WriteFromStream(packageStream, namesTableEnd - namesOffset);
+                if (compressed)
+                {
+                    packageData.JumpTo(namesOffset);
+                    output.WriteFromStream(packageData, namesTableEnd - namesOffset);
+                }
+                else
+                {
+                    packageStream.JumpTo(namesOffset);
+                    output.WriteFromStream(packageStream, namesTableEnd - namesOffset);
+                }
             }
             else
             {
@@ -951,8 +959,16 @@ namespace MassEffectModder
         {
             if (!mod)
             {
-                packageStream.JumpTo(importsOffset);
-                output.WriteFromStream(packageStream, importsTableEnd - importsOffset);
+                if (compressed)
+                {
+                    packageData.JumpTo(importsOffset);
+                    output.WriteFromStream(packageData, importsTableEnd - importsOffset);
+                }
+                else
+                {
+                    packageStream.JumpTo(importsOffset);
+                    output.WriteFromStream(packageStream, importsTableEnd - importsOffset);
+                }
             }
             else
             {
