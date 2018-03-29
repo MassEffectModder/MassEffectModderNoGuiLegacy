@@ -82,10 +82,13 @@ namespace MassEffectModder
         public string packagePath;
         MemoryStream packageData;
         List<Chunk> chunks;
+        uint chunksTableOffset;
         public List<NameEntry> namesTable;
         uint namesTableEnd;
+        bool namesTableModified = false;
         public List<ImportEntry> importsTable;
         uint importsTableEnd;
+        bool importsTableModified = false;
         public List<ExportEntry> exportsTable;
         List<int> dependsTable;
         List<GuidEntry> guidsTable;
@@ -266,7 +269,7 @@ namespace MassEffectModder
             {
                 return (flags & (uint)PackageFlags.compressed) != 0;
             }
-            set
+            private set
             {
                 if (value)
                     flags |= (uint)PackageFlags.compressed;
@@ -317,6 +320,10 @@ namespace MassEffectModder
             {
                 return BitConverter.ToUInt32(packageHeader, tablesOffset + packageHeaderExportsCountTableOffset);
             }
+            set
+            {
+                Buffer.BlockCopy(BitConverter.GetBytes(value), 0, packageHeader, tablesOffset + packageHeaderExportsCountTableOffset, sizeof(uint));
+            }
         }
 
         private uint exportsOffset
@@ -336,6 +343,10 @@ namespace MassEffectModder
             get
             {
                 return BitConverter.ToUInt32(packageHeader, tablesOffset + packageHeaderImportsCountTableOffset);
+            }
+            set
+            {
+                Buffer.BlockCopy(BitConverter.GetBytes(value), 0, packageHeader, tablesOffset + packageHeaderImportsCountTableOffset, sizeof(uint));
             }
         }
 
@@ -357,6 +368,10 @@ namespace MassEffectModder
             {
                 return BitConverter.ToUInt32(packageHeader, tablesOffset + packageHeaderDependsOffsetTableOffset);
             }
+            set
+            {
+                Buffer.BlockCopy(BitConverter.GetBytes(value), 0, packageHeader, tablesOffset + packageHeaderDependsOffsetTableOffset, sizeof(uint));
+            }
         }
 
         private uint guidsOffset
@@ -365,6 +380,10 @@ namespace MassEffectModder
             {
                 return BitConverter.ToUInt32(packageHeader, tablesOffset + packageHeaderGuidsOffsetTableOffset);
             }
+            set
+            {
+                Buffer.BlockCopy(BitConverter.GetBytes(value), 0, packageHeader, tablesOffset + packageHeaderGuidsOffsetTableOffset, sizeof(uint));
+            }
         }
 
         private uint guidsCount
@@ -372,6 +391,10 @@ namespace MassEffectModder
             get
             {
                 return BitConverter.ToUInt32(packageHeader, tablesOffset + packageHeaderGuidsCountTableOffset);
+            }
+            set
+            {
+                Buffer.BlockCopy(BitConverter.GetBytes(value), 0, packageHeader, tablesOffset + packageHeaderGuidsCountTableOffset, sizeof(uint));
             }
         }
 
@@ -468,7 +491,7 @@ namespace MassEffectModder
 
             numChunks = packageStream.ReadUInt32();
 
-            dataOffset = packageStream.Position;
+            chunksTableOffset = (uint)packageStream.Position;
 
             if (compressed)
             {
@@ -483,25 +506,25 @@ namespace MassEffectModder
                     chunks.Add(chunk);
                 }
             }
-            long filePos = packageStream.Position;
+            long afterChunksTable = packageStream.Position;
             someTag = packageStream.ReadUInt32();
             if (version == packageFileVersionME2)
                 packageStream.SkipInt32(); // const 0
 
             loadExtraNames(packageStream);
 
-            if (compressed && packageStream.Position != chunks[0].comprOffset)
-                throw new Exception();
-
-            dataOffset += packageStream.Position - filePos;
-
-            if (compressed && dataOffset != chunks[0].uncomprOffset)
-                throw new Exception();
+            dataOffset = chunksTableOffset + (packageStream.Position - afterChunksTable);
 
             if (compressed)
             {
-                packageData = new MemoryStream();
+                if (packageStream.Position != chunks[0].comprOffset)
+                    throw new Exception();
+
+                if (dataOffset != chunks[0].uncomprOffset)
+                    throw new Exception();
+
                 uint length = endOfTablesOffset - (uint)dataOffset;
+                packageData = new MemoryStream();
                 packageData.JumpTo(dataOffset);
                 getData((uint)dataOffset, length, packageData);
             }
@@ -532,6 +555,19 @@ namespace MassEffectModder
                 loadExports(packageData);
             else
                 loadExports(packageStream);
+
+            if (compressed)
+                loadDepends(packageData);
+            else
+                loadDepends(packageStream);
+
+            if (version == packageFileVersionME3)
+            {
+                if (compressed)
+                    loadGuids(packageData);
+                else
+                    loadGuids(packageStream);
+            }
 
             //loadImportsNames(); // not used by tool
             //loadExportsNames(); // not used by tool
@@ -722,8 +758,12 @@ namespace MassEffectModder
             uint expandDataSize = sortedExports[0].dataOffset - endOfTablesOffset;
             if (expandDataSize >= space)
                 return true;
+            bool dryRun = true;
             for (int i = 0; i < sortedExports.Count; i++)
             {
+                if (sortedExports[i].objectName == "SeekFreeShaderCache" &&
+                        getClassName(sortedExports[i].classId) == "ShaderCache")
+                    return false;
                 if (GameData.gameType == MeType.ME1_TYPE)
                 {
                     int id = getClassNameId(sortedExports[i].classId);
@@ -736,9 +776,19 @@ namespace MassEffectModder
                     }
                 }
                 expandDataSize += sortedExports[i].dataSize;
-                MoveExportDataToEnd((int)sortedExports[i].id);
+                if (!dryRun)
+                    MoveExportDataToEnd((int)sortedExports[i].id);
                 if (expandDataSize >= space)
-                    return true;
+                {
+                    if (!dryRun)
+                        return true;
+                    else
+                    {
+                        expandDataSize = sortedExports[0].dataOffset - endOfTablesOffset;
+                        i = -1;
+                        dryRun = false;
+                    }
+                }
             }
 
             return false;
@@ -763,6 +813,24 @@ namespace MassEffectModder
             if (id >= namesTable.Count)
                 throw new Exception();
             return namesTable[id].name;
+        }
+
+        public int addName(string name)
+        {
+            if (existsNameId(name))
+                throw new Exception();
+
+            NameEntry entry = new NameEntry();
+            entry.name = name;
+            if (version == packageFileVersionME1)
+                entry.flags = 0x0007001000000000;
+            if (version == packageFileVersionME2)
+                entry.flags = 0xfffffff2;
+            namesTable.Add(entry);
+            namesCount = (uint)namesTable.Count;
+            namesTableModified = true;
+            modified = true;
+            return namesTable.Count - 1;
         }
 
         private void loadNames(Stream input)
@@ -813,9 +881,9 @@ namespace MassEffectModder
             namesTableEnd = (uint)input.Position;
         }
 
-        private void saveNames(Stream output, bool mod = false)
+        private void saveNames(Stream output)
         {
-            if (!mod)
+            if (!namesTableModified)
             {
                 if (compressed)
                 {
@@ -955,9 +1023,9 @@ namespace MassEffectModder
             }
         }
 
-        private void saveImports(Stream output, bool mod = false)
+        private void saveImports(Stream output)
         {
-            if (!mod)
+            if (!importsTableModified)
             {
                 if (compressed)
                 {
@@ -1032,12 +1100,17 @@ namespace MassEffectModder
             dependsTable = new List<int>();
             input.JumpTo(dependsOffset);
             for (int i = 0; i < exportsCount; i++)
-                dependsTable.Add(input.ReadInt32());
+            {
+                if (i * sizeof(int) < (input.Length - dependsOffset)) // WA for empty/partial depends entries - EGM and UI SP ME3 mod
+                    dependsTable.Add(input.ReadInt32());
+                else
+                    dependsTable.Add(0);
+            }
         }
 
         private void saveDepends(Stream output)
         {
-            for (int i = 0; i < exportsTable.Count; i++)
+            for (int i = 0; i < dependsTable.Count; i++)
                 output.WriteInt32(dependsTable[i]);
         }
 
@@ -1067,11 +1140,14 @@ namespace MassEffectModder
         public bool SaveToFile(bool forceZlib = false, bool forceCompressed = false,
             bool forceDecompressed = false, string filename = null, bool appendMarker = true)
         {
-            if (forceCompressed && packageFileVersion == packageFileVersionME1)
+            if (packageFileVersion == packageFileVersionME1)
+            {
                 forceCompressed = false;
+                forceZlib = false;
+            }
 #if false
             // detect shader cache
-            if (forceCompressed && packageFileVersion)
+            if (forceCompressed && packageFileVersion == packageFileVersionME3)
                 if (exportsTable.Exists(x => x.objectName == "SeekFreeShaderCache" && getClassName(x.classId) == "ShaderCache"))
                     forceCompressed = false;
 #endif
@@ -1085,6 +1161,18 @@ namespace MassEffectModder
             if (forceCompressed && forceDecompressed)
                 throw new Exception("force de/compression can't be both enabled!");
 
+            CompressionType targetCompression = compressionType;
+            if (forceCompressed && !compressed || forceZlib)
+            {
+                if (compressionType == CompressionType.None)
+                {
+                    if (packageFileVersion == packageFileVersionME3 || forceZlib)
+                        targetCompression = CompressionType.Zlib;
+                    else
+                        targetCompression = CompressionType.LZO;
+                }
+            }
+
             if (!appendMarker)
             {
                 packageStream.SeekEnd();
@@ -1094,18 +1182,100 @@ namespace MassEffectModder
                     appendMarker = true;
             }
 
-            List<ExportEntry> sortedExports = exportsTable.OrderBy(s => s.dataOffset).ToList();
             MemoryStream tempOutput = new MemoryStream();
-            if (!compressed)
+            tempOutput.Write(packageHeader, 0, packageHeader.Length);
+            tempOutput.WriteUInt32((uint)targetCompression);
+            tempOutput.WriteUInt32(0); // number of chunks - filled later if needed
+            tempOutput.WriteUInt32(someTag);
+            if (packageFileVersion == packageFileVersionME2)
+                tempOutput.WriteUInt32(0); // const 0
+            saveExtraNames(tempOutput);
+            dataOffset = (uint)tempOutput.Position;
+
+            List<ExportEntry> sortedExports = exportsTable.OrderBy(s => s.dataOffset).ToList();
+
+            dependsOffset = (uint)tempOutput.Position;
+            saveDepends(tempOutput);
+            if (tempOutput.Position > sortedExports[0].dataOffset)
+                throw new Exception();
+
+            if (version == packageFileVersionME3)
             {
-                packageStream.SeekBegin();
-                tempOutput.WriteFromStream(packageStream, sortedExports[0].dataOffset);
+                guidsOffset = (uint)tempOutput.Position;
+                saveGuids(tempOutput);
+                if (tempOutput.Position > sortedExports[0].dataOffset)
+                    throw new Exception();
             }
-            else
+
+            bool spaceForNamesAvailable = true;
+            bool spaceForImportsAvailable = true;
+            bool spaceForExportsAvailable = true;
+
+            endOfTablesOffset = (uint)tempOutput.Position;
+            long namesOffsetTmp = tempOutput.Position;
+            saveNames(tempOutput);
+            if (tempOutput.Position > sortedExports[0].dataOffset)
             {
-                packageData.SeekBegin();
-                tempOutput.WriteFromStream(packageData, packageData.Length);
+                if (ReserveSpaceBeforeExportData((int)(tempOutput.Position - endOfTablesOffset)))
+                {
+                    tempOutput.JumpTo(namesOffsetTmp);
+                    saveNames(tempOutput);
+                    sortedExports = exportsTable.OrderBy(s => s.dataOffset).ToList();
+                }
+                else
+                {
+                    spaceForNamesAvailable = false;
+                }
             }
+            if (spaceForNamesAvailable)
+            {
+                namesOffset = (uint)namesOffsetTmp;
+
+                endOfTablesOffset = (uint)tempOutput.Position;
+                long importsOffsetTmp = tempOutput.Position;
+                saveImports(tempOutput);
+                if (tempOutput.Position > sortedExports[0].dataOffset)
+                {
+                    if (ReserveSpaceBeforeExportData((int)(tempOutput.Position - endOfTablesOffset)))
+                    {
+                        tempOutput.JumpTo(importsOffsetTmp);
+                        saveImports(tempOutput);
+                        sortedExports = exportsTable.OrderBy(s => s.dataOffset).ToList();
+                    }
+                    else
+                    {
+                        spaceForImportsAvailable = false;
+                    }
+                }
+                if (spaceForImportsAvailable)
+                {
+                    importsOffset = (uint)importsOffsetTmp;
+
+                    endOfTablesOffset = (uint)tempOutput.Position;
+                    long exportsOffsetTmp = tempOutput.Position;
+                    saveExports(tempOutput);
+                    if (tempOutput.Position > sortedExports[0].dataOffset)
+                    {
+                        if (ReserveSpaceBeforeExportData((int)(tempOutput.Position - endOfTablesOffset)))
+                        {
+                            tempOutput.JumpTo(exportsOffsetTmp);
+                            saveExports(tempOutput);
+                        }
+                        else
+                        {
+                            spaceForExportsAvailable = false;
+                        }
+                    }
+                    if (spaceForExportsAvailable)
+                    {
+                        exportsOffset = (uint)exportsOffsetTmp;
+                    }
+                }
+            }
+
+            sortedExports = exportsTable.OrderBy(s => s.dataOffset).ToList();
+
+            endOfTablesOffset = sortedExports[0].dataOffset;
 
             for (int i = 0; i < exportsCount; i++)
             {
@@ -1136,83 +1306,54 @@ namespace MassEffectModder
                 tempOutput.WriteZeros(dataLeft);
             }
 
-            if (exportsOffset > sortedExports[0].dataOffset)
+            tempOutput.JumpTo(exportsEndOffset);
+
+            if (!spaceForNamesAvailable)
             {
-                if (compressed) // allowed only uncompressed
-                    throw new Exception();
+                long tmpPos = tempOutput.Position;
+                saveNames(tempOutput);
+                namesOffset = (uint)tmpPos;
+            }
+
+            if (!spaceForImportsAvailable)
+            {
+                long tmpPos = tempOutput.Position;
+                saveImports(tempOutput);
+                importsOffset = (uint)tmpPos;
+            }
+
+            if (!spaceForExportsAvailable)
+            {
                 exportsOffset = (uint)tempOutput.Position;
                 saveExports(tempOutput);
-                exportsEndOffset = (uint)tempOutput.Position;
-            }
-            else
-            {
-                tempOutput.JumpTo(exportsOffset);
-                saveExports(tempOutput);
             }
 
-            tempOutput.JumpTo(exportsEndOffset);
-            if (namesOffset > sortedExports[0].dataOffset)
+            if ((forceDecompressed && compressed) ||
+                !spaceForNamesAvailable ||
+                !spaceForImportsAvailable ||
+                !spaceForExportsAvailable)
             {
-                if (compressed) // allowed only uncompressed
-                    throw new Exception();
-                namesOffset = (uint)tempOutput.Position;
-                saveNames(tempOutput, true);
-            }
-            else
-            {
-                saveNames(tempOutput);
-            }
-
-            if (importsOffset > sortedExports[0].dataOffset)
-            {
-                if (compressed) // allowed only uncompressed
-                    throw new Exception();
-                importsOffset = (uint)tempOutput.Position;
-                saveImports(tempOutput, true);
-            }
-            else
-            {
-                saveImports(tempOutput);
-            }
-
-            if (forceDecompressed && compressed)
                 compressed = false;
-            else
-                forceDecompressed = false;
+            }
 
             if (forceCompressed && !compressed)
             {
-                if (namesOffset < sortedExports[0].dataOffset &&
-                    importsOffset < sortedExports[0].dataOffset &&
-                    exportsOffset < sortedExports[0].dataOffset &&
-                    endOfTablesOffset <= sortedExports[0].dataOffset)
+                if (spaceForNamesAvailable &&
+                    spaceForImportsAvailable &&
+                    spaceForExportsAvailable)
                 {
-                    if (compressionType == CompressionType.None)
-                    {
-                        if (packageFileVersion == packageFileVersionME3 || forceZlib)
-                            compressionType = CompressionType.Zlib;
-                        else
-                            compressionType = CompressionType.LZO;
-                    }
-                    endOfTablesOffset = sortedExports[0].dataOffset;
                     compressed = true;
                 }
                 else
                 {
                     if (!modified)
                         return false;
-                    forceCompressed = false;
                 }
             }
 
-            if (namesOffset > sortedExports[0].dataOffset ||
-                importsOffset > sortedExports[0].dataOffset ||
-                exportsOffset > sortedExports[0].dataOffset ||
-                forceDecompressed || forceCompressed)
-            {
-                tempOutput.SeekBegin();
-                tempOutput.Write(packageHeader, 0, packageHeader.Length);
-            }
+            tempOutput.SeekBegin();
+            tempOutput.Write(packageHeader, 0, packageHeader.Length);
+
             packageStream.Close();
             if (!memoryMode && Directory.Exists(packagePath + "-exports"))
                 Directory.Delete(packagePath + "-exports", true);
@@ -1261,12 +1402,9 @@ namespace MassEffectModder
                     }
                     chunks.Add(chunk);
 
-                    if (forceZlib)
-                        compressionType = CompressionType.Zlib; // override compression type to Zlib
                     fs.Write(packageHeader, 0, packageHeader.Length);
-                    fs.WriteUInt32((uint)compressionType);
+                    fs.WriteUInt32((uint)targetCompression);
                     fs.WriteUInt32((uint)chunks.Count);
-                    uint chunksTableOffset = (uint)fs.Position;
                     fs.Skip(SizeOfChunk * chunks.Count); // skip chunks table - filled later
                     fs.WriteUInt32(someTag);
                     if (version == packageFileVersionME2)
@@ -1299,9 +1437,9 @@ namespace MassEffectModder
                         Parallel.For(0, chunk.blocks.Count, b =>
                         {
                             ChunkBlock block = chunk.blocks[b];
-                            if (compressionType == CompressionType.LZO)
+                            if (targetCompression == CompressionType.LZO)
                                 block.compressedBuffer = new LZO2Helper.LZO2().Compress(block.uncompressedBuffer);
-                            else if (compressionType == CompressionType.Zlib)
+                            else if (targetCompression == CompressionType.Zlib)
                                 block.compressedBuffer = new ZlibHelper.Zlib().Compress(block.uncompressedBuffer);
                             else
                                 throw new Exception("Compression type not expected!");
