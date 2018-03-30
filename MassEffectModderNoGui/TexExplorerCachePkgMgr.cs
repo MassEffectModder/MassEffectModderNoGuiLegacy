@@ -19,14 +19,18 @@
  *
  */
 
+using Microsoft.VisualBasic.Devices;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime;
 
 namespace MassEffectModder
 {
     public class CachePackageMgr
     {
+        const int PERCENT_BETWEEN_GC = 2;
+
         public List<Package> packages;
 
         public CachePackageMgr()
@@ -67,6 +71,11 @@ namespace MassEffectModder
         public void CloseAllWithSave(bool forceZlib = false, bool ipc = false)
         {
             int lastProgress = -1;
+            bool lowMemoryMode = false;
+            ulong memorySize = ((new ComputerInfo().TotalPhysicalMemory / 1024 / 1024) + 1023) / 1024;
+            if (memorySize < 16)
+                lowMemoryMode = true;
+
             for (int i = 0; i < packages.Count; i++)
             {
                 Package pkg = packages[i];
@@ -76,6 +85,11 @@ namespace MassEffectModder
                     Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                     Console.Out.Flush();
                     lastProgress = newProgress;
+                    if ((newProgress % PERCENT_BETWEEN_GC != 0) && lowMemoryMode)
+                    {
+                        GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+                        GC.Collect();
+                    }
                 }
                 pkg.SaveToFile(forceZlib);
                 pkg.Dispose();
