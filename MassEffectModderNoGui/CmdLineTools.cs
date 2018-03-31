@@ -2725,7 +2725,7 @@ namespace MassEffectModder
                 Package package = cachePackageMgr.OpenPackage(GameData.GamePath + nodeTexture.path);
                 Texture texture = new Texture(package, nodeTexture.exportID, package.getExportData(nodeTexture.exportID));
                 string fmt = texture.properties.getProperty("Format").valueName;
-                PixelFormat pixelFormat = Image.getEngineFormatType(fmt);
+                PixelFormat pixelFormat = Image.getPixelFormatType(fmt);
 
                 while (texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
                 {
@@ -3029,7 +3029,7 @@ namespace MassEffectModder
                         texture.mipMapsList.Remove(texture.mipMapsList.First(s => s.storageType == Texture.StorageTypes.empty));
                     }
                     List<MipMap> mipmaps = new List<MipMap>();
-                    PixelFormat pixelFormat = Image.getEngineFormatType(texture.properties.getProperty("Format").valueName);
+                    PixelFormat pixelFormat = Image.getPixelFormatType(texture.properties.getProperty("Format").valueName);
                     for (int k = 0; k < texture.mipMapsList.Count; k++)
                     {
                         byte[] data = texture.getMipMapDataByIndex(k);

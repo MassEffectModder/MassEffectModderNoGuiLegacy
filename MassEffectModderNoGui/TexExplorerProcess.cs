@@ -146,7 +146,7 @@ namespace MassEffectModder
             Package package = new Package(packagePath);
             Texture texture = new Texture(package, exportID, package.getExportData(exportID));
             package.Dispose();
-            PixelFormat format = Image.getEngineFormatType(texture.properties.getProperty("Format").valueName);
+            PixelFormat format = Image.getPixelFormatType(texture.properties.getProperty("Format").valueName);
             Texture.MipMap mipmap = texture.getTopMipmap();
             byte[] data = texture.getTopImageData();
             if (data == null)
