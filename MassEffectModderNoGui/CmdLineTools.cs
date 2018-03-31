@@ -2465,9 +2465,7 @@ namespace MassEffectModder
 
             if (!modded && repack)
                 RepackME23(gameId, ipc);
-
-
-            if (!modded)
+            else
                 AddMarkers(gameId);
 
 
