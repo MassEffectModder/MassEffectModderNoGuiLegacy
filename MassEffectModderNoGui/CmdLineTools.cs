@@ -2333,6 +2333,7 @@ namespace MassEffectModder
                 {
                     using (FileStream fs = new FileStream(filesToUpdate[i], FileMode.Open, FileAccess.ReadWrite))
                     {
+                        fs.SeekEnd();
                         fs.Seek(-Package.MEMendFileMarker.Length, SeekOrigin.Current);
                         string marker = fs.ReadStringASCII(Package.MEMendFileMarker.Length);
                         if (marker != Package.MEMendFileMarker)
@@ -2466,6 +2467,10 @@ namespace MassEffectModder
                 RepackME23(gameId, ipc);
 
 
+            if (!modded)
+                AddMarkers(gameId);
+
+
             if (!guiInstaller)
             {
                 if (!applyModTag((int)gameId, 0, 0))
@@ -2481,8 +2486,6 @@ namespace MassEffectModder
                 LODSettings.updateGFXSettings(gameId, engineConf, false, false);
                 Console.WriteLine("Updating LODs and other settings finished");
             }
-
-            AddMarkers(gameId);
 
             if (ipc)
             {
