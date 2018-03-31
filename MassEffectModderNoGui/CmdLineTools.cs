@@ -763,6 +763,15 @@ namespace MassEffectModder
                                                 Console.WriteLine("Warning for texture: " + textureName + ". This texture converted from full alpha to binary alpha.");
                                             }
                                         }
+                                        if ((f.pixfmt == PixelFormat.DXT5 || f.pixfmt == PixelFormat.DXT1 || f.pixfmt == PixelFormat.ATI2) &&
+                                            (image.pixelFormat == PixelFormat.RGB || image.pixelFormat == PixelFormat.ARGB))
+                                        {
+                                            if (image.pixelFormat == PixelFormat.RGB && f.pixfmt == PixelFormat.DXT5)
+                                            {
+                                                Console.WriteLine("Warning for texture: " + textureName + ". This texture converted from full alpha to no alpha.");
+                                            }
+                                            pixelFormat = PixelFormat.ARGB;
+                                        }
                                         image.correctMips(pixelFormat, dxt1HasAlpha, dxt1Threshold);
                                         mod.data = image.StoreImageToDDS();
                                     }
@@ -1011,6 +1020,15 @@ namespace MassEffectModder
                                             Console.WriteLine("Warning for texture: " + textureName + ". This texture converted from full alpha to binary alpha.");
                                         }
                                     }
+                                    if ((foundCrcList[0].pixfmt == PixelFormat.DXT5 || foundCrcList[0].pixfmt == PixelFormat.DXT1 || foundCrcList[0].pixfmt == PixelFormat.ATI2) &&
+                                        (image.pixelFormat == PixelFormat.RGB || image.pixelFormat == PixelFormat.ARGB))
+                                    {
+                                        if (image.pixelFormat == PixelFormat.RGB && foundCrcList[0].pixfmt == PixelFormat.DXT5)
+                                        {
+                                            Console.WriteLine("Warning for texture: " + textureName + ". This texture converted from full alpha to no alpha.");
+                                        }
+                                        pixelFormat = PixelFormat.ARGB;
+                                    }
                                     image.correctMips(pixelFormat, dxt1HasAlpha, dxt1Threshold);
                                     mod.data = image.StoreImageToDDS();
                                 }
@@ -1147,6 +1165,15 @@ namespace MassEffectModder
                                     Console.WriteLine("Warning for texture: " + relativeFilePath + ". This texture converted from full alpha to binary alpha.");
                                 }
                             }
+                            if ((foundCrcList[0].pixfmt == PixelFormat.DXT5 || foundCrcList[0].pixfmt == PixelFormat.DXT1 || foundCrcList[0].pixfmt == PixelFormat.ATI2) &&
+                                (image.pixelFormat == PixelFormat.RGB || image.pixelFormat == PixelFormat.ARGB))
+                            {
+                                if (image.pixelFormat == PixelFormat.RGB && foundCrcList[0].pixfmt == PixelFormat.DXT5)
+                                {
+                                    Console.WriteLine("Warning for texture: " + relativeFilePath + ". This texture converted from full alpha to no alpha.");
+                                }
+                                pixelFormat = PixelFormat.ARGB;
+                            }
                             image.correctMips(pixelFormat, dxt1HasAlpha, dxt1Threshold);
                             mod.data = image.StoreImageToDDS();
                         }
@@ -1258,6 +1285,15 @@ namespace MassEffectModder
                     else
                     {
                         Console.WriteLine("Converting/correcting texture: " + relativeFilePath);
+                    }
+                    if ((foundCrcList[0].pixfmt == PixelFormat.DXT5 || foundCrcList[0].pixfmt == PixelFormat.DXT1 || foundCrcList[0].pixfmt == PixelFormat.ATI2) &&
+                        (image.pixelFormat == PixelFormat.RGB || image.pixelFormat == PixelFormat.ARGB))
+                    {
+                        if (image.pixelFormat == PixelFormat.RGB && foundCrcList[0].pixfmt == PixelFormat.DXT5)
+                        {
+                            Console.WriteLine("Warning for texture: " + relativeFilePath + ". This texture converted from full alpha to no alpha.");
+                        }
+                        pixelFormat = PixelFormat.ARGB;
                     }
                     image.correctMips(pixelFormat, dxt1HasAlpha, dxt1Threshold);
                     mod.data = image.StoreImageToDDS();
@@ -1415,6 +1451,15 @@ namespace MassEffectModder
                 {
                     Console.WriteLine("Warning for texture: " + Path.GetFileName(inputFile) + ". This texture converted from full alpha to binary alpha.");
                 }
+            }
+            if ((foundCrcList[0].pixfmt == PixelFormat.DXT5 || foundCrcList[0].pixfmt == PixelFormat.DXT1 || foundCrcList[0].pixfmt == PixelFormat.ATI2) &&
+                 (image.pixelFormat == PixelFormat.RGB || image.pixelFormat == PixelFormat.ARGB))
+            {
+                if (image.pixelFormat == PixelFormat.RGB && foundCrcList[0].pixfmt == PixelFormat.DXT5)
+                {
+                    Console.WriteLine("Warning for texture: " + Path.GetFileName(inputFile) + ". This texture converted from full alpha to no alpha.");
+                }
+                pixelFormat = PixelFormat.ARGB;
             }
             image.correctMips(pixelFormat, dxt1HasAlpha, dxt1Threshold);
             if (File.Exists(outputFile))
