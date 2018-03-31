@@ -2309,6 +2309,45 @@ namespace MassEffectModder
             Console.WriteLine("Repack finished.\n");
         }
 
+        static public void AddMarkers(MeType gameType, bool ipc = false)
+        {
+            string path = "";
+            if (GameData.gameType == MeType.ME1_TYPE)
+            {
+                path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
+            }
+            if (GameData.gameType == MeType.ME2_TYPE)
+            {
+                path = @"\BioGame\CookedPC\BIOC_Materials.pcc".ToLowerInvariant();
+            }
+            List<string> filesToUpdate = new List<string>();
+            for (int i = 0; i < GameData.packageFiles.Count; i++)
+            {
+                if (path != "" && GameData.packageFiles[i].ToLowerInvariant().Contains(path))
+                    continue;
+                filesToUpdate.Add(GameData.packageFiles[i].ToLowerInvariant());
+            }
+            for (int i = 0; i < filesToUpdate.Count; i++)
+            {
+                try
+                {
+                    using (FileStream fs = new FileStream(filesToUpdate[i], FileMode.Open, FileAccess.ReadWrite))
+                    {
+                        fs.Seek(-Package.MEMendFileMarker.Length, SeekOrigin.Current);
+                        string marker = fs.ReadStringASCII(Package.MEMendFileMarker.Length);
+                        if (marker != Package.MEMendFileMarker)
+                        {
+                            fs.SeekEnd();
+                            fs.WriteStringASCII(Package.MEMendFileMarker);
+                        }
+                    }
+                }
+                catch
+                {
+                }
+            }
+        }
+
         public static bool InstallMods(MeType gameId, string inputDir, bool ipc, bool repack, bool guiInstaller)
         {
             textures = new List<FoundTexture>();
@@ -2442,6 +2481,8 @@ namespace MassEffectModder
                 LODSettings.updateGFXSettings(gameId, engineConf, false, false);
                 Console.WriteLine("Updating LODs and other settings finished");
             }
+
+            AddMarkers(gameId);
 
             if (ipc)
             {
