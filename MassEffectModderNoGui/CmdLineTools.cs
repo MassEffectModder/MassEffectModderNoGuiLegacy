@@ -2071,8 +2071,7 @@ namespace MassEffectModder
             }
             string errors = "";
             List<string> modList = new List<string>();
-            bool vanilla = Misc.checkGameFiles(gameId, ref errors, ref modList, ipc,
-                wihtoutSfars, onlyVanilla, backupMode, Misc.generateModsMd5Entries);
+            bool vanilla = Misc.checkGameFiles(gameId, ref errors, ref modList, ipc, wihtoutSfars, onlyVanilla, backupMode);
 
             if (!ipc)
             {
