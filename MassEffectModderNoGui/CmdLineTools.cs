@@ -2024,7 +2024,7 @@ namespace MassEffectModder
             if (!exist)
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
             ConfIni engineConf = new ConfIni(path);
-            LODSettings.updateLOD(gameId, engineConf);
+            LODSettings.removeLOD(gameId, engineConf);
             LODSettings.updateGFXSettings(gameId, engineConf, softShadowsME1, meuitmMode);
 
             return true;
@@ -2199,31 +2199,6 @@ namespace MassEffectModder
             return true;
         }
 
-        private static bool RemoveMipmaps(MeType gameId, bool ipc, bool repack = false)
-        {
-            MipMaps mipMaps = new MipMaps();
-            Console.WriteLine("Remove mipmaps started...");
-            if (ipc)
-            {
-                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_REMOVEMIPMAPS");
-                Console.Out.Flush();
-            }
-
-            if (GameData.gameType == MeType.ME1_TYPE)
-            {
-                mipMaps.removeMipMapsME1(1, textures, ipc);
-                mipMaps.removeMipMapsME1(2, textures, ipc);
-            }
-            else
-            {
-                mipMaps.removeMipMapsME2ME3(textures, ipc, repack);
-            }
-
-            Console.WriteLine("Remove mipmaps finished.\n");
-
-            return true;
-        }
-
         static private void RepackME23(MeType gameId, bool ipc)
         {
             Console.WriteLine("Repack started...");
@@ -2348,8 +2323,6 @@ namespace MassEffectModder
                 }
                 Console.WriteLine("[IPC]STAGE_ADD STAGE_INSTALLTEXTURES");
                 Console.WriteLine("[IPC]STAGE_ADD STAGE_SAVING");
-                if (!modded)
-                    Console.WriteLine("[IPC]STAGE_ADD STAGE_REMOVEMIPMAPS");
                 if (!modded && repack)
                     Console.WriteLine("[IPC]STAGE_ADD STAGE_REPACK");
                 Console.Out.Flush();
@@ -2406,10 +2379,6 @@ namespace MassEffectModder
             bool status = applyMods(modFiles, repack, ipc);
 
 
-            if (!modded)
-                RemoveMipmaps(gameId, ipc, repack);
-
-
             if (!modded && repack)
                 RepackME23(gameId, ipc);
 
@@ -2425,7 +2394,7 @@ namespace MassEffectModder
                 if (!exist)
                     Directory.CreateDirectory(Path.GetDirectoryName(path));
                 ConfIni engineConf = new ConfIni(path);
-                LODSettings.updateLOD(gameId, engineConf);
+                LODSettings.removeLOD(gameId, engineConf);
                 LODSettings.updateGFXSettings(gameId, engineConf, false, false);
                 Console.WriteLine("Updating LODs and other settings finished");
             }
