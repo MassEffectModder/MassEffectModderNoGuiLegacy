@@ -769,7 +769,7 @@ namespace MassEffectModder
                                             {
                                                 Console.WriteLine("Warning for texture: " + textureName + ". This texture converted from full alpha to no alpha.");
                                             }
-                                            pixelFormat = PixelFormat.ARGB;
+                                            //pixelFormat = PixelFormat.ARGB;
                                         }
                                         image.correctMips(pixelFormat, dxt1HasAlpha, dxt1Threshold);
                                         mod.data = image.StoreImageToDDS();
@@ -1026,7 +1026,7 @@ namespace MassEffectModder
                                         {
                                             Console.WriteLine("Warning for texture: " + textureName + ". This texture converted from full alpha to no alpha.");
                                         }
-                                        pixelFormat = PixelFormat.ARGB;
+                                        //pixelFormat = PixelFormat.ARGB;
                                     }
                                     image.correctMips(pixelFormat, dxt1HasAlpha, dxt1Threshold);
                                     mod.data = image.StoreImageToDDS();
@@ -1171,7 +1171,7 @@ namespace MassEffectModder
                                 {
                                     Console.WriteLine("Warning for texture: " + relativeFilePath + ". This texture converted from full alpha to no alpha.");
                                 }
-                                pixelFormat = PixelFormat.ARGB;
+                                //pixelFormat = PixelFormat.ARGB;
                             }
                             image.correctMips(pixelFormat, dxt1HasAlpha, dxt1Threshold);
                             mod.data = image.StoreImageToDDS();
@@ -1292,7 +1292,7 @@ namespace MassEffectModder
                         {
                             Console.WriteLine("Warning for texture: " + relativeFilePath + ". This texture converted from full alpha to no alpha.");
                         }
-                        pixelFormat = PixelFormat.ARGB;
+                        //pixelFormat = PixelFormat.ARGB;
                     }
                     image.correctMips(pixelFormat, dxt1HasAlpha, dxt1Threshold);
                     mod.data = image.StoreImageToDDS();
@@ -1458,7 +1458,7 @@ namespace MassEffectModder
                 {
                     Console.WriteLine("Warning for texture: " + Path.GetFileName(inputFile) + ". This texture converted from full alpha to no alpha.");
                 }
-                pixelFormat = PixelFormat.ARGB;
+                //pixelFormat = PixelFormat.ARGB;
             }
             image.correctMips(pixelFormat, dxt1HasAlpha, dxt1Threshold);
             if (File.Exists(outputFile))
