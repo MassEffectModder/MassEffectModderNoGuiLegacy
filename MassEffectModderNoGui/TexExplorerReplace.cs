@@ -126,13 +126,13 @@ namespace MassEffectModder
                     image.correctMips(pixelFormat, dxt1HasAlpha, dxt1Threshold);
                 }
 
-                fmt = Image.getEngineFormatType(pixelFormat);
+                /*fmt = Image.getEngineFormatType(pixelFormat);
                 if (!package.existsNameId(fmt))
                     package.addName(fmt);
                 if (GameData.gameType == MeType.ME3_TYPE)
                     texture.properties.setByteValue("Format", fmt, "EPixelFormat");
                 else
-                    texture.properties.setByteValue("Format", fmt, "");
+                    texture.properties.setByteValue("Format", fmt, "");*/
 
                 // remove lower mipmaps from source image which not exist in game data
                 for (int t = 0; t < image.mipMaps.Count(); t++)
