@@ -229,9 +229,6 @@ namespace MassEffectModder
             Console.WriteLine("  -version\n");
             Console.WriteLine("     Display MEM version");
             Console.WriteLine("");
-            Console.WriteLine("  -check-game-data <game id> [-ipc]\n");
-            Console.WriteLine("     Check game data missmatch to textures scan after installation.\n");
-            Console.WriteLine("");
             Console.WriteLine("  -check-game-data-after <game id> [-ipc]\n");
             Console.WriteLine("     Check game data for mods installed after textures installation.\n");
             Console.WriteLine("");
@@ -239,24 +236,14 @@ namespace MassEffectModder
             Console.WriteLine("     Check game data with md5 database.\n");
             Console.WriteLine("     Scan to detect mods");
             Console.WriteLine("");
-            Console.WriteLine("  -check-game-data-without-sfars <game id> [-ipc]\n");
-            Console.WriteLine("     Check game data with md5 database, but skipping sfar files.\n");
-            Console.WriteLine("     Scan to detect mods");
-            Console.WriteLine("");
             Console.WriteLine("  -check-game-data-only-vanilla <game id> [-ipc]\n");
             Console.WriteLine("     Check game data with md5 database.\n");
-            Console.WriteLine("");
-            Console.WriteLine("  -check-game-data-for-backup <game id> [-ipc]\n");
-            Console.WriteLine("     Check game data with md5 database for backup purpose.\n");
             Console.WriteLine("");
             Console.WriteLine("  -install-mods <game id> <input dir> [-repack] [-ipc] [-alot-mode]\n");
             Console.WriteLine("     Install MEM mods from input directory.\n");
             Console.WriteLine("");
             Console.WriteLine("  -apply-me1-laa\n");
             Console.WriteLine("     Apply LAA patch to ME1 executable.\n");
-            Console.WriteLine("");
-            Console.WriteLine("  -apply-mod-tag <game id> <alot version> <meuitm version>\n");
-            Console.WriteLine("     Apply stamp that mod was installed.\n");
             Console.WriteLine("");
             Console.WriteLine("  -detect-mods <game id> [-ipc]\n");
             Console.WriteLine("     Detect compatibe mods.\n");
@@ -269,9 +256,6 @@ namespace MassEffectModder
             Console.WriteLine("");
             Console.WriteLine("  -remove-lods <game id>\n");
             Console.WriteLine("     Remove LODs settings.\n");
-            Console.WriteLine("");
-            Console.WriteLine("  -print-lods <game id>\n");
-            Console.WriteLine("     Print LODs settings.\n");
             Console.WriteLine("");
             Console.WriteLine("  -convert-to-mem <game id> <input dir> <output file> [-ipc]\n");
             Console.WriteLine("     game id: 1 for ME1, 2 for ME2, 3 for ME3");
@@ -415,19 +399,14 @@ namespace MassEffectModder
                 cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-extract-mod", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-extract-mem", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-apply-mod-tag", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-mods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-bad-mods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-apply-lods-gfx", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-remove-lods", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-print-lods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-textures", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-mismatch", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-after", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-check-game-data", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-check-game-data-without-sfars", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-only-vanilla", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-check-game-data-for-backup", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-extract-all-dds", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-extract-all-png", StringComparison.OrdinalIgnoreCase))
             {
@@ -500,10 +479,7 @@ namespace MassEffectModder
                 cmd.Equals("-check-game-data-textures", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-mismatch", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-after", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-check-game-data", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-check-game-data-without-sfars", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-check-game-data-only-vanilla", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-check-game-data-for-backup", StringComparison.OrdinalIgnoreCase))
+                cmd.Equals("-check-game-data-only-vanilla", StringComparison.OrdinalIgnoreCase))
             {
                 for (int l = 0; l < args.Length; l++)
                 {
@@ -550,42 +526,6 @@ namespace MassEffectModder
                 if (!CmdLineTools.ApplyME1LAAPatch())
                     goto fail;
             }
-            else if (cmd.Equals("-apply-mod-tag", StringComparison.OrdinalIgnoreCase))
-            {
-                if (args.Length != 2 && args.Length != 3 && args.Length != 4)
-                {
-                    Console.WriteLine("Error: wrong arguments!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
-                int alotV = 0;
-                try
-                {
-                    alotV = int.Parse(args[2]);
-                }
-                catch
-                {
-                    Console.WriteLine("Error: wrong arguments!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
-                int meuitmV = 0;
-                try
-                {
-                    meuitmV = int.Parse(args[3]);
-                }
-                catch
-                {
-                    Console.WriteLine("Error: wrong arguments!");
-                    DisplayHelp();
-                    goto fail;
-                }
-
-                if (!CmdLineTools.ApplyModTag(gameId, alotV, meuitmV))
-                    goto fail;
-            }
             else if (cmd.Equals("-detect-mods", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
@@ -618,11 +558,6 @@ namespace MassEffectModder
                 if (!CmdLineTools.RemoveLODSettings(gameId))
                     goto fail;
             }
-            else if (cmd.Equals("-print-lods", StringComparison.OrdinalIgnoreCase))
-            {
-                if (!CmdLineTools.PrintLODSettings(gameId))
-                    goto fail;
-            }
             else if (cmd.Equals("-check-game-data-textures", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
@@ -641,32 +576,11 @@ namespace MassEffectModder
                 if (!Misc.checkGameFilesAfter(gameId, ipc))
                     goto fail;
             }
-            else if (cmd.Equals("-check-game-data", StringComparison.OrdinalIgnoreCase))
-            {
-                loadEmbeddedDlls();
-                loadMD5Tables();
-                if (!CmdLineTools.CheckGameData(gameId, false, false, false, ipc))
-                    goto fail;
-            }
-            else if (cmd.Equals("-check-game-data-without-sfars", StringComparison.OrdinalIgnoreCase))
-            {
-                loadEmbeddedDlls();
-                loadMD5Tables();
-                if (!CmdLineTools.CheckGameData(gameId, true, false, false, ipc))
-                    goto fail;
-            }
             else if (cmd.Equals("-check-game-data-only-vanilla", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
                 loadMD5Tables();
-                if (!CmdLineTools.CheckGameData(gameId, false, true, false, ipc))
-                    goto fail;
-            }
-            else if (cmd.Equals("-check-game-data-for-backup", StringComparison.OrdinalIgnoreCase))
-            {
-                loadEmbeddedDlls();
-                loadMD5Tables();
-                if (!CmdLineTools.CheckGameData(gameId, false, true, true, ipc))
+                if (!CmdLineTools.CheckGameData(gameId, ipc))
                     goto fail;
             }
             else if (cmd.Equals("-convert-game-image", StringComparison.OrdinalIgnoreCase))

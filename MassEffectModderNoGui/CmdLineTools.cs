@@ -2023,19 +2023,6 @@ namespace MassEffectModder
             return true;
         }
 
-        public static bool ApplyModTag(MeType gameId, int alotV, int meuitmV)
-        {
-            ConfIni configIni = new ConfIni();
-            GameData gameData = new GameData(gameId, configIni);
-            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
-            {
-                Console.WriteLine("Error: Could not found the game!");
-                return false;
-            }
-
-            return applyModTag((int)gameId, meuitmV, alotV);
-        }
-
         public static bool ApplyME1LAAPatch()
         {
             ConfIni configIni = new ConfIni();
@@ -2089,23 +2076,7 @@ namespace MassEffectModder
             return true;
         }
 
-        public static bool PrintLODSettings(MeType gameId)
-        {
-            ConfIni configIni = new ConfIni();
-            GameData gameData = new GameData(gameId, configIni);
-            string path = gameData.EngineConfigIniPath;
-            bool exist = File.Exists(path);
-            if (!exist)
-                return true;
-            ConfIni engineConf = new ConfIni(path);
-            string log = "";
-            LODSettings.readLOD(gameId, engineConf, ref log);
-            Console.WriteLine(log);
-
-            return true;
-        }
-
-        public static bool CheckGameData(MeType gameId, bool wihtoutSfars, bool onlyVanilla, bool backupMode, bool ipc)
+        public static bool CheckGameData(MeType gameId, bool ipc)
         {
             ConfIni configIni = new ConfIni();
             GameData gameData = new GameData(gameId, configIni);
@@ -2116,7 +2087,7 @@ namespace MassEffectModder
             }
             string errors = "";
             List<string> modList = new List<string>();
-            bool vanilla = Misc.checkGameFiles(gameId, ref errors, ref modList, ipc, wihtoutSfars, onlyVanilla, backupMode);
+            bool vanilla = Misc.checkGameFiles(gameId, ref errors, ref modList, ipc);
 
             if (!ipc)
             {
