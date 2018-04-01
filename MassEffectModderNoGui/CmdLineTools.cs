@@ -174,7 +174,6 @@ namespace MassEffectModder
                             matched.basePackageName = fs.ReadStringASCIINull();
                         }
                     }
-                    matched.removeEmptyMips = fs.ReadByte() != 0;
                     matched.numMips = fs.ReadByte();
                     matched.path = pkgs[fs.ReadInt16()];
                     matched.packageName = Path.GetFileNameWithoutExtension(matched.path).ToUpper();
