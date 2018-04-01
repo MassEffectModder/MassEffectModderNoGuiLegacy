@@ -29,8 +29,6 @@ namespace MassEffectModder
 {
     public class CachePackageMgr
     {
-        const int PERCENT_BETWEEN_GC = 2;
-
         public List<Package> packages;
 
         public CachePackageMgr()
@@ -71,9 +69,10 @@ namespace MassEffectModder
         public void CloseAllWithSave(bool forceZlib = false, bool ipc = false)
         {
             int lastProgress = -1;
+            int skipCounter = 0;
             bool lowMemoryMode = false;
             ulong memorySize = ((new ComputerInfo().TotalPhysicalMemory / 1024 / 1024) + 1023) / 1024;
-            if (memorySize < 16)
+            if (memorySize <= 12)
                 lowMemoryMode = true;
 
             for (int i = 0; i < packages.Count; i++)
@@ -85,12 +84,14 @@ namespace MassEffectModder
                     Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                     Console.Out.Flush();
                     lastProgress = newProgress;
-                    if ((newProgress % PERCENT_BETWEEN_GC != 0) && lowMemoryMode)
-                    {
-                        GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
-                        GC.Collect();
-                    }
                 }
+                if (skipCounter > 10 && lowMemoryMode)
+                {
+                    GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+                    GC.Collect();
+                    skipCounter = 0;
+                }
+                skipCounter++;
                 pkg.SaveToFile(forceZlib);
                 pkg.Dispose();
                 if (forceZlib && CmdLineTools.pkgsToRepack != null)
