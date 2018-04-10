@@ -34,6 +34,7 @@ namespace MassEffectModder
         static private ConfIni _configIni;
         static public List<string> packageFiles;
         static public List<string> tfcFiles;
+        static public bool FullScanME1Game = false;
 
         public bool DLCDataCacheDone = false;
 
@@ -247,6 +248,11 @@ namespace MassEffectModder
                     StringComparison.OrdinalIgnoreCase) ||
                     s.EndsWith(".u", StringComparison.OrdinalIgnoreCase) ||
                     s.EndsWith(".sfm", StringComparison.OrdinalIgnoreCase)).ToList();
+                if (packageFiles.FindAll(s => s.Contains("_PLPC.")).Count() > 10)
+                    FullScanME1Game = true;
+                if (packageFiles.FindAll(s => s.Contains("_RA.")).Count() > 10)
+                    FullScanME1Game = true;
+
                 if (Directory.Exists(DLCData))
                 {
                     packageFiles.AddRange(Directory.GetFiles(DLCData, "*.*",

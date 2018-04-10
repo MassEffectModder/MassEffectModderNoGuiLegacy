@@ -257,6 +257,9 @@ namespace MassEffectModder
             Console.WriteLine("  -remove-lods <game id>\n");
             Console.WriteLine("     Remove LODs settings.\n");
             Console.WriteLine("");
+            Console.WriteLine("  -print-lods <game id>\n");
+            Console.WriteLine("     Print LODs settings.\n");
+            Console.WriteLine("");
             Console.WriteLine("  -convert-to-mem <game id> <input dir> <output file> [-ipc]\n");
             Console.WriteLine("     game id: 1 for ME1, 2 for ME2, 3 for ME3");
             Console.WriteLine("     input dir: directory to be converted, containing following file extension(s):");
@@ -285,7 +288,7 @@ namespace MassEffectModder
             Console.WriteLine("           Image filename must include texture CRC (0xhhhhhhhh)");
             Console.WriteLine("     ipc: turn on IPC traces");
             Console.WriteLine("");
-            Console.WriteLine("  -convert-game-image <game id> <input image> <output image>\n");
+            Console.WriteLine("  -convert-game-image <game id> <input image> <output image> [-mark-to-convert]\n");
             Console.WriteLine("     game id: 1 for ME1, 2 for ME2, 3 for ME3");
             Console.WriteLine("     Input file with following extension:");
             Console.WriteLine("        DDS, BMP, TGA, PNG, JPG, JPEG");
@@ -298,7 +301,7 @@ namespace MassEffectModder
             Console.WriteLine("           Image filename must include texture CRC (0xhhhhhhhh)");
             Console.WriteLine("     Output file is DDS image");
             Console.WriteLine("");
-            Console.WriteLine("  -convert-game-images <game id> <input dir> <output dir>\n");
+            Console.WriteLine("  -convert-game-images <game id> <input dir> <output dir> [-mark-to-convert]\n");
             Console.WriteLine("     game id: 1 for ME1, 2 for ME2, 3 for ME3");
             Console.WriteLine("     input dir: directory to be converted, containing following file extension(s):");
             Console.WriteLine("        Input files with following extension:");
@@ -403,6 +406,7 @@ namespace MassEffectModder
                 cmd.Equals("-detect-bad-mods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-apply-lods-gfx", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-remove-lods", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-print-lods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-textures", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-mismatch", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-after", StringComparison.OrdinalIgnoreCase) ||
@@ -558,6 +562,11 @@ namespace MassEffectModder
                 if (!CmdLineTools.RemoveLODSettings(gameId))
                     goto fail;
             }
+            else if (cmd.Equals("-print-lods", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!CmdLineTools.PrintLODSettings(gameId))
+                    goto fail;
+            }
             else if (cmd.Equals("-check-game-data-textures", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
@@ -592,14 +601,26 @@ namespace MassEffectModder
                 }
                 loadEmbeddedDlls();
                 loadMD5Tables();
-                if (!CmdLineTools.convertGameImage(gameId, input, output))
+                bool markToConvert = false;
+                for (int l = 0; l < args.Length; l++)
+                {
+                    if (args[l].ToLowerInvariant() == "-mark-to-convert")
+                        markToConvert = true;
+                }
+                if (!CmdLineTools.convertGameImage(gameId, input, output, markToConvert))
                     goto fail;
             }
             else if (cmd.Equals("-convert-game-images", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
                 loadMD5Tables();
-                if (!CmdLineTools.convertGameImages(gameId, input, output))
+                bool markToConvert = false;
+                for (int l = 0; l < args.Length; l++)
+                {
+                    if (args[l].ToLowerInvariant() == "-mark-to-convert")
+                        markToConvert = true;
+                }
+                if (!CmdLineTools.convertGameImages(gameId, input, output, markToConvert))
                     goto fail;
             }
             else if (cmd.Equals("-extract-tpf", StringComparison.OrdinalIgnoreCase))

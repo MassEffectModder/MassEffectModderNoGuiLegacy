@@ -41,6 +41,7 @@ namespace MassEffectModder
         public const uint textureMapBinVersion = 2;
         public const uint TextureModTag = 0x444F4D54;
         public const uint FileTextureTag = 0x53444446;
+        public const uint FileTextureTag2 = 0x53444443;
         public const uint FileBinTag = 0x4E494246;
         public const uint TextureModVersion = 2;
         const uint MEMI_TAG = 0x494D454D;
@@ -158,7 +159,7 @@ namespace MassEffectModder
                 texture.width = fs.ReadInt16();
                 texture.height = fs.ReadInt16();
                 texture.pixfmt = (PixelFormat)fs.ReadByte();
-                texture.alphadxt1 = fs.ReadByte() != 0;
+                texture.flags = (TexProperty.TextureTypes)fs.ReadByte();
                 int countPackages = fs.ReadInt16();
                 texture.list = new List<MatchedTexture>();
                 for (int k = 0; k < countPackages; k++)
@@ -174,6 +175,7 @@ namespace MassEffectModder
                             matched.basePackageName = fs.ReadStringASCIINull();
                         }
                     }
+                    matched.removeEmptyMips = fs.ReadByte() != 0;
                     matched.numMips = fs.ReadByte();
                     matched.path = pkgs[fs.ReadInt16()];
                     matched.packageName = Path.GetFileNameWithoutExtension(matched.path).ToUpper();
@@ -496,7 +498,7 @@ namespace MassEffectModder
             return true;
         }
 
-        static public bool convertDataModtoMem(string inputDir, string memFilePath, MeType gameId, bool ipc = false)
+        static public bool convertDataModtoMem(string inputDir, string memFilePath, MeType gameId, bool markToConvert, bool ipc = false)
         {
             string[] files = null;
 
@@ -737,9 +739,14 @@ namespace MassEffectModder
                                         continue;
                                     }
 
+                                    PixelFormat newPixelFormat = pixelFormat;
+                                    if (markToConvert)
+                                        newPixelFormat = Misc.changeTextureType(pixelFormat, image.pixelFormat, f.flags);
+
                                     if (!image.checkDDSHaveAllMipmaps() ||
                                        (f.list.Find(s => s.path != "").numMips > 1 && image.mipMaps.Count() <= 1) ||
-                                        image.pixelFormat != pixelFormat)
+                                       (markToConvert && image.pixelFormat != newPixelFormat) ||
+                                       (!markToConvert && image.pixelFormat != pixelFormat))
                                     {
                                         if (ipc)
                                         {
@@ -752,7 +759,7 @@ namespace MassEffectModder
                                         }
                                         bool dxt1HasAlpha = false;
                                         byte dxt1Threshold = 128;
-                                        if (f.alphadxt1)
+                                        if (f.flags == TexProperty.TextureTypes.OneBitAlpha)
                                         {
                                             dxt1HasAlpha = true;
                                             if (image.pixelFormat == PixelFormat.ARGB ||
@@ -762,16 +769,7 @@ namespace MassEffectModder
                                                 Console.WriteLine("Warning for texture: " + textureName + ". This texture converted from full alpha to binary alpha.");
                                             }
                                         }
-                                        if ((f.pixfmt == PixelFormat.DXT5 || f.pixfmt == PixelFormat.DXT1 || f.pixfmt == PixelFormat.ATI2) &&
-                                            (image.pixelFormat == PixelFormat.RGB || image.pixelFormat == PixelFormat.ARGB))
-                                        {
-                                            if (image.pixelFormat == PixelFormat.RGB && f.pixfmt == PixelFormat.DXT5)
-                                            {
-                                                Console.WriteLine("Warning for texture: " + textureName + ". This texture converted from full alpha to no alpha.");
-                                            }
-                                            //pixelFormat = PixelFormat.ARGB;
-                                        }
-                                        image.correctMips(pixelFormat, dxt1HasAlpha, dxt1Threshold);
+                                        image.correctMips(newPixelFormat, dxt1HasAlpha, dxt1Threshold);
                                         mod.data = image.StoreImageToDDS();
                                     }
                                 }
@@ -994,23 +992,28 @@ namespace MassEffectModder
                                     continue;
                                 }
 
+                                PixelFormat newPixelFormat = pixelFormat;
+                                if (markToConvert)
+                                    newPixelFormat = Misc.changeTextureType(pixelFormat, image.pixelFormat, foundCrcList[0].flags);
+
                                 if (!image.checkDDSHaveAllMipmaps() ||
                                    (foundCrcList[0].list.Find(s => s.path != "").numMips > 1 && image.mipMaps.Count() <= 1) ||
-                                    image.pixelFormat != pixelFormat)
+                                   (markToConvert && image.pixelFormat != newPixelFormat) ||
+                                   (!markToConvert && image.pixelFormat != pixelFormat))
                                 {
+                                    if (ipc)
+                                    {
+                                        Console.WriteLine("[IPC]PROCESSING_FILE Converting " + relativeFilePath);
+                                        Console.Out.Flush();
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("Converting/correcting texture: " + textureName);
+                                    }
                                     bool dxt1HasAlpha = false;
                                     byte dxt1Threshold = 128;
-                                    if (foundCrcList[0].alphadxt1)
+                                    if (foundCrcList[0].flags == TexProperty.TextureTypes.OneBitAlpha)
                                     {
-                                        if (ipc)
-                                        {
-                                            Console.WriteLine("[IPC]PROCESSING_FILE Converting " + textureName);
-                                            Console.Out.Flush();
-                                        }
-                                        else
-                                        {
-                                            Console.WriteLine("Converting/correcting texture: " + textureName);
-                                        }
                                         dxt1HasAlpha = true;
                                         if (image.pixelFormat == PixelFormat.ARGB ||
                                             image.pixelFormat == PixelFormat.DXT3 ||
@@ -1019,16 +1022,7 @@ namespace MassEffectModder
                                             Console.WriteLine("Warning for texture: " + textureName + ". This texture converted from full alpha to binary alpha.");
                                         }
                                     }
-                                    if ((foundCrcList[0].pixfmt == PixelFormat.DXT5 || foundCrcList[0].pixfmt == PixelFormat.DXT1 || foundCrcList[0].pixfmt == PixelFormat.ATI2) &&
-                                        (image.pixelFormat == PixelFormat.RGB || image.pixelFormat == PixelFormat.ARGB))
-                                    {
-                                        if (image.pixelFormat == PixelFormat.RGB && foundCrcList[0].pixfmt == PixelFormat.DXT5)
-                                        {
-                                            Console.WriteLine("Warning for texture: " + textureName + ". This texture converted from full alpha to no alpha.");
-                                        }
-                                        //pixelFormat = PixelFormat.ARGB;
-                                    }
-                                    image.correctMips(pixelFormat, dxt1HasAlpha, dxt1Threshold);
+                                    image.correctMips(newPixelFormat, dxt1HasAlpha, dxt1Threshold);
                                     mod.data = image.StoreImageToDDS();
                                 }
                                 mods.Add(mod);
@@ -1139,9 +1133,14 @@ namespace MassEffectModder
                             continue;
                         }
 
+                        PixelFormat newPixelFormat = pixelFormat;
+                        if (markToConvert)
+                            newPixelFormat = Misc.changeTextureType(pixelFormat, image.pixelFormat, foundCrcList[0].flags);
+
                         if (!image.checkDDSHaveAllMipmaps() ||
                            (foundCrcList[0].list.Find(s => s.path != "").numMips > 1 && image.mipMaps.Count() <= 1) ||
-                            image.pixelFormat != pixelFormat)
+                           (markToConvert && image.pixelFormat != newPixelFormat) ||
+                           (!markToConvert && image.pixelFormat != pixelFormat))
                         {
                             if (ipc)
                             {
@@ -1154,7 +1153,7 @@ namespace MassEffectModder
                             }
                             bool dxt1HasAlpha = false;
                             byte dxt1Threshold = 128;
-                            if (foundCrcList[0].alphadxt1)
+                            if (foundCrcList[0].flags == TexProperty.TextureTypes.OneBitAlpha)
                             {
                                 dxt1HasAlpha = true;
                                 if (image.pixelFormat == PixelFormat.ARGB ||
@@ -1164,16 +1163,7 @@ namespace MassEffectModder
                                     Console.WriteLine("Warning for texture: " + relativeFilePath + ". This texture converted from full alpha to binary alpha.");
                                 }
                             }
-                            if ((foundCrcList[0].pixfmt == PixelFormat.DXT5 || foundCrcList[0].pixfmt == PixelFormat.DXT1 || foundCrcList[0].pixfmt == PixelFormat.ATI2) &&
-                                (image.pixelFormat == PixelFormat.RGB || image.pixelFormat == PixelFormat.ARGB))
-                            {
-                                if (image.pixelFormat == PixelFormat.RGB && foundCrcList[0].pixfmt == PixelFormat.DXT5)
-                                {
-                                    Console.WriteLine("Warning for texture: " + relativeFilePath + ". This texture converted from full alpha to no alpha.");
-                                }
-                                //pixelFormat = PixelFormat.ARGB;
-                            }
-                            image.correctMips(pixelFormat, dxt1HasAlpha, dxt1Threshold);
+                            image.correctMips(newPixelFormat, dxt1HasAlpha, dxt1Threshold);
                             mod.data = image.StoreImageToDDS();
                         }
 
@@ -1264,18 +1254,10 @@ namespace MassEffectModder
                         continue;
                     }
 
-                    bool dxt1HasAlpha = false;
-                    byte dxt1Threshold = 128;
-                    if (foundCrcList[0].alphadxt1)
-                    {
-                        dxt1HasAlpha = true;
-                        if (image.pixelFormat == PixelFormat.ARGB ||
-                            image.pixelFormat == PixelFormat.DXT3 ||
-                            image.pixelFormat == PixelFormat.DXT5)
-                        {
-                            Console.WriteLine("Warning for texture: " + relativeFilePath + ". This texture converted from full alpha to binary alpha.");
-                        }
-                    }
+                    PixelFormat newPixelFormat = pixelFormat;
+                    if (markToConvert)
+                        newPixelFormat = Misc.changeTextureType(pixelFormat, image.pixelFormat, foundCrcList[0].flags);
+
                     if (ipc)
                     {
                         Console.WriteLine("[IPC]PROCESSING_FILE Converting " + Path.GetFileName(file));
@@ -1285,16 +1267,20 @@ namespace MassEffectModder
                     {
                         Console.WriteLine("Converting/correcting texture: " + relativeFilePath);
                     }
-                    if ((foundCrcList[0].pixfmt == PixelFormat.DXT5 || foundCrcList[0].pixfmt == PixelFormat.DXT1 || foundCrcList[0].pixfmt == PixelFormat.ATI2) &&
-                        (image.pixelFormat == PixelFormat.RGB || image.pixelFormat == PixelFormat.ARGB))
+                    bool dxt1HasAlpha = false;
+                    byte dxt1Threshold = 128;
+                    if (foundCrcList[0].flags == TexProperty.TextureTypes.OneBitAlpha)
                     {
-                        if (image.pixelFormat == PixelFormat.RGB && foundCrcList[0].pixfmt == PixelFormat.DXT5)
+                        dxt1HasAlpha = true;
+                        if (image.pixelFormat == PixelFormat.ARGB ||
+                            image.pixelFormat == PixelFormat.DXT3 ||
+                            image.pixelFormat == PixelFormat.DXT5)
                         {
                             Console.WriteLine("Warning for texture: " + relativeFilePath + ". This texture converted from full alpha to no alpha.");
                         }
-                        //pixelFormat = PixelFormat.ARGB;
                     }
-                    image.correctMips(pixelFormat, dxt1HasAlpha, dxt1Threshold);
+                    image.correctMips(newPixelFormat, dxt1HasAlpha, dxt1Threshold);
+                    mod.data = image.StoreImageToDDS();
                     mod.data = image.StoreImageToDDS();
                     mod.textureName = foundCrcList[0].name;
                     mod.binaryModType = 0;
@@ -1396,7 +1382,7 @@ namespace MassEffectModder
             return convertDataModtoMem(inputDir, memFile, gameId, ipc);
         }
 
-        static public bool convertGameTexture(string inputFile, string outputFile)
+        static public bool convertGameTexture(string inputFile, string outputFile, bool markToConvert)
         {
             string filename = Path.GetFileNameWithoutExtension(inputFile).ToLowerInvariant();
             if (!filename.Contains("0x"))
@@ -1439,9 +1425,13 @@ namespace MassEffectModder
                 return false;
             }
 
+            PixelFormat newPixelFormat = pixelFormat;
+            if (markToConvert)
+                newPixelFormat = Misc.changeTextureType(pixelFormat, image.pixelFormat, foundCrcList[0].flags);
+
             bool dxt1HasAlpha = false;
             byte dxt1Threshold = 128;
-            if (foundCrcList[0].alphadxt1)
+            if (foundCrcList[0].flags == TexProperty.TextureTypes.OneBitAlpha)
             {
                 dxt1HasAlpha = true;
                 if (image.pixelFormat == PixelFormat.ARGB ||
@@ -1451,16 +1441,7 @@ namespace MassEffectModder
                     Console.WriteLine("Warning for texture: " + Path.GetFileName(inputFile) + ". This texture converted from full alpha to binary alpha.");
                 }
             }
-            if ((foundCrcList[0].pixfmt == PixelFormat.DXT5 || foundCrcList[0].pixfmt == PixelFormat.DXT1 || foundCrcList[0].pixfmt == PixelFormat.ATI2) &&
-                 (image.pixelFormat == PixelFormat.RGB || image.pixelFormat == PixelFormat.ARGB))
-            {
-                if (image.pixelFormat == PixelFormat.RGB && foundCrcList[0].pixfmt == PixelFormat.DXT5)
-                {
-                    Console.WriteLine("Warning for texture: " + Path.GetFileName(inputFile) + ". This texture converted from full alpha to no alpha.");
-                }
-                //pixelFormat = PixelFormat.ARGB;
-            }
-            image.correctMips(pixelFormat, dxt1HasAlpha, dxt1Threshold);
+            image.correctMips(newPixelFormat, dxt1HasAlpha, dxt1Threshold);
             if (File.Exists(outputFile))
                 File.Delete(outputFile);
             using (FileStream fs = new FileStream(outputFile, FileMode.CreateNew, FileAccess.Write))
@@ -1471,11 +1452,11 @@ namespace MassEffectModder
             return true;
         }
 
-        static public bool convertGameImage(MeType gameId, string inputFile, string outputFile)
+        static public bool convertGameImage(MeType gameId, string inputFile, string outputFile, bool markToConvert)
         {
             loadTexturesMap(gameId);
 
-            bool status = convertGameTexture(inputFile, outputFile);
+            bool status = convertGameTexture(inputFile, outputFile, markToConvert);
             if (!status)
             {
                 Console.WriteLine("Error: Some errors have occured.");
@@ -1484,7 +1465,7 @@ namespace MassEffectModder
             return status;
         }
 
-        static public bool convertGameImages(MeType gameId, string inputDir, string outputDir)
+        static public bool convertGameImages(MeType gameId, string inputDir, string outputDir, bool markToConvert)
         {
             loadTexturesMap(gameId);
 
@@ -1502,7 +1483,7 @@ namespace MassEffectModder
             bool status = true;
             foreach (string file in list)
             {
-                if (!convertGameTexture(file, Path.Combine(outputDir, Path.GetFileNameWithoutExtension(file) + ".dds")))
+                if (!convertGameTexture(file, Path.Combine(outputDir, Path.GetFileNameWithoutExtension(file) + ".dds"), markToConvert))
                     status = false;
             }
 
@@ -1950,6 +1931,14 @@ namespace MassEffectModder
                                     output.Write(dst, 0, (int)dstLen);
                                 }
                             }
+                            else if (modFiles[i].tag == FileTextureTag2)
+                            {
+                                string filename = name + "_" + string.Format("0x{0:X8}", crc) + "-memconvert.dds";
+                                using (FileStream output = new FileStream(Path.Combine(outputMODdir, Path.GetFileName(filename)), FileMode.Create, FileAccess.Write))
+                                {
+                                    output.Write(dst, 0, (int)dstLen);
+                                }
+                            }
                             else if (modFiles[i].tag == MipMaps.FileBinaryTag)
                             {
                                 string path = pkgPath;
@@ -2055,7 +2044,7 @@ namespace MassEffectModder
             if (!exist)
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
             ConfIni engineConf = new ConfIni(path);
-            LODSettings.removeLOD(gameId, engineConf);
+            LODSettings.updateLOD(gameId, engineConf);
             LODSettings.updateGFXSettings(gameId, engineConf, softShadowsME1, meuitmMode);
 
             return true;
@@ -2071,6 +2060,22 @@ namespace MassEffectModder
                 return true;
             ConfIni engineConf = new ConfIni(path);
             LODSettings.removeLOD(gameId, engineConf);
+
+            return true;
+        }
+
+        public static bool PrintLODSettings(MeType gameId)
+        {
+            ConfIni configIni = new ConfIni();
+            GameData gameData = new GameData(gameId, configIni);
+            string path = gameData.EngineConfigIniPath;
+            bool exist = File.Exists(path);
+            if (!exist)
+                return true;
+            ConfIni engineConf = new ConfIni(path);
+            string log = "";
+            LODSettings.readLOD(gameId, engineConf, ref log);
+            Console.WriteLine(log);
 
             return true;
         }
@@ -2213,6 +2218,31 @@ namespace MassEffectModder
             return true;
         }
 
+        private static bool RemoveMipmaps(MeType gameId, bool ipc, bool repack = false)
+        {
+            MipMaps mipMaps = new MipMaps();
+            Console.WriteLine("Remove mipmaps started...");
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_REMOVEMIPMAPS");
+                Console.Out.Flush();
+            }
+
+            if (GameData.gameType == MeType.ME1_TYPE)
+            {
+                mipMaps.removeMipMapsME1(1, textures, ipc);
+                mipMaps.removeMipMapsME1(2, textures, ipc);
+            }
+            else
+            {
+                mipMaps.removeMipMapsME2ME3(textures, ipc, repack);
+            }
+
+            Console.WriteLine("Remove mipmaps finished.\n");
+
+            return true;
+        }		
+ 
         static private void RepackME23(MeType gameId, bool ipc)
         {
             Console.WriteLine("Repack started...");
@@ -2377,6 +2407,8 @@ namespace MassEffectModder
                 }
                 Console.WriteLine("[IPC]STAGE_ADD STAGE_INSTALLTEXTURES");
                 Console.WriteLine("[IPC]STAGE_ADD STAGE_SAVING");
+                if (!modded)
+                    Console.WriteLine("[IPC]STAGE_ADD STAGE_REMOVEMIPMAPS");
                 if (!modded && repack)
                     Console.WriteLine("[IPC]STAGE_ADD STAGE_REPACK");
                 Console.Out.Flush();
@@ -2433,6 +2465,10 @@ namespace MassEffectModder
             bool status = applyMods(modFiles, repack, ipc);
 
 
+            if (!modded)
+                RemoveMipmaps(gameId, ipc, repack);
+
+
             if (!modded && repack)
                 RepackME23(gameId, ipc);
             else
@@ -2450,7 +2486,7 @@ namespace MassEffectModder
                 if (!exist)
                     Directory.CreateDirectory(Path.GetDirectoryName(path));
                 ConfIni engineConf = new ConfIni(path);
-                LODSettings.removeLOD(gameId, engineConf);
+                LODSettings.updateLOD(gameId, engineConf);
                 LODSettings.updateGFXSettings(gameId, engineConf, false, false);
                 Console.WriteLine("Updating LODs and other settings finished");
             }
@@ -2597,7 +2633,7 @@ namespace MassEffectModder
                             byte[] dst = null;
                             fs.JumpTo(modFiles[l].offset);
                             size = modFiles[l].size;
-                            if (modFiles[l].tag == MipMaps.FileTextureTag)
+                            if (modFiles[l].tag == MipMaps.FileTextureTag || modFiles[l].tag == MipMaps.FileTextureTag2)
                             {
                                 name = fs.ReadStringASCIINull();
                                 crc = fs.ReadUInt32();
@@ -2625,7 +2661,7 @@ namespace MassEffectModder
                             dst = MipMaps.decompressData(fs, size);
                             dstLen = dst.Length;
 
-                            if (modFiles[l].tag == MipMaps.FileTextureTag)
+                            if (modFiles[l].tag == MipMaps.FileTextureTag || modFiles[l].tag == MipMaps.FileTextureTag)
                             {
                                 int index = -1;
                                 for (int t = 0; t < textures.Count; t++)
@@ -2649,7 +2685,7 @@ namespace MassEffectModder
                                     if (special)
                                         errors = replaceTextureSpecialME3Mod(image, foundTexture.list, cachePackageMgr, foundTexture.name, crc, tfcName, guid);
                                     else
-                                        errors = new MipMaps().replaceTexture(image, foundTexture.list, cachePackageMgr, foundTexture.name, crc, false);
+                                        errors = new MipMaps().replaceTexture(image, foundTexture.list, cachePackageMgr, foundTexture.name, crc, false, modFiles[l].tag == MipMaps.FileTextureTag2);
                                     if (errors != "")
                                     {
                                         if (ipc)
@@ -2856,13 +2892,7 @@ namespace MassEffectModder
                                 if (texture.mipMapsList.Count < 6)
                                 {
                                     mipmap.storageType = Texture.StorageTypes.pccUnc;
-                                    if (!texture.properties.exists("NeverStream"))
-                                    {
-                                        if (package.existsNameId("NeverStream"))
-                                            texture.properties.addBoolValue("NeverStream", true);
-                                        else
-                                            goto skip;
-                                    }
+                                    texture.properties.setBoolValue("NeverStream", true);
                                 }
                                 else
                                 {
@@ -2980,7 +3010,6 @@ namespace MassEffectModder
                     cprTexture = texture;
                 if (triggerCacheArc)
                     arcTexture = texture;
-                skip:
                 package = null;
             }
             arcTexture = cprTexture = null;

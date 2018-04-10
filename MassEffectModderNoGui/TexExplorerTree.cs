@@ -78,7 +78,7 @@ namespace MassEffectModder
                 texture.width = fs.ReadInt16();
                 texture.height = fs.ReadInt16();
                 texture.pixfmt = (PixelFormat)fs.ReadByte();
-                texture.alphadxt1 = fs.ReadByte() != 0;
+                texture.flags = (TexProperty.TextureTypes)fs.ReadByte();
                 int countPackages = fs.ReadInt16();
                 texture.list = new List<MatchedTexture>();
                 for (int k = 0; k < countPackages; k++)
@@ -94,6 +94,7 @@ namespace MassEffectModder
                             matched.basePackageName = fs.ReadStringASCIINull();
                         }
                     }
+                    matched.removeEmptyMips = fs.ReadByte() != 0;
                     matched.numMips = fs.ReadByte();
                     matched.path = pkgs[fs.ReadInt16()];
                     matched.packageName = Path.GetFileNameWithoutExtension(matched.path).ToUpper();
@@ -128,6 +129,8 @@ namespace MassEffectModder
                 Console.Out.Flush();
             }
 
+            if (!GameData.FullScanME1Game)
+            {
             GameData.packageFiles.Sort();
             int count = GameData.packageFiles.Count;
             for (int i = 0; i < count; i++)
@@ -136,6 +139,7 @@ namespace MassEffectModder
                     GameData.packageFiles[i].Contains("_FR.") ||
                     GameData.packageFiles[i].Contains("_ES.") ||
                     GameData.packageFiles[i].Contains("_DE.") ||
+            		GameData.packageFiles[i].Contains("_RA.") ||
                     GameData.packageFiles[i].Contains("_PLPC.") ||
                     GameData.packageFiles[i].Contains("_DEU.") ||
                     GameData.packageFiles[i].Contains("_FRA.") ||
@@ -147,8 +151,10 @@ namespace MassEffectModder
                     count--;
                 }
             }
-
+            }
             textures = new List<FoundTexture>();
+            if (!GameData.FullScanME1Game)
+            {
             addedFiles = new List<string>();
             modifiedFiles = new List<string>();
 
@@ -264,6 +270,27 @@ namespace MassEffectModder
                     textures[k].list.Clear();
                     textures.Remove(textures[k]);
                     k--;
+                }
+            }
+            }
+            else
+            {
+			    int lastProgress = -1;
+                for (int i = 0; i < GameData.packageFiles.Count; i++)
+                {
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
+                        Console.Out.Flush();
+                    }
+                    int newProgress = i * 100 / GameData.packageFiles.Count;
+                    if (ipc && lastProgress != newProgress)
+                    {
+                        Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+                        Console.Out.Flush();
+                        lastProgress = newProgress;
+                    }
+                    FindTextures(gameId, textures, GameData.RelativeGameData(GameData.packageFiles[i]), false, ipc);
                 }
             }
 
@@ -391,6 +418,8 @@ namespace MassEffectModder
             }
             catch (Exception e)
             {
+                if (e.Message.Contains("Problem with PCC file header:"))
+                    return;
                 if (ipc)
                 {
                     Console.WriteLine("[IPC]ERROR Issue opening package file: " + packagePath);
@@ -426,6 +455,7 @@ namespace MassEffectModder
                     matchTexture.exportID = i;
                     matchTexture.path = packagePath;
                     matchTexture.packageName = texture.packageName;
+                    matchTexture.removeEmptyMips = texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty);
                     matchTexture.numMips = texture.mipMapsList.FindAll(s => s.storageType != Texture.StorageTypes.empty).Count;
                     if (gameId == MeType.ME1_TYPE)
                     {

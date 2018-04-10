@@ -34,6 +34,7 @@ namespace MassEffectModder
         const int SizeOfChunkBlock = 8;
         const int SizeOfChunk = 8;
         public const uint FileTextureTag = 0x53444446;
+        public const uint FileTextureTag2 = 0x53444443;
         public const uint FileBinaryTag = 0x4E494246;
         public const uint FileXdeltaTag = 0x4E494258;
 
