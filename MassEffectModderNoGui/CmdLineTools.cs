@@ -3185,6 +3185,24 @@ namespace MassEffectModder
                         if (!texture.hasImageData())
                             continue;
 
+                        if (texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
+                        {
+                            if (ipc)
+                            {
+                                Console.WriteLine("[IPC]ERROR_MIPMAPS_NOT_REMOVED Empty mipmaps not removed in texture: " +
+                                package.exportsTable[e].objectName + " in package: " +
+                                GameData.RelativeGameData(GameData.packageFiles[i]));
+                                Console.Out.Flush();
+                            }
+                            else
+                            {
+                                Console.WriteLine("ERROR: Empty mipmaps not removed in texture: " +
+                                package.exportsTable[e].objectName + " in package: " +
+                                GameData.RelativeGameData(GameData.packageFiles[i]));
+                            }
+                            continue;
+                        }
+                        
                         for (int m = 0; m < texture.mipMapsList.Count; m++)
                         {
                             try
