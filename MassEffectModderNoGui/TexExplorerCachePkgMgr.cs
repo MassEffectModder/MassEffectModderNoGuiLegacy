@@ -66,7 +66,7 @@ namespace MassEffectModder
             packages.Clear();
         }
 
-        public void CloseAllWithSave(bool forceZlib = false, bool ipc = false)
+        public void CloseAllWithSave(bool repack = false, bool ipc = false)
         {
             int lastProgress = -1;
             int skipCounter = 0;
@@ -92,9 +92,10 @@ namespace MassEffectModder
                     skipCounter = 0;
                 }
                 skipCounter++;
-                pkg.SaveToFile(forceZlib);
+
+                pkg.SaveToFile(repack);
                 pkg.Dispose();
-                if (forceZlib && CmdLineTools.pkgsToRepack != null)
+                if (repack && CmdLineTools.pkgsToRepack != null)
                     CmdLineTools.pkgsToRepack.Remove(pkg.packagePath);
             }
 

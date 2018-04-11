@@ -40,9 +40,6 @@ namespace MassEffectModder
         public const uint textureMapBinTag = 0x5054454D;
         public const uint textureMapBinVersion = 2;
         public const uint TextureModTag = 0x444F4D54;
-        public const uint FileTextureTag = 0x53444446;
-        public const uint FileTextureTag2 = 0x53444443;
-        public const uint FileBinTag = 0x4E494246;
         public const uint TextureModVersion = 2;
         const uint MEMI_TAG = 0x494D454D;
 
@@ -54,6 +51,7 @@ namespace MassEffectModder
             public int binaryModType;
             public string textureName;
             public uint textureCrc;
+            public bool markConvert;
             public long offset;
             public long size;
         };
@@ -617,7 +615,7 @@ namespace MassEffectModder
                             long prevPos = fs.Position;
                             fs.JumpTo(fileMod.offset);
                             fileMod.offset = outFs.Position;
-                            if (fileMod.tag == MipMaps.FileTextureTag)
+                            if (fileMod.tag == MipMaps.FileTextureTag || fileMod.tag == MipMaps.FileTextureTag2)
                             {
                                 outFs.WriteStringASCIINull(fs.ReadStringASCIINull());
                                 outFs.WriteUInt32(fs.ReadUInt32());
@@ -1332,7 +1330,10 @@ namespace MassEffectModder
                     }
                     else
                     {
-                        fileMod.tag = MipMaps.FileTextureTag;
+                        if (mods[l].markConvert)
+                            fileMod.tag = MipMaps.FileTextureTag2;
+                        else
+                            fileMod.tag = MipMaps.FileTextureTag;
                         fileMod.name = mods[l].textureName + string.Format("_0x{0:X8}", mods[l].textureCrc) + ".dds";
                         outFs.WriteStringASCIINull(mods[l].textureName);
                         outFs.WriteUInt32(mods[l].textureCrc);
@@ -1895,7 +1896,7 @@ namespace MassEffectModder
                             byte[] dst = null;
                             fs.JumpTo(modFiles[i].offset);
                             size = modFiles[i].size;
-                            if (modFiles[i].tag == FileTextureTag)
+                            if (modFiles[i].tag == MipMaps.FileTextureTag || modFiles[i].tag == MipMaps.FileTextureTag2)
                             {
                                 name = fs.ReadStringASCIINull();
                                 crc = fs.ReadUInt32();
@@ -1923,7 +1924,7 @@ namespace MassEffectModder
                             dst = MipMaps.decompressData(fs, size);
                             dstLen = dst.Length;
 
-                            if (modFiles[i].tag == FileTextureTag)
+                            if (modFiles[i].tag == MipMaps.FileTextureTag)
                             {
                                 string filename = name + "_" + string.Format("0x{0:X8}", crc) + ".dds";
                                 using (FileStream output = new FileStream(Path.Combine(outputMODdir, Path.GetFileName(filename)), FileMode.Create, FileAccess.Write))
@@ -1931,7 +1932,7 @@ namespace MassEffectModder
                                     output.Write(dst, 0, (int)dstLen);
                                 }
                             }
-                            else if (modFiles[i].tag == FileTextureTag2)
+                            else if (modFiles[i].tag == MipMaps.FileTextureTag2)
                             {
                                 string filename = name + "_" + string.Format("0x{0:X8}", crc) + "-memconvert.dds";
                                 using (FileStream output = new FileStream(Path.Combine(outputMODdir, Path.GetFileName(filename)), FileMode.Create, FileAccess.Write))
@@ -2276,18 +2277,11 @@ namespace MassEffectModder
                 try
                 {
                     Package package = new Package(pkgsToRepack[i], false, true);
-                    if (package.compressed &&
-                        (gameId == MeType.ME2_TYPE && package.compressionType != Package.CompressionType.Zlib))
+                    if (!package.compressed || package.compressed && package.compressionType != Package.CompressionType.Zlib)
                     {
                         package.Dispose();
                         package = new Package(pkgsToRepack[i]);
                         package.SaveToFile(true);
-                    }
-                    else if ((gameId == MeType.ME2_TYPE || gameId == MeType.ME3_TYPE) && !package.compressed)
-                    {
-                        package.Dispose();
-                        package = new Package(pkgsToRepack[i]);
-                        package.SaveToFile(true, true);
                     }
                     package.Dispose();
                 }
@@ -2307,46 +2301,6 @@ namespace MassEffectModder
                     TOCBinFile.UpdateAllTOCBinFiles();
             }
             Console.WriteLine("Repack finished.\n");
-        }
-
-        static public void AddMarkers(MeType gameType, bool ipc = false)
-        {
-            string path = "";
-            if (GameData.gameType == MeType.ME1_TYPE)
-            {
-                path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
-            }
-            if (GameData.gameType == MeType.ME2_TYPE)
-            {
-                path = @"\BioGame\CookedPC\BIOC_Materials.pcc".ToLowerInvariant();
-            }
-            List<string> filesToUpdate = new List<string>();
-            for (int i = 0; i < GameData.packageFiles.Count; i++)
-            {
-                if (path != "" && GameData.packageFiles[i].ToLowerInvariant().Contains(path))
-                    continue;
-                filesToUpdate.Add(GameData.packageFiles[i].ToLowerInvariant());
-            }
-            for (int i = 0; i < filesToUpdate.Count; i++)
-            {
-                try
-                {
-                    using (FileStream fs = new FileStream(filesToUpdate[i], FileMode.Open, FileAccess.ReadWrite))
-                    {
-                        fs.SeekEnd();
-                        fs.Seek(-Package.MEMendFileMarker.Length, SeekOrigin.Current);
-                        string marker = fs.ReadStringASCII(Package.MEMendFileMarker.Length);
-                        if (marker != Package.MEMendFileMarker)
-                        {
-                            fs.SeekEnd();
-                            fs.WriteStringASCII(Package.MEMendFileMarker);
-                        }
-                    }
-                }
-                catch
-                {
-                }
-            }
         }
 
         public static bool InstallMods(MeType gameId, string inputDir, bool ipc, bool repack, bool guiInstaller)
@@ -2471,8 +2425,6 @@ namespace MassEffectModder
 
             if (!modded && repack)
                 RepackME23(gameId, ipc);
-            else
-                AddMarkers(gameId);
 
 
             if (!guiInstaller)
@@ -2661,7 +2613,7 @@ namespace MassEffectModder
                             dst = MipMaps.decompressData(fs, size);
                             dstLen = dst.Length;
 
-                            if (modFiles[l].tag == MipMaps.FileTextureTag || modFiles[l].tag == MipMaps.FileTextureTag)
+                            if (modFiles[l].tag == MipMaps.FileTextureTag || modFiles[l].tag == MipMaps.FileTextureTag2)
                             {
                                 int index = -1;
                                 for (int t = 0; t < textures.Count; t++)

@@ -107,31 +107,25 @@ namespace MassEffectModder
         {
             int lastProgress = -1;
             List<RemoveMipsEntry> list = prepareListToRemove(textures);
-            int current = -1;
-            string path = GameData.GamePath + @"\BioGame\CookedPC\testVolumeLight_VFX.upk";
-            for (int i = 0; i < GameData.packageFiles.Count; i++)
+            string path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk";
+            for (int i = 0; i < list.Count; i++)
             {
-                if (path == GameData.packageFiles[i])
+                if (path == list[i].pkgPath)
                     continue;
-                if (!list.Exists(s => (GameData.GamePath + s.pkgPath) == GameData.packageFiles[i]))
-                {
-                    AddMarkerToPackages(GameData.packageFiles[i]);
-                    continue;
-                }
-                current++;
-                bool modified = false;
-                int newProgress = (list.Count * (phase - 1) + current + 1) * 100 / (list.Count * 2);
+
+                int newProgress = (list.Count * (phase - 1) + i + 1) * 100 / (list.Count * 2);
                 if (ipc && lastProgress != newProgress)
                 {
                     Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
                     Console.Out.Flush();
                     lastProgress = newProgress;
                 }
-                Package package = null;
 
+                bool modified = false;
+                Package package = null;
                 try
                 {
-                    package = new Package(GameData.GamePath + list[current].pkgPath, true);
+                    package = new Package(GameData.GamePath + list[i].pkgPath, true);
                 }
                 catch (Exception e)
                 {
@@ -139,14 +133,14 @@ namespace MassEffectModder
                         return;
                     if (ipc)
                     {
-                        Console.WriteLine("[IPC]ERROR Issue opening package file: " + list[current].pkgPath);
+                        Console.WriteLine("[IPC]ERROR Issue opening package file: " + list[i].pkgPath);
                         Console.Out.Flush();
                     }
                     else
                     {
                         string err = "";
                         err += "---- Start --------------------------------------------" + Environment.NewLine;
-                        err += "Issue opening package file: " + list[current].pkgPath + Environment.NewLine;
+                        err += "Issue opening package file: " + list[i].pkgPath + Environment.NewLine;
                         err += e.Message + Environment.NewLine + Environment.NewLine;
                         err += e.StackTrace + Environment.NewLine + Environment.NewLine;
                         err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
@@ -155,9 +149,9 @@ namespace MassEffectModder
                     continue;
                 }
 
-                for (int l = 0; l < list[current].exportIDs.Count; l++)
+                for (int l = 0; l < list[i].exportIDs.Count; l++)
                 {
-                    int exportID = list[current].exportIDs[l];
+                    int exportID = list[i].exportIDs[l];
                     using (Texture texture = new Texture(package, exportID, package.getExportData(exportID), false))
                     {
                         if (!texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
@@ -194,12 +188,12 @@ namespace MassEffectModder
                         {
                             if (ipc)
                             {
-                                Console.WriteLine("[IPC]ERROR Texture " + package.exportsTable[exportID].objectName + " not found in package: " + list[current].pkgPath + ", skipping...");
+                                Console.WriteLine("[IPC]ERROR Texture " + package.exportsTable[exportID].objectName + " not found in package: " + list[i].pkgPath + ", skipping...");
                                 Console.Out.Flush();
                             }
                             else
                             {
-                                Console.WriteLine("Error: Texture " + package.exportsTable[exportID].objectName + " not found in package: " + list[current].pkgPath + ", skipping..." + Environment.NewLine);
+                                Console.WriteLine("Error: Texture " + package.exportsTable[exportID].objectName + " not found in package: " + list[i].pkgPath + ", skipping..." + Environment.NewLine);
                             }
                             goto skip;
                         }
@@ -259,43 +253,32 @@ skip:
                 }
                 if (modified)
                 {
-                    if (package.compressed && package.compressionType != Package.CompressionType.Zlib)
-                        package.SaveToFile(true);
-                    else
-                        package.SaveToFile();
+                    package.SaveToFile();
                 }
                 else
                 {
                     package.Dispose();
-                    AddMarkerToPackages(GameData.GamePath + list[current].pkgPath);
+                    AddMarkerToPackages(GameData.GamePath + list[i].pkgPath);
                 }
                 package.Dispose();
             }
         }
 
-        public void removeMipMapsME2ME3(List<FoundTexture> textures, bool ipc, bool forceZlib = false)
+        public void removeMipMapsME2ME3(List<FoundTexture> textures, bool ipc, bool repack = false)
         {
             int lastProgress = -1;
             List<RemoveMipsEntry> list = prepareListToRemove(textures);
-            int current = -1;
             string path = "";
             if (GameData.gameType == MeType.ME2_TYPE)
             {
                 path = GameData.GamePath + @"\BioGame\CookedPC\BIOC_Materials.pcc";
             }
-            for (int i = 0; i < GameData.packageFiles.Count; i++)
+            for (int i = 0; i < list.Count; i++)
             {
-                if (path != "" && path == GameData.packageFiles[i])
+                if (path == list[i].pkgPath)
                     continue;
-                if (!list.Exists(s => (GameData.GamePath + s.pkgPath) == GameData.packageFiles[i]))
-                {
-                    AddMarkerToPackages(GameData.packageFiles[i]);
-                    continue;
-                }
-                current++;
-                bool modified = false;
-                Package package = null;
-                int newProgress = current * 100 / list.Count;
+
+                int newProgress = i * 100 / list.Count;
                 if (ipc && lastProgress != newProgress)
                 {
                     Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
@@ -303,9 +286,11 @@ skip:
                     lastProgress = newProgress;
                 }
 
+                bool modified = false;
+                Package package = null;
                 try
                 {
-                    package = new Package(GameData.GamePath + list[current].pkgPath, true);
+                    package = new Package(GameData.GamePath + list[i].pkgPath, true);
                 }
                 catch (Exception e)
                 {
@@ -313,14 +298,14 @@ skip:
                         return;
                     if (ipc)
                     {
-                        Console.WriteLine("[IPC]ERROR Issue opening package file: " + list[current].pkgPath);
+                        Console.WriteLine("[IPC]ERROR Issue opening package file: " + list[i].pkgPath);
                         Console.Out.Flush();
                     }
                     else
                     {
                         string err = "";
                         err += "---- Start --------------------------------------------" + Environment.NewLine;
-                        err += "Issue opening package file: " + list[current].pkgPath + Environment.NewLine;
+                        err += "Issue opening package file: " + list[i].pkgPath + Environment.NewLine;
                         err += e.Message + Environment.NewLine + Environment.NewLine;
                         err += e.StackTrace + Environment.NewLine + Environment.NewLine;
                         err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
@@ -329,9 +314,9 @@ skip:
                     continue;
                 }
 
-                for (int l = 0; l < list[current].exportIDs.Count; l++)
+                for (int l = 0; l < list[i].exportIDs.Count; l++)
                 {
-                    int exportID = list[current].exportIDs[l];
+                    int exportID = list[i].exportIDs[l];
                     using (Texture texture = new Texture(package, exportID, package.getExportData(exportID), false))
                     {
                         if (!texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
@@ -357,17 +342,14 @@ skip:
                 }
                 if (modified)
                 {
-                    if (package.compressed && package.compressionType != Package.CompressionType.Zlib)
-                        package.SaveToFile(forceZlib);
-                    else
-                        package.SaveToFile();
-                    if (forceZlib && CmdLineTools.pkgsToRepack != null)
+                    package.SaveToFile(repack);
+                    if (repack && CmdLineTools.pkgsToRepack != null)
                         CmdLineTools.pkgsToRepack.Remove(package.packagePath);
                 }
                 else
                 {
                     package.Dispose();
-                    AddMarkerToPackages(GameData.GamePath + list[current].pkgPath);
+                    AddMarkerToPackages(GameData.GamePath + list[i].pkgPath);
                 }
                 package.Dispose();
             }

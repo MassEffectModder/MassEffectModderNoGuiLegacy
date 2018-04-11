@@ -33,16 +33,18 @@ namespace MassEffectModder
         public const uint textureMapBinVersion = 2;
 
         public List<FoundTexture> treeScan = null;
-        List<FoundTexture> textures;
         List<string> pkgs;
-        Misc.MD5FileEntry[] md5Entries;
-        List<string> addedFiles;
-        List<string> modifiedFiles;
 
-        private void loadTexturesMap(MeType gameId, List<FoundTexture> textures)
+        public void loadTexturesMap(MeType gameId, List<FoundTexture> textures)
         {
             Stream fs;
             byte[] buffer = null;
+            if (gameId == MeType.ME1_TYPE)
+                pkgs = Program.tablePkgsME1;
+            else if (gameId == MeType.ME2_TYPE)
+                pkgs = Program.tablePkgsME2;
+            else
+                pkgs = Program.tablePkgsME3;
             Assembly assembly = Assembly.GetExecutingAssembly();
             string[] resources = assembly.GetManifestResourceNames();
             for (int l = 0; l < resources.Length; l++)
@@ -107,21 +109,20 @@ namespace MassEffectModder
         public void PrepareListOfTextures(MeType gameId, bool ipc)
         {
             treeScan = null;
+            Misc.MD5FileEntry[] md5Entries;
             if (gameId == MeType.ME1_TYPE)
-            {
-                pkgs = Program.tablePkgsME1;
                 md5Entries = Program.entriesME1;
-            }
             else if (gameId == MeType.ME2_TYPE)
-            {
-                pkgs = Program.tablePkgsME2;
                 md5Entries = Program.entriesME2;
-            }
             else
-            {
-                pkgs = Program.tablePkgsME3;
                 md5Entries = Program.entriesME3;
-            }
+
+            List<FoundTexture> textures = new List<FoundTexture>();
+            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    Program.MAINEXENAME);
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
+            string filename = Path.Combine(path, "me" + (int)gameId + "map.bin");
 
             if (ipc)
             {
@@ -131,147 +132,147 @@ namespace MassEffectModder
 
             if (!GameData.FullScanME1Game)
             {
-            GameData.packageFiles.Sort();
-            int count = GameData.packageFiles.Count;
-            for (int i = 0; i < count; i++)
-            {
-                if (GameData.packageFiles[i].Contains("_IT.") ||
-                    GameData.packageFiles[i].Contains("_FR.") ||
-                    GameData.packageFiles[i].Contains("_ES.") ||
-                    GameData.packageFiles[i].Contains("_DE.") ||
-            		GameData.packageFiles[i].Contains("_RA.") ||
-                    GameData.packageFiles[i].Contains("_PLPC.") ||
-                    GameData.packageFiles[i].Contains("_DEU.") ||
-                    GameData.packageFiles[i].Contains("_FRA.") ||
-                    GameData.packageFiles[i].Contains("_ITA.") ||
-                    GameData.packageFiles[i].Contains("_POL."))
+                GameData.packageFiles.Sort();
+                int count = GameData.packageFiles.Count;
+                for (int i = 0; i < count; i++)
                 {
-                    GameData.packageFiles.Add(GameData.packageFiles[i]);
-                    GameData.packageFiles.RemoveAt(i--);
-                    count--;
+                    if (GameData.packageFiles[i].Contains("_IT.") ||
+                        GameData.packageFiles[i].Contains("_FR.") ||
+                        GameData.packageFiles[i].Contains("_ES.") ||
+                        GameData.packageFiles[i].Contains("_DE.") ||
+                        GameData.packageFiles[i].Contains("_RA.") ||
+                        GameData.packageFiles[i].Contains("_PLPC.") ||
+                        GameData.packageFiles[i].Contains("_DEU.") ||
+                        GameData.packageFiles[i].Contains("_FRA.") ||
+                        GameData.packageFiles[i].Contains("_ITA.") ||
+                        GameData.packageFiles[i].Contains("_POL."))
+                    {
+                        GameData.packageFiles.Add(GameData.packageFiles[i]);
+                        GameData.packageFiles.RemoveAt(i--);
+                        count--;
+                    }
                 }
             }
-            }
-            textures = new List<FoundTexture>();
+
             if (!GameData.FullScanME1Game)
             {
-            addedFiles = new List<string>();
-            modifiedFiles = new List<string>();
+                List<string> addedFiles = new List<string>();
+                List<string> modifiedFiles = new List<string>();
 
-            loadTexturesMap(gameId, textures);
+	            loadTexturesMap(gameId, textures);
 
-            List<string> sortedFiles = new List<string>();
-            for (int i = 0; i < GameData.packageFiles.Count; i++)
-            {
-                sortedFiles.Add(GameData.RelativeGameData(GameData.packageFiles[i]).ToLowerInvariant());
-            }
-            sortedFiles.Sort();
-
-            for (int k = 0; k < textures.Count; k++)
-            {
-                for (int t = 0; t < textures[k].list.Count; t++)
+                List<string> sortedFiles = new List<string>();
+                for (int i = 0; i < GameData.packageFiles.Count; i++)
                 {
-                    string pkgPath = textures[k].list[t].path.ToLowerInvariant();
-                    if (sortedFiles.BinarySearch(pkgPath) >= 0)
-                        continue;
-                    MatchedTexture f = textures[k].list[t];
-                    f.path = "";
-                    textures[k].list[t] = f;
+                    sortedFiles.Add(GameData.RelativeGameData(GameData.packageFiles[i]).ToLowerInvariant());
                 }
-            }
+                sortedFiles.Sort();
 
-            for (int i = 0; i < GameData.packageFiles.Count; i++)
-            {
-                int index = -1;
-                bool modified = true;
-                bool foundPkg = false;
-                string package = GameData.RelativeGameData(GameData.packageFiles[i].ToLowerInvariant());
-                long packageSize = new FileInfo(GameData.packageFiles[i]).Length;
-                for (int p = 0; p < md5Entries.Length; p++)
+                for (int k = 0; k < textures.Count; k++)
                 {
-                    if (package == md5Entries[p].path.ToLowerInvariant())
+                    for (int t = 0; t < textures[k].list.Count; t++)
                     {
-                        foundPkg = true;
-                        if (packageSize == md5Entries[p].size)
+                        string pkgPath = textures[k].list[t].path.ToLowerInvariant();
+                        if (sortedFiles.BinarySearch(pkgPath) >= 0)
+                            continue;
+                        MatchedTexture f = textures[k].list[t];
+                        f.path = "";
+                        textures[k].list[t] = f;
+                    }
+                }
+
+	            if (ipc)
+	            {
+	                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_SCAN");
+	                Console.Out.Flush();
+	            }
+                for (int i = 0; i < GameData.packageFiles.Count; i++)
+                {
+                    int index = -1;
+                    bool modified = true;
+                    bool foundPkg = false;
+                    string package = GameData.RelativeGameData(GameData.packageFiles[i].ToLowerInvariant());
+                    long packageSize = new FileInfo(GameData.packageFiles[i]).Length;
+                    for (int p = 0; p < md5Entries.Length; p++)
+                    {
+                        if (package == md5Entries[p].path.ToLowerInvariant())
                         {
-                            modified = false;
+                            foundPkg = true;
+                            if (packageSize == md5Entries[p].size)
+                            {
+                                modified = false;
+                                break;
+                            }
+                            index = p;
+                        }
+                    }
+                    if (foundPkg && modified)
+                        modifiedFiles.Add(md5Entries[index].path);
+                    else if (!foundPkg)
+                        addedFiles.Add(GameData.RelativeGameData(GameData.packageFiles[i]));
+                }
+
+	            int lastProgress = -1;
+                int totalPackages = modifiedFiles.Count + addedFiles.Count;
+                int currentPackage = 0;
+	            if (ipc)
+	            {
+	                Console.WriteLine("[IPC]STAGE_WEIGHT STAGE_SCAN " +
+	                    string.Format("{0:0.000000}", ((float)totalPackages / GameData.packageFiles.Count)));
+	                Console.Out.Flush();
+	            }
+                for (int i = 0; i < modifiedFiles.Count; i++, currentPackage++)
+                {
+	                if (ipc)
+	                {
+	                    Console.WriteLine("[IPC]PROCESSING_FILE " + modifiedFiles[i]);
+	                    Console.Out.Flush();
+	                }
+	                int newProgress = currentPackage * 100 / totalPackages;
+	                if (ipc && lastProgress != newProgress)
+	                {
+	                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+	                    Console.Out.Flush();
+	                    lastProgress = newProgress;
+	                }
+	                FindTextures(gameId, textures, modifiedFiles[i], true, ipc);
+	            }
+
+                for (int i = 0; i < addedFiles.Count; i++, currentPackage++)
+                {
+	                if (ipc)
+	                {
+	                    Console.WriteLine("[IPC]PROCESSING_FILE " + addedFiles[i]);
+	                    Console.Out.Flush();
+	                }
+	                int newProgress = currentPackage * 100 / totalPackages;
+	                if (ipc && lastProgress != newProgress)
+	                {
+	                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+	                    Console.Out.Flush();
+	                    lastProgress = newProgress;
+	                }
+	                FindTextures(gameId, textures, addedFiles[i], false, ipc);
+                }
+
+                for (int k = 0; k < textures.Count; k++)
+                {
+                    bool found = false;
+                    for (int t = 0; t < textures[k].list.Count; t++)
+                    {
+                        if (textures[k].list[t].path != "")
+                        {
+                            found = true;
                             break;
                         }
-                        index = p;
                     }
-                }
-                if (foundPkg && modified)
-                    modifiedFiles.Add(md5Entries[index].path);
-                else if (!foundPkg)
-                    addedFiles.Add(GameData.RelativeGameData(GameData.packageFiles[i]));
-            }
-
-            if (ipc)
-            {
-                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_SCAN");
-                Console.Out.Flush();
-            }
-            int lastProgress = -1;
-            int totalPackages = modifiedFiles.Count + addedFiles.Count;
-            int currentPackage = 0;
-            if (ipc)
-            {
-                Console.WriteLine("[IPC]STAGE_WEIGHT STAGE_SCAN " +
-                    string.Format("{0:0.000000}", ((float)totalPackages / GameData.packageFiles.Count)));
-                Console.Out.Flush();
-            }
-            for (int i = 0; i < modifiedFiles.Count; i++, currentPackage++)
-            {
-                if (ipc)
-                {
-                    Console.WriteLine("[IPC]PROCESSING_FILE " + modifiedFiles[i]);
-                    Console.Out.Flush();
-                }
-                int newProgress = currentPackage * 100 / totalPackages;
-                if (ipc && lastProgress != newProgress)
-                {
-                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-                    Console.Out.Flush();
-                    lastProgress = newProgress;
-                }
-                FindTextures(gameId, textures, modifiedFiles[i], true, ipc);
-            }
-
-            for (int i = 0; i < addedFiles.Count; i++, currentPackage++)
-            {
-                if (ipc)
-                {
-                    Console.WriteLine("[IPC]PROCESSING_FILE " + addedFiles[i]);
-                    Console.Out.Flush();
-                }
-                int newProgress = currentPackage * 100 / totalPackages;
-                if (ipc && lastProgress != newProgress)
-                {
-                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-                    Console.Out.Flush();
-                    lastProgress = newProgress;
-                }
-                FindTextures(gameId, textures, addedFiles[i], false, ipc);
-            }
-
-            for (int k = 0; k < textures.Count; k++)
-            {
-                bool found = false;
-                for (int t = 0; t < textures[k].list.Count; t++)
-                {
-                    if (textures[k].list[t].path != "")
+                    if (!found)
                     {
-                        found = true;
-                        break;
+                        textures[k].list.Clear();
+                        textures.Remove(textures[k]);
+                        k--;
                     }
                 }
-                if (!found)
-                {
-                    textures[k].list.Clear();
-                    textures.Remove(textures[k]);
-                    k--;
-                }
-            }
             }
             else
             {
@@ -365,11 +366,6 @@ namespace MassEffectModder
             }
 
 
-            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    Program.MAINEXENAME);
-            if (!Directory.Exists(path))
-                Directory.CreateDirectory(path);
-            string filename = Path.Combine(path, "me" + (int)gameId + "map.bin");
             if (File.Exists(filename))
                 File.Delete(filename);
 
@@ -379,6 +375,7 @@ namespace MassEffectModder
                 mem.WriteUInt32(textureMapBinTag);
                 mem.WriteUInt32(textureMapBinVersion);
                 mem.WriteInt32(textures.Count);
+
                 for (int i = 0; i < textures.Count; i++)
                 {
                     mem.WriteInt32(textures[i].name.Length);
