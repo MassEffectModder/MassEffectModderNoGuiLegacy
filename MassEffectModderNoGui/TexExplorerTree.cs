@@ -27,11 +27,68 @@ using System.Reflection;
 
 namespace MassEffectModder
 {
+    public enum MeType
+    {
+        ME1_TYPE = 1,
+        ME2_TYPE,
+        ME3_TYPE
+    }
+
+    struct TFCTexture
+    {
+        public byte[] guid;
+        public string name;
+    }
+
+    public struct BinaryMod
+    {
+        public string packagePath;
+        public int exportId;
+        public byte[] data;
+        public int binaryModType;
+        public string textureName;
+        public uint textureCrc;
+        public bool markConvert;
+        public long offset;
+        public long size;
+    };
+
+    public struct MatchedTexture
+    {
+        public int exportID;
+        public string packageName; // only used while texture scan for ME1
+        public string basePackageName; // only used while texture scan for ME1
+        public bool weakSlave;
+        public bool slave;
+        public string path;
+        public int linkToMaster;
+        public uint mipmapOffset;
+        public List<uint> crcs;
+        public bool removeEmptyMips;
+        public int numMips;
+    }
+
+    public struct FoundTexture
+    {
+        public string name;
+        public uint crc;
+        public List<MatchedTexture> list;
+        public PixelFormat pixfmt;
+        public TexProperty.TextureTypes flags;
+        public int width, height;
+    }
+
     public partial class TreeScan
     {
         public const uint textureMapBinTag = 0x5054454D;
         public const uint textureMapBinVersion = 2;
+        public const uint TextureModTag = 0x444F4D54;
+        public const uint TextureModVersion = 2;
+        public const uint FileTextureTag = 0x53444446;
+        public const uint FileBinTag = 0x4E494246;
+        public const uint MEMI_TAG = 0x494D454D;
 
+        private bool generateBuiltinMapFiles = false; // change to true to enable map files generation
         public List<FoundTexture> treeScan = null;
         List<string> pkgs;
 
@@ -154,7 +211,7 @@ namespace MassEffectModder
                 }
             }
 
-            if (!GameData.FullScanME1Game)
+            if (!generateBuiltinMapFiles && !GameData.FullScanME1Game)
             {
                 List<string> addedFiles = new List<string>();
                 List<string> modifiedFiles = new List<string>();
@@ -226,31 +283,30 @@ namespace MassEffectModder
 	                if (ipc)
 	                {
 	                    Console.WriteLine("[IPC]PROCESSING_FILE " + modifiedFiles[i]);
+	                	int newProgress = currentPackage * 100 / totalPackages;
+	                	if (lastProgress != newProgress)
+		                {
+		                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+	        	            lastProgress = newProgress;
+	            	    }
 	                    Console.Out.Flush();
-	                }
-	                int newProgress = currentPackage * 100 / totalPackages;
-	                if (ipc && lastProgress != newProgress)
-	                {
-	                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-	                    Console.Out.Flush();
-	                    lastProgress = newProgress;
 	                }
 	                FindTextures(gameId, textures, modifiedFiles[i], true, ipc);
-	            }
+                }
 
                 for (int i = 0; i < addedFiles.Count; i++, currentPackage++)
                 {
 	                if (ipc)
 	                {
 	                    Console.WriteLine("[IPC]PROCESSING_FILE " + addedFiles[i]);
+	                	int newProgress = currentPackage * 100 / totalPackages;
+		                if (lastProgress != newProgress)
+		                {
+		                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+		                    Console.Out.Flush();
+		                    lastProgress = newProgress;
+		                }
 	                    Console.Out.Flush();
-	                }
-	                int newProgress = currentPackage * 100 / totalPackages;
-	                if (ipc && lastProgress != newProgress)
-	                {
-	                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-	                    Console.Out.Flush();
-	                    lastProgress = newProgress;
 	                }
 	                FindTextures(gameId, textures, addedFiles[i], false, ipc);
                 }
@@ -282,14 +338,13 @@ namespace MassEffectModder
                     if (ipc)
                     {
                         Console.WriteLine("[IPC]PROCESSING_FILE " + GameData.packageFiles[i]);
+	                    int newProgress = i * 100 / GameData.packageFiles.Count;
+	                    if (lastProgress != newProgress)
+	                    {
+	                        Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+	                        lastProgress = newProgress;
+	                    }
                         Console.Out.Flush();
-                    }
-                    int newProgress = i * 100 / GameData.packageFiles.Count;
-                    if (ipc && lastProgress != newProgress)
-                    {
-                        Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-                        Console.Out.Flush();
-                        lastProgress = newProgress;
                     }
                     FindTextures(gameId, textures, GameData.RelativeGameData(GameData.packageFiles[i]), false, ipc);
                 }
@@ -378,28 +433,72 @@ namespace MassEffectModder
 
                 for (int i = 0; i < textures.Count; i++)
                 {
-                    mem.WriteInt32(textures[i].name.Length);
+                    if (generateBuiltinMapFiles)
+                        mem.WriteByte((byte)textures[i].name.Length);
+                    else
+                        mem.WriteInt32(textures[i].name.Length);
                     mem.WriteStringASCII(textures[i].name);
                     mem.WriteUInt32(textures[i].crc);
-                    mem.WriteInt32(textures[i].list.Count);
+                    if (generateBuiltinMapFiles)
+                    {
+                        mem.WriteInt16((short)textures[i].width);
+                        mem.WriteInt16((short)textures[i].height);
+                        mem.WriteByte((byte)textures[i].pixfmt);
+                        mem.WriteByte((byte)textures[i].flags);
+
+                        mem.WriteInt16((short)textures[i].list.Count);
+                    }
+                    else
+                    {
+                        mem.WriteInt32(textures[i].list.Count);
+                    }
                     for (int k = 0; k < textures[i].list.Count; k++)
                     {
                         mem.WriteInt32(textures[i].list[k].exportID);
-                        mem.WriteInt32(textures[i].list[k].linkToMaster);
-                        mem.WriteInt32(textures[i].list[k].path.Length);
-                        mem.WriteStringASCII(textures[i].list[k].path);
+                        if (generateBuiltinMapFiles)
+                        {
+                            if (GameData.gameType == MeType.ME1_TYPE)
+                            {
+                                mem.WriteInt16((short)textures[i].list[k].linkToMaster);
+                                if (textures[i].list[k].linkToMaster != -1)
+                                    mem.WriteStringASCIINull(textures[i].list[k].basePackageName);
+                            }
+                            mem.WriteByte(textures[i].list[k].removeEmptyMips ? (byte)1 : (byte)0);
+                            mem.WriteByte((byte)textures[i].list[k].numMips);
+                            mem.WriteInt16((short)pkgs.IndexOf(textures[i].list[k].path));
+                        }
+                        else
+                        {
+                            mem.WriteInt32(textures[i].list[k].linkToMaster);
+                            mem.WriteInt32(textures[i].list[k].path.Length);
+                            mem.WriteStringASCII(textures[i].list[k].path);
+                        }
                     }
                 }
-                mem.WriteInt32(GameData.packageFiles.Count);
-                for (int i = 0; i < GameData.packageFiles.Count; i++)
+                if (!generateBuiltinMapFiles)
                 {
-                    string s = GameData.RelativeGameData(GameData.packageFiles[i]);
-                    mem.WriteInt32(s.Length);
-                    mem.WriteStringASCII(s);
+                    mem.WriteInt32(GameData.packageFiles.Count);
+                    for (int i = 0; i < GameData.packageFiles.Count; i++)
+                    {
+                        string s = GameData.RelativeGameData(GameData.packageFiles[i]);
+                        mem.WriteInt32(s.Length);
+                        mem.WriteStringASCII(s);
+                    }
                 }
                 mem.SeekBegin();
 
-                fs.WriteFromStream(mem, mem.Length);
+                if (generateBuiltinMapFiles)
+                {
+                    fs.WriteUInt32(0x504D5443);
+                    fs.WriteUInt32((uint)mem.Length);
+                    byte[] compressed = new ZlibHelper.Zlib().Compress(mem.ToArray(), 9);
+                    fs.WriteUInt32((uint)compressed.Length);
+                    fs.WriteFromBuffer(compressed);
+                }
+                else
+                {
+                    fs.WriteFromStream(mem, mem.Length);
+                }
             }
 
             treeScan = textures;
@@ -526,6 +625,37 @@ namespace MassEffectModder
                         foundTex.list.Add(matchTexture);
                         foundTex.name = name;
                         foundTex.crc = crc;
+                        if (generateBuiltinMapFiles)
+                        {
+                            foundTex.width = texture.getTopMipmap().width;
+                            foundTex.height = texture.getTopMipmap().height;
+                            foundTex.pixfmt = Image.getPixelFormatType(texture.properties.getProperty("Format").valueName);
+                            if (texture.properties.exists("CompressionSettings"))
+                            {
+                                string cmp = texture.properties.getProperty("CompressionSettings").valueName;
+                                if (cmp == "TC_OneBitAlpha")
+                                    foundTex.flags = TexProperty.TextureTypes.OneBitAlpha;
+                                else if (cmp == "TC_Displacementmap")
+                                    foundTex.flags = TexProperty.TextureTypes.Displacementmap;
+                                else if (cmp == "TC_Grayscale")
+                                    foundTex.flags = TexProperty.TextureTypes.GreyScale;
+                                else if (cmp == "TC_Normalmap" ||
+                                    cmp == "TC_NormalmapHQ" ||
+                                    cmp == "TC_NormalmapAlpha" ||
+                                    cmp == "TC_NormalmapUncompressed")
+                                {
+                                    foundTex.flags = TexProperty.TextureTypes.Normalmap;
+                                }
+                                else
+                                {
+                                    throw new Exception();
+                                }
+                            }
+                            else
+                            {
+                                foundTex.flags = TexProperty.TextureTypes.Normal;
+                            }
+                        }
                         textures.Add(foundTex);
                     }
                 }

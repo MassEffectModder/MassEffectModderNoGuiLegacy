@@ -239,8 +239,58 @@ namespace MassEffectModder
             return true;
         }
 
+        static public string lastLoadMODPath
+        {
+            get
+            {
+                return _configIni.Read("LastLoadMODPath", "Paths");
+            }
+            set
+            {
+                _configIni.Write("LastLoadMODPath", value, "Paths");
+            }
+        }
+
+        public string lastSaveMODPath
+        {
+            get
+            {
+                return _configIni.Read("LastSaveMODPath", "Paths");
+            }
+            set
+            {
+                _configIni.Write("LastSaveMODPath", value, "Paths");
+            }
+        }
+
+        public string lastCreateMODPath
+        {
+            get
+            {
+                return _configIni.Read("LastCreateMODPath", "Paths");
+            }
+            set
+            {
+                _configIni.Write("LastCreateMODPath", value, "Paths");
+            }
+        }
+
+        static public string lastExtractMODPath
+        {
+            get
+            {
+                return _configIni.Read("LastExtractMODPath", "Paths");
+            }
+            set
+            {
+                _configIni.Write("LastExtractMODPath", value, "Paths");
+            }
+        }
+
         public bool getPackages()
         {
+            FullScanME1Game = false;
+
             if (gameType == MeType.ME1_TYPE)
             {
                 packageFiles = Directory.GetFiles(MainData, "*.*",

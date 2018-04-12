@@ -260,7 +260,7 @@ namespace MassEffectModder
             Console.WriteLine("  -print-lods <game id>\n");
             Console.WriteLine("     Print LODs settings.\n");
             Console.WriteLine("");
-            Console.WriteLine("  -convert-to-mem <game id> <input dir> <output file> [-ipc]\n");
+            Console.WriteLine("  -convert-to-mem <game id> <input dir> <output file> [-mark-to-convert] [-ipc]\n");
             Console.WriteLine("     game id: 1 for ME1, 2 for ME2, 3 for ME3");
             Console.WriteLine("     input dir: directory to be converted, containing following file extension(s):");
             Console.WriteLine("        MEM, MOD, TPF");
@@ -375,7 +375,6 @@ namespace MassEffectModder
             string output = "";
             MeType gameId = 0;
             bool ipc = false;
-            bool repack = false;
 
             if (args.Length > 0)
                 cmd = args[0];
@@ -492,21 +491,17 @@ namespace MassEffectModder
                 }
             }
 
-            if (cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-convert-to-mem", StringComparison.OrdinalIgnoreCase))
-            {
-                for (int l = 0; l < args.Length; l++)
-                {
-                    if (args[l].ToLowerInvariant() == "-repack")
-                        repack = true;
-                }
-            }
-
             if (cmd.Equals("-convert-to-mem", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
                 loadMD5Tables();
-                if (!CmdLineTools.ConvertToMEM(gameId, input, output, ipc))
+                bool markToConvert = false;
+                for (int l = 0; l < args.Length; l++)
+                {
+                    if (args[l].ToLowerInvariant() == "-mark-to-convert")
+                        markToConvert = true;
+                }
+                if (!CmdLineTools.ConvertToMEM(gameId, input, output, markToConvert, ipc))
                     goto fail;
             }
             else if (cmd.Equals("-install-mods", StringComparison.OrdinalIgnoreCase))
@@ -514,13 +509,13 @@ namespace MassEffectModder
                 loadEmbeddedDlls();
                 loadMD5Tables();
                 bool guiInstaller = false;
+                bool repack = false;
                 for (int l = 0; l < args.Length; l++)
                 {
-                    if (args[l].ToLowerInvariant() == "-alot-mode" ||
-                        args[l].ToLowerInvariant() == "-gui-installer")
-                    {
+                    if (args[l].ToLowerInvariant() == "-alot-mode")
                         guiInstaller = true;
-                    }
+                    if (args[l].ToLowerInvariant() == "-repack")
+                        repack = true;
                 }
                 if (!CmdLineTools.InstallMods(gameId, input, ipc, repack, guiInstaller))
                     goto fail;
@@ -576,13 +571,13 @@ namespace MassEffectModder
             else if (cmd.Equals("-check-game-data-mismatch", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
-                if (!Misc.detectsMismatchPackagesAfter(gameId, ipc))
+                if (!CmdLineTools.detectsMismatchPackagesAfter(gameId, ipc))
                     goto fail;
             }
             else if (cmd.Equals("-check-game-data-after", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
-                if (!Misc.checkGameFilesAfter(gameId, ipc))
+                if (!CmdLineTools.checkGameFilesAfter(gameId, ipc))
                     goto fail;
             }
             else if (cmd.Equals("-check-game-data-only-vanilla", StringComparison.OrdinalIgnoreCase))

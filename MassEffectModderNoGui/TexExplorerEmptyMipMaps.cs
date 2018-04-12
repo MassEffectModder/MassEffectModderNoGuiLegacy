@@ -81,14 +81,16 @@ namespace MassEffectModder
                 if (path == list[i].pkgPath)
                     continue;
 
-                int newProgress = (list.Count * (phase - 1) + i + 1) * 100 / (list.Count * 2);
-                if (ipc && lastProgress != newProgress)
-                {
-                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-                    Console.Out.Flush();
-                    lastProgress = newProgress;
-                }
-
+				if (ipc)
+				{
+					int newProgress = (list.Count * (phase - 1) + i + 1) * 100 / (list.Count * 2);
+	                if (lastProgress != newProgress)
+	                {
+	                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+	                    Console.Out.Flush();
+	                    lastProgress = newProgress;
+	                }
+				}
                 Package package = null;
                 try
                 {
@@ -112,7 +114,7 @@ namespace MassEffectModder
                         err += e.StackTrace + Environment.NewLine + Environment.NewLine;
                         err += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
                         Console.WriteLine(err);
-                    }
+					}
                     continue;
                 }
 
@@ -217,7 +219,7 @@ skip:
                         }
                     }
                 }
-                if (package.SaveToFile())
+                if (package.SaveToFile(false, false, true))
                 {
                     if (CmdLineTools.pkgsToMarker != null)
                         CmdLineTools.pkgsToMarker.Remove(package.packagePath);
@@ -226,7 +228,7 @@ skip:
             }
         }
 
-        public void removeMipMapsME2ME3(List<FoundTexture> textures, bool ipc, bool repack = false)
+        public void removeMipMapsME2ME3(List<FoundTexture> textures, bool repack, bool ipc)
         {
             int lastProgress = -1;
             List<RemoveMipsEntry> list = prepareListToRemove(textures);
@@ -240,13 +242,16 @@ skip:
                 if (path == list[i].pkgPath)
                     continue;
 
-                int newProgress = i * 100 / list.Count;
-                if (ipc && lastProgress != newProgress)
-                {
-                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-                    Console.Out.Flush();
-                    lastProgress = newProgress;
-                }
+				if (ipc)
+				{
+					int newProgress = i * 100 / list.Count;
+	                if (lastProgress != newProgress)
+	                {
+	                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+	                    Console.Out.Flush();
+	                    lastProgress = newProgress;
+	                }
+				}
 
                 Package package = null;
                 try
@@ -300,7 +305,7 @@ skip:
                         }
                     }
                 }
-                if (package.SaveToFile(repack))
+                if (package.SaveToFile(repack, false, true))
                 {
                     if (repack && CmdLineTools.pkgsToRepack != null)
                         CmdLineTools.pkgsToRepack.Remove(package.packagePath);

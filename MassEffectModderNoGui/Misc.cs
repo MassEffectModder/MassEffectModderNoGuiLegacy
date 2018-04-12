@@ -19,55 +19,22 @@
  *
  */
 
+using Microsoft.Win32;
 using StreamHelpers;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.AccessControl;
 using System.Security.Cryptography;
+using System.Security.Principal;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace MassEffectModder
 {
-    public enum MeType
-    {
-        ME1_TYPE = 1,
-        ME2_TYPE,
-        ME3_TYPE
-    }
-
-    struct TFCTexture
-    {
-        public byte[] guid;
-        public string name;
-    }
-
-    public struct MatchedTexture
-    {
-        public int exportID;
-        public string packageName; // only used while texture scan for ME1
-        public string basePackageName; // only used while texture scan for ME1
-        public bool weakSlave;
-        public bool slave;
-        public string path;
-        public int linkToMaster;
-        public uint mipmapOffset;
-        public bool removeEmptyMips;
-        public int numMips;
-        public List<uint> crcs;
-    }
-
-    public struct FoundTexture
-    {
-        public string name;
-        public uint crc;
-        public List<MatchedTexture> list;
-        public PixelFormat pixfmt;
-        public TexProperty.TextureTypes flags;
-        public int width, height;
-    }
-
     static class LODSettings
     {
         static public void readLOD(MeType gameId, ConfIni engineConf, ref string log)
@@ -445,6 +412,9 @@ namespace MassEffectModder
 
     static partial class Misc
     {
+        public static bool generateModsMd5Entries = false;
+        public static bool generateMd5Entries = false;
+
         public struct MD5FileEntry
         {
             public string path;
@@ -539,7 +509,275 @@ namespace MassEffectModder
             }
         }
 
-        static public FoundTexture ParseLegacyMe3xScriptMod(List<FoundTexture> textures, string script, string textureName)
+        static public bool checkWriteAccessDir(string path)
+        {
+            try
+            {
+                using (FileStream fs = File.Create(Path.Combine(path, Path.GetRandomFileName()), 1, FileOptions.DeleteOnClose)) { }
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        static public bool checkWriteAccessFile(string path)
+        {
+            try
+            {
+                using (FileStream fs = File.OpenWrite(path)) { }
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        static public bool isRunAsAdministrator()
+        {
+            return (new WindowsPrincipal(WindowsIdentity.GetCurrent())).IsInRole(WindowsBuiltInRole.Administrator);
+        }
+
+        static public bool CheckAndCorrectAccessToGame(MeType gameId)
+        {
+            bool writeAccess = false;
+            if (checkWriteAccessDir(GameData.MainData))
+                writeAccess = true;
+
+            bool uac = false;
+            int? value = (int?)Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", "EnableLUA", null);
+            if (value != null && value > 0)
+                uac = true;
+
+            bool registryExists = false;
+            if (gameId == MeType.ME1_TYPE)
+            {
+                string keyRegistry = @"SOFTWARE\WOW6432Node\AGEIA Technologies";
+                RegistryKey key;
+                if (isRunAsAdministrator())
+                {
+                    string userName = WindowsIdentity.GetCurrent().Name;
+                    key = Registry.LocalMachine.CreateSubKey(keyRegistry);
+                    RegistrySecurity security = new RegistrySecurity();
+                    security = key.GetAccessControl();
+                    security.AddAccessRule(new RegistryAccessRule(userName, RegistryRights.WriteKey |
+                        RegistryRights.ReadKey | RegistryRights.Delete |
+                        RegistryRights.FullControl, InheritanceFlags.ContainerInherit |
+                        InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+                    key.SetAccessControl(security);
+                    key.Close();
+                    registryExists = true;
+                }
+                else
+                {
+                    try
+                    {
+                        key = Registry.LocalMachine.OpenSubKey(keyRegistry, true);
+                    }
+                    catch
+                    {
+                        key = null;
+                    }
+
+                    if (key != null)
+                    {
+                        key.Close();
+                        registryExists = true;
+                    }
+                }
+            }
+
+            string msg;
+            if (!uac && ((gameId == MeType.ME1_TYPE && !registryExists) || !writeAccess))
+            {
+                msg = "MEM is not able to";
+                if (!writeAccess)
+                {
+                    msg += " grant write access to game folders";
+                }
+                if (gameId == MeType.ME1_TYPE && !registryExists)
+                {
+                    if (!writeAccess)
+                        msg += " and";
+                    msg += " fix a ME1 launch issue";
+                }
+                msg += " because MEM does not have administrative rights and UAC is disabled.";
+                Console.WriteLine(msg);
+                return false;
+            }
+
+            if (!writeAccess || (gameId == MeType.ME1_TYPE && !registryExists))
+            {
+                msg = "Some";
+                if (!writeAccess)
+                {
+                    msg += " game folders";
+                }
+                if (gameId == MeType.ME1_TYPE && !registryExists)
+                {
+                    if (!writeAccess)
+                        msg += " and";
+                    msg += " registry keys";
+                }
+
+                msg += " are not writeable by your user account.\nMEM will attempt to grant access to";
+
+                if (!writeAccess)
+                {
+                    msg += " game folders";
+                }
+                if (gameId == MeType.ME1_TYPE && !registryExists)
+                {
+                    if (!writeAccess)
+                        msg += " and";
+                    msg += " registry keys";
+                }
+
+                msg += " with PermissionsGranter.exe program.\n\n";
+
+                if (!writeAccess)
+                {
+                    msg += "Game folder: " + GameData.GamePath + "\n\n";
+                }
+                if (gameId == MeType.ME1_TYPE && !registryExists)
+                {
+                    msg += "Registry: HKLM\\SOFTWARE\\WOW6432Node\\AGEIA Technologies\n";
+                    msg += "(Fixes a ME1 launch issue)";
+                }
+
+                Console.WriteLine(msg, "Granting permissions");
+
+                bool failedAccess = true;
+                string userName = WindowsIdentity.GetCurrent().Name;
+                try
+                {
+                    Process process = new Process();
+                    process.StartInfo.FileName = Path.Combine(Program.dllPath, "PermissionsGranter.exe");
+                    process.StartInfo.Arguments = "\"" + userName + "\"";
+                    if (gameId == MeType.ME1_TYPE && !registryExists)
+                        process.StartInfo.Arguments += " -create-hklm-reg-key \"SOFTWARE\\WOW6432Node\\AGEIA Technologies\"";
+                    if (!writeAccess)
+                        process.StartInfo.Arguments += " \"" + GameData.GamePath + "\"";
+                    process.StartInfo.CreateNoWindow = true;
+                    process.StartInfo.UseShellExecute = true;
+                    process.StartInfo.Verb = "runas";
+                    process.Start();
+                    process.WaitForExit(60000);
+                    if (process.ExitCode == 0)
+                        failedAccess = false;
+                }
+                catch
+                {
+                    failedAccess = true;
+                }
+
+                if (failedAccess)
+                {
+                    msg = "MEM is not able to";
+                    if (!writeAccess)
+                    {
+                        msg += " grant write access to game folders";
+                    }
+                    if (gameId == MeType.ME1_TYPE && !registryExists)
+                    {
+                        if (!writeAccess)
+                            msg += " and";
+                        msg += " fix a ME1 launch issue";
+                    }
+                    msg += " because MEM does not have administrative rights.";
+                    Console.WriteLine(msg);
+                    return false;
+                }
+
+                registryExists = true;
+            }
+
+            if (gameId == MeType.ME1_TYPE)
+                ApplyLAAForME1Exe();
+
+            if (gameId == MeType.ME1_TYPE && registryExists)
+            {
+                string gameExePath = GameData.GameExePath;
+                RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers", true);
+                if (key != null)
+                {
+                    string entry = (string)key.GetValue(gameExePath, null);
+                    if (entry != null)
+                    {
+                        entry = entry.Replace("RUNASADMIN", "");
+                        entry = entry.Replace("WINXPSP3", "");
+                        key.SetValue(gameExePath, entry);
+                    }
+                    key.Close();
+                }
+
+                ChangeProductNameForME1Exe();
+            }
+
+            return true;
+        }
+
+        static public long getDiskFreeSpace(string path)
+        {
+            string drive = path.Substring(0, 3);
+            foreach (DriveInfo drv in DriveInfo.GetDrives())
+            {
+                if (string.Compare(drv.Name, drive, true) == 0)
+                    return drv.TotalFreeSpace;
+            }
+
+            return -1;
+        }
+
+        public static long getDirectorySize(string dir)
+        {
+            return new DirectoryInfo(dir).GetFiles("*", SearchOption.AllDirectories).Sum(file => file.Length);
+        }
+
+        public static string getBytesFormat(long size)
+        {
+            if (size / 1024 == 0)
+                return string.Format("{0:0.00} Bytes", size);
+            else if (size / 1024 / 1024 == 0)
+                return string.Format("{0:0.00} KB", size / 1024.0);
+            else if (size / 1024 / 1024 / 1024 == 0)
+                return string.Format("{0:0.00} MB", size / 1024 / 1024.0);
+            else
+                return string.Format("{0:0.00} GB", size / 1024 / 1024 / 1024.0);
+        }
+
+        static Stopwatch timer;
+        public static void startTimer()
+        {
+            timer = Stopwatch.StartNew();
+        }
+
+        public static long stopTimer()
+        {
+            timer.Stop();
+            return timer.ElapsedMilliseconds;
+        }
+
+        public static string getTimerFormat(long time)
+        {
+            if (time / 1000 == 0)
+                return string.Format("{0} milliseconds", time);
+            else if (time / 1000 / 60 == 0)
+                return string.Format("{0} seconds", time / 1000);
+            else if (time / 1000 / 60 / 60 == 0)
+                return string.Format("{0} min - {1} sec", time / 1000 / 60, time / 1000 % 60);
+            else
+            {
+                long hours = time / 1000 / 60 / 60;
+                long minutes = (time - (hours * 1000 * 60 * 60)) / 1000 / 60;
+                long seconds = (time - (hours * 1000 * 60 * 60) - (minutes * 1000 * 60)) / 1000 / 60;
+                return string.Format("{0} hours - {1} min - {2} sec", hours, minutes, seconds);
+            }
+        }
+
+        static public int ParseLegacyMe3xScriptMod(List<FoundTexture> textures, string script, string textureName)
         {
             Regex parts = new Regex("pccs.Add[(]\"[A-z,0-9/,..]*\"");
             Match match = parts.Match(script);
@@ -567,7 +805,7 @@ namespace MassEffectModder
                                         string pkg = textures[i].list[l].path.Split('\\').Last().Split('.')[0].ToLowerInvariant();
                                         if (pkg == packageName)
                                         {
-                                            return textures[i];
+                                            return i;
                                         }
                                     }
                                 }
@@ -585,7 +823,7 @@ namespace MassEffectModder
                                     string pkg = textures[i].list[l].path.Split('\\').Last().Split('.')[0].ToLowerInvariant();
                                     if (pkg == packageName)
                                     {
-                                        return textures[i];
+                                        return i;
                                     }
                                 }
                             }
@@ -606,7 +844,7 @@ namespace MassEffectModder
                                 string pkg = textures[i].list[l].path.Split('\\').Last().Split('.')[0].ToLowerInvariant();
                                 if (pkg == packageName)
                                 {
-                                    return textures[i];
+                                    return i;
                                 }
                             }
                         }
@@ -614,7 +852,7 @@ namespace MassEffectModder
                 }
             }
 
-            return new FoundTexture();
+            return -1;
         }
 
         static public void ParseME3xBinaryScriptMod(string script, ref string package, ref int expId, ref string path)
@@ -688,6 +926,915 @@ namespace MassEffectModder
             return gamePixelFormat;
         }
 
+        static public bool convertDataModtoMem(string inputDir, string memFilePath,
+			MeType gameId, bool markToConvert, bool onlyIndividual, bool ipc)
+        {
+            string[] files = null;
+            List<FoundTexture> textures = new List<FoundTexture>();
+
+            new TreeScan().loadTexturesMap(GameData.gameType, textures);
+            Console.WriteLine("Mods conversion started...");
+
+            List<string> list;
+            List<string> list2;
+            if (!onlyIndividual)
+            {
+                list = Directory.GetFiles(inputDir, "*.mem").Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
+                list.Sort();
+                list2 = Directory.GetFiles(inputDir, "*.tpf").Where(item => item.EndsWith(".tpf", StringComparison.OrdinalIgnoreCase)).ToList();
+                list2.AddRange(Directory.GetFiles(inputDir, "*.mod").Where(item => item.EndsWith(".mod", StringComparison.OrdinalIgnoreCase)));
+            }
+            else
+            {
+                list = new List<string>();
+                list2 = new List<string>();
+            }
+            list2.AddRange(Directory.GetFiles(inputDir, "*.bin").Where(item => item.EndsWith(".bin", StringComparison.OrdinalIgnoreCase)));
+            list2.AddRange(Directory.GetFiles(inputDir, "*.xdelta").Where(item => item.EndsWith(".xdelta", StringComparison.OrdinalIgnoreCase)));
+            list2.AddRange(Directory.GetFiles(inputDir, "*.dds").Where(item => item.EndsWith(".dds", StringComparison.OrdinalIgnoreCase)));
+            list2.AddRange(Directory.GetFiles(inputDir, "*.png").Where(item => item.EndsWith(".png", StringComparison.OrdinalIgnoreCase)));
+            list2.AddRange(Directory.GetFiles(inputDir, "*.bmp").Where(item => item.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase)));
+            list2.AddRange(Directory.GetFiles(inputDir, "*.tga").Where(item => item.EndsWith(".tga", StringComparison.OrdinalIgnoreCase)));
+            list2.AddRange(Directory.GetFiles(inputDir, "*.jpg").Where(item => item.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)));
+            list2.AddRange(Directory.GetFiles(inputDir, "*.jpeg").Where(item => item.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)));
+            list2.Sort();
+            list.AddRange(list2);
+            files = list.ToArray();
+
+            int result;
+            string fileName = "";
+            ulong dstLen = 0;
+            string[] ddsList = null;
+            ulong numEntries = 0;
+            FileStream outFs;
+
+            List<BinaryMod> mods = new List<BinaryMod>();
+            List<MipMaps.FileMod> modFiles = new List<MipMaps.FileMod>();
+
+            if (File.Exists(memFilePath))
+                File.Delete(memFilePath);
+            outFs = new FileStream(memFilePath, FileMode.Create, FileAccess.Write);
+            outFs.WriteUInt32(TreeScan.TextureModTag);
+            outFs.WriteUInt32(TreeScan.TextureModVersion);
+            outFs.WriteInt64(0); // filled later
+
+            int lastProgress = -1;
+            for (int n = 0; n < files.Count(); n++)
+            {
+                string file = files[n];
+                string relativeFilePath = file.Substring(inputDir.TrimEnd('\\').Length + 1);
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + Path.GetFileName(file));
+	                int newProgress = (n * 100) / files.Count();
+	                if (lastProgress != newProgress)
+	                {
+	                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+	                    lastProgress = newProgress;
+	                }
+                    Console.Out.Flush();
+                }
+                else
+                {
+                    Console.WriteLine("File: " + relativeFilePath);
+                }
+
+
+                if (file.EndsWith(".mem", StringComparison.OrdinalIgnoreCase))
+                {
+                    using (FileStream fs = new FileStream(file, FileMode.Open, FileAccess.Read))
+                    {
+                        uint tag = fs.ReadUInt32();
+                        uint version = fs.ReadUInt32();
+                        if (tag != TreeScan.TextureModTag || version != TreeScan.TextureModVersion)
+                        {
+                            if (version != TreeScan.TextureModVersion)
+                            {
+                                Console.WriteLine("File " + relativeFilePath + " was made with an older version of MEM, skipping...");
+                            }
+                            else
+                            {
+                                Console.WriteLine("File " + relativeFilePath + " is not a valid MEM mod, skipping...");
+                            }
+                            if (ipc)
+                            {
+                                Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                Console.Out.Flush();
+                            }
+                            continue;
+                        }
+                        else
+                        {
+                            uint gameType = 0;
+                            fs.JumpTo(fs.ReadInt64());
+                            gameType = fs.ReadUInt32();
+                            if ((MeType)gameType != gameId)
+                            {
+                                if (ipc)
+                                {
+                                    Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                    Console.Out.Flush();
+                                }
+                                else
+                                {
+                                    Console.WriteLine("File " + relativeFilePath + " is not a MEM mod valid for this game");
+                                }
+                                continue;
+                            }
+                        }
+                        int numFiles = fs.ReadInt32();
+                        for (int l = 0; l < numFiles; l++)
+                        {
+                            MipMaps.FileMod fileMod = new MipMaps.FileMod();
+                            fileMod.tag = fs.ReadUInt32();
+                            fileMod.name = fs.ReadStringASCIINull();
+                            fileMod.offset = fs.ReadInt64();
+                            fileMod.size = fs.ReadInt64();
+                            long prevPos = fs.Position;
+                            fs.JumpTo(fileMod.offset);
+                            fileMod.offset = outFs.Position;
+                            if (fileMod.tag == MipMaps.FileTextureTag || fileMod.tag == MipMaps.FileTextureTag2)
+                            {
+                                outFs.WriteStringASCIINull(fs.ReadStringASCIINull());
+                                outFs.WriteUInt32(fs.ReadUInt32());
+                            }
+                            else if (fileMod.tag == MipMaps.FileBinaryTag)
+                            {
+                                outFs.WriteInt32(fs.ReadInt32());
+                                outFs.WriteStringASCIINull(fs.ReadStringASCIINull());
+                            }
+                            else if (fileMod.tag == MipMaps.FileXdeltaTag)
+                            {
+                                outFs.WriteInt32(fs.ReadInt32());
+                                outFs.WriteStringASCIINull(fs.ReadStringASCIINull());
+                            }
+                            else
+                                throw new Exception();
+
+                            outFs.WriteFromStream(fs, fileMod.size);
+                            fs.JumpTo(prevPos);
+                            modFiles.Add(fileMod);
+                        }
+                    }
+                }
+                else if (file.EndsWith(".mod", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        using (FileStream fs = new FileStream(file, FileMode.Open, FileAccess.Read))
+                        {
+                            string package = "";
+                            int len = fs.ReadInt32();
+                            string version = fs.ReadStringASCIINull();
+                            if (version.Length < 5) // legacy .mod
+                                fs.SeekBegin();
+                            else
+                            {
+                                fs.SeekBegin();
+                                len = fs.ReadInt32();
+                                version = fs.ReadStringASCII(len); // version
+                            }
+                            numEntries = fs.ReadUInt32();
+                            for (uint i = 0; i < numEntries; i++)
+                            {
+                                BinaryMod mod = new BinaryMod();
+                                len = fs.ReadInt32();
+                                string desc = fs.ReadStringASCII(len); // description
+                                len = fs.ReadInt32();
+                                string scriptLegacy = fs.ReadStringASCII(len);
+                                string path = "";
+                                if (desc.Contains("Binary Replacement"))
+                                {
+                                    try
+                                    {
+                                        ParseME3xBinaryScriptMod(scriptLegacy, ref package, ref mod.exportId, ref path);
+                                        if (mod.exportId == -1 || package == "" || path == "")
+                                            throw new Exception();
+                                    }
+                                    catch
+                                    {
+                                        len = fs.ReadInt32();
+                                        fs.Skip(len);
+                                        if (ipc)
+                                        {
+                                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                            Console.Out.Flush();
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("Skipping not compatible content, entry: " + (i + 1) + " - mod: " + relativeFilePath);
+                                        }
+                                        continue;
+                                    }
+                                    mod.packagePath = Path.Combine(path, package);
+                                    mod.binaryModType = 1;
+                                    len = fs.ReadInt32();
+                                    mod.data = fs.ReadToBuffer(len);
+                                }
+                                else
+                                {
+                                    string textureName = desc.Split(' ').Last();
+                                    FoundTexture f;
+                                    int index = -1;
+                                    try
+                                    {
+                                        index = ParseLegacyMe3xScriptMod(textures, scriptLegacy, textureName);
+                                        f = textures[index];
+                                        if (mod.textureCrc == 0)
+                                            throw new Exception();
+                                    }
+                                    catch
+                                    {
+                                        len = fs.ReadInt32();
+                                        fs.Skip(len);
+                                        if (ipc)
+                                        {
+                                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                            Console.Out.Flush();
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("Skipping not compatible content, entry: " + (i + 1) + " - mod: " + relativeFilePath);
+                                        }
+                                        continue;
+                                    }
+                                    mod.textureCrc = f.crc;
+                                    mod.textureName = f.name;
+                                    mod.binaryModType = 0;
+                                    len = fs.ReadInt32();
+                                    mod.data = fs.ReadToBuffer(len);
+
+                                    PixelFormat pixelFormat = f.pixfmt;
+                                    Image image = new Image(mod.data, Image.ImageFormat.DDS);
+
+                                    if (image.mipMaps[0].origWidth / image.mipMaps[0].origHeight !=
+                                        f.width / f.height)
+                                    {
+                                        if (ipc)
+                                        {
+                                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                            Console.Out.Flush();
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("Error in texture: " + textureName + string.Format("_0x{0:X8}", f.crc) +
+                                                " This texture has wrong aspect ratio, skipping texture, entry: " + (i + 1) +
+                                                " - mod: " + relativeFilePath);
+                                        }
+                                        continue;
+                                    }
+
+                                    PixelFormat newPixelFormat = pixelFormat;
+                                    if (markToConvert)
+                                        newPixelFormat = changeTextureType(pixelFormat, image.pixelFormat, f.flags);
+
+                                    if (!image.checkDDSHaveAllMipmaps() ||
+                                       (f.list.Find(s => s.path != "").numMips > 1 && image.mipMaps.Count() <= 1) ||
+                                       (markToConvert && image.pixelFormat != newPixelFormat) ||
+                                       (!markToConvert && image.pixelFormat != pixelFormat))
+                                    {
+                                        if (ipc)
+                                        {
+                                            Console.WriteLine("[IPC]PROCESSING_FILE Converting " + textureName);
+                                            Console.Out.Flush();
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("Converting/correcting texture: " + textureName);
+                                        }
+                                        bool dxt1HasAlpha = false;
+                                        byte dxt1Threshold = 128;
+                                        if (f.flags == TexProperty.TextureTypes.OneBitAlpha)
+                                        {
+                                            dxt1HasAlpha = true;
+                                            if (image.pixelFormat == PixelFormat.ARGB ||
+                                                image.pixelFormat == PixelFormat.DXT3 ||
+                                                image.pixelFormat == PixelFormat.DXT5)
+                                            {
+                                                Console.WriteLine("Warning for texture: " + textureName + ". This texture converted from full alpha to binary alpha.");
+                                            }
+                                        }
+                                        image.correctMips(newPixelFormat, dxt1HasAlpha, dxt1Threshold);
+                                        mod.data = image.StoreImageToDDS();
+                                    }
+                                }
+                                mod.markConvert = markToConvert;
+                                mods.Add(mod);
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
+                        else
+                        {
+                            Console.WriteLine("Mod is not compatible: " + relativeFilePath);
+                        }
+                        continue;
+                    }
+                }
+                else if (file.EndsWith(".bin", StringComparison.OrdinalIgnoreCase) ||
+                    file.EndsWith(".xdelta", StringComparison.OrdinalIgnoreCase))
+                {
+                    BinaryMod mod = new BinaryMod();
+                    try
+                    {
+                        string filename = Path.GetFileNameWithoutExtension(file);
+                        string dlcName = "";
+                        int posStr = 0;
+                        if (filename.ToUpperInvariant()[0] == 'D')
+                        {
+                            string tmpDLC = filename.Split('-')[0];
+                            int lenDLC = int.Parse(tmpDLC.Substring(1));
+                            dlcName = filename.Substring(tmpDLC.Length + 1, lenDLC);
+                            posStr += tmpDLC.Length + lenDLC + 1;
+                            if (filename[posStr++] != '-')
+                                throw new Exception();
+                        }
+                        else if (filename.ToUpperInvariant()[0] == 'B')
+                        {
+                            posStr += 1;
+                        }
+                        else
+                            throw new Exception();
+                        string tmpPkg = filename.Substring(posStr).Split('-')[0];
+                        posStr += tmpPkg.Length + 1;
+                        int lenPkg = int.Parse(tmpPkg.Substring(0));
+                        string pkgName = filename.Substring(posStr, lenPkg);
+                        posStr += lenPkg;
+                        if (filename[posStr++] != '-')
+                            throw new Exception();
+                        if (filename.ToUpperInvariant()[posStr++] != 'E')
+                            throw new Exception();
+                        string tmpExp = filename.Substring(posStr);
+                        mod.exportId = int.Parse(tmpExp.Substring(0));
+                        if (dlcName != "")
+                        {
+                            if (gameId == MeType.ME1_TYPE)
+                                mod.packagePath = @"\DLC\" + dlcName + @"\CookedPC\" + pkgName;
+                            else if (gameId == MeType.ME2_TYPE)
+                                mod.packagePath = @"\BioGame\DLC\" + dlcName + @"\CookedPC\" + pkgName;
+                            else
+                                mod.packagePath = @"\BIOGame\DLC\" + dlcName + @"\CookedPCConsole\" + pkgName;
+                        }
+                        else
+                        {
+                            if (gameId == MeType.ME1_TYPE || gameId == MeType.ME2_TYPE)
+                                mod.packagePath = @"\BioGame\CookedPC\" + pkgName;
+                            else
+                                mod.packagePath = @"\BIOGame\CookedPCConsole\" + pkgName;
+                        }
+                        if (file.EndsWith(".bin", StringComparison.OrdinalIgnoreCase))
+                            mod.binaryModType = 1;
+                        else if (file.EndsWith(".xdelta", StringComparison.OrdinalIgnoreCase))
+                            mod.binaryModType = 2;
+                        mod.data = File.ReadAllBytes(file);
+                        mods.Add(mod);
+                    }
+                    catch
+                    {
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
+                        else
+                        {
+                            Console.WriteLine("Filename not valid: " + relativeFilePath);
+                        }
+                        continue;
+                    }
+                }
+                else if (file.EndsWith(".tpf", StringComparison.OrdinalIgnoreCase))
+                {
+                    int indexTpf = -1;
+                    IntPtr handle = IntPtr.Zero;
+                    ZlibHelper.Zip zip = new ZlibHelper.Zip();
+                    try
+                    {
+                        handle = zip.Open(file, ref numEntries, 1);
+                        for (ulong i = 0; i < numEntries; i++)
+                        {
+                            result = zip.GetCurrentFileInfo(handle, ref fileName, ref dstLen);
+                            if (result != 0)
+                                throw new Exception();
+                            fileName = fileName.Trim();
+                            if (Path.GetExtension(fileName).ToLowerInvariant() == ".def" ||
+                                Path.GetExtension(fileName).ToLowerInvariant() == ".log")
+                            {
+                                indexTpf = (int)i;
+                                break;
+                            }
+                            result = zip.GoToNextFile(handle);
+                            if (result != 0)
+                                throw new Exception();
+                        }
+                        byte[] listText = new byte[dstLen];
+                        result = zip.ReadCurrentFile(handle, listText, dstLen);
+                        if (result != 0)
+                            throw new Exception();
+                        ddsList = Encoding.ASCII.GetString(listText).Trim('\0').Replace("\r", "").TrimEnd('\n').Split('\n');
+
+                        result = zip.GoToFirstFile(handle);
+                        if (result != 0)
+                            throw new Exception();
+
+                        for (uint i = 0; i < numEntries; i++)
+                        {
+                            if (i == indexTpf)
+                            {
+                                result = zip.GoToNextFile(handle);
+                                continue;
+                            }
+                            BinaryMod mod = new BinaryMod();
+                            try
+                            {
+                                uint crc = 0;
+                                result = zip.GetCurrentFileInfo(handle, ref fileName, ref dstLen);
+                                if (result != 0)
+                                    throw new Exception();
+                                string filename = Path.GetFileName(fileName).Trim();
+                                foreach (string dds in ddsList)
+                                {
+                                    string ddsFile = dds.Split('|')[1];
+                                    if (ddsFile.ToLowerInvariant().Trim() != filename.ToLowerInvariant())
+                                        continue;
+                                    crc = uint.Parse(dds.Split('|')[0].Substring(2), System.Globalization.NumberStyles.HexNumber);
+                                    break;
+                                }
+                                if (crc == 0)
+                                {
+                                    if (Path.GetExtension(filename).ToLowerInvariant() != ".def" &&
+                                        Path.GetExtension(filename).ToLowerInvariant() != ".log")
+                                    {
+                                        if (ipc)
+                                        {
+                                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                            Console.Out.Flush();
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("Skipping file: " + filename + " not found in definition file, entry: " +
+                                                (i + 1) + " - mod: " + relativeFilePath);
+                                        }
+                                    }
+                                    zip.GoToNextFile(handle);
+                                    continue;
+                                }
+
+                                List<FoundTexture> foundCrcList = textures.FindAll(s => s.crc == crc);
+                                if (foundCrcList.Count == 0)
+                                {
+                                    Console.WriteLine("Texture skipped. File " + filename + string.Format(" - 0x{0:X8}", crc) +
+                                        " is not present in your game setup - mod: " + relativeFilePath);
+                                    zip.GoToNextFile(handle);
+                                    continue;
+                                }
+
+                                string textureName = foundCrcList[0].name;
+                                mod.textureName = textureName;
+                                mod.binaryModType = 0;
+                                mod.textureCrc = crc;
+                                mod.data = new byte[dstLen];
+                                result = zip.ReadCurrentFile(handle, mod.data, dstLen);
+                                if (result != 0)
+                                {
+                                    zip.GoToNextFile(handle);
+                                    if (ipc)
+                                    {
+                                        Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                        Console.Out.Flush();
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("Error in texture: " + textureName + string.Format("_0x{0:X8}", crc) +
+                                            ", skipping texture, entry: " + (i + 1) + " - mod: " + relativeFilePath);
+                                    }
+                                    continue;
+                                }
+
+                                PixelFormat pixelFormat = foundCrcList[0].pixfmt;
+                                Image image = new Image(mod.data, Path.GetExtension(filename));
+
+                                if (image.mipMaps[0].origWidth / image.mipMaps[0].origHeight !=
+                                    foundCrcList[0].width / foundCrcList[0].height)
+                                {
+                                    zip.GoToNextFile(handle);
+                                    if (ipc)
+                                    {
+                                        Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                        Console.Out.Flush();
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("Error in texture: " + textureName + string.Format("_0x{0:X8}", crc) +
+                                            " This texture has wrong aspect ratio, skipping texture, entry: " + (i + 1) + " - mod: " + relativeFilePath);
+                                    }
+                                    continue;
+                                }
+
+                                PixelFormat newPixelFormat = pixelFormat;
+                                if (markToConvert)
+                                    newPixelFormat = changeTextureType(pixelFormat, image.pixelFormat, foundCrcList[0].flags);
+
+                                if (!image.checkDDSHaveAllMipmaps() ||
+                                   (foundCrcList[0].list.Find(s => s.path != "").numMips > 1 && image.mipMaps.Count() <= 1) ||
+                                   (markToConvert && image.pixelFormat != newPixelFormat) ||
+                                   (!markToConvert && image.pixelFormat != pixelFormat))
+                                {
+                                    if (ipc)
+                                    {
+                                        Console.WriteLine("[IPC]PROCESSING_FILE Converting " + relativeFilePath);
+                                        Console.Out.Flush();
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("Converting/correcting texture: " + textureName);
+                                    }
+                                    bool dxt1HasAlpha = false;
+                                    byte dxt1Threshold = 128;
+                                    if (foundCrcList[0].flags == TexProperty.TextureTypes.OneBitAlpha)
+                                    {
+                                        dxt1HasAlpha = true;
+                                        if (image.pixelFormat == PixelFormat.ARGB ||
+                                            image.pixelFormat == PixelFormat.DXT3 ||
+                                            image.pixelFormat == PixelFormat.DXT5)
+                                        {
+                                            Console.WriteLine("Warning for texture: " + textureName + ". This texture converted from full alpha to binary alpha.");
+                                        }
+                                    }
+                                    image.correctMips(newPixelFormat, dxt1HasAlpha, dxt1Threshold);
+                                    mod.data = image.StoreImageToDDS();
+                                }
+                                mod.markConvert = markToConvert;
+                                mods.Add(mod);
+                            }
+                            catch
+                            {
+                                if (ipc)
+                                {
+                                    Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                                    Console.Out.Flush();
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Skipping not compatible content, entry: " + (i + 1) + " file: " + fileName + " - mod: " + relativeFilePath);
+                                }
+                            }
+                            zip.GoToNextFile(handle);
+                        }
+                        zip.Close(handle);
+                        handle = IntPtr.Zero;
+                    }
+                    catch
+                    {
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
+                        else
+                        {
+                            Console.WriteLine("Mod is not compatible: " + relativeFilePath + Environment.NewLine);
+                        }
+                        if (handle != IntPtr.Zero)
+                            zip.Close(handle);
+                        handle = IntPtr.Zero;
+                        continue;
+                    }
+                }
+                else if (file.EndsWith(".dds", StringComparison.OrdinalIgnoreCase))
+                {
+                    BinaryMod mod = new BinaryMod();
+                    string filename = Path.GetFileNameWithoutExtension(file).ToLowerInvariant();
+                    if (!filename.Contains("0x"))
+                    {
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
+                        else
+                        {
+                            Console.WriteLine("Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                        }
+                        continue;
+                    }
+                    int idx = filename.IndexOf("0x");
+                    if (filename.Length - idx < 10)
+                    {
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
+                        else
+                        {
+                            Console.WriteLine("Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                        }
+                        continue;
+                    }
+                    uint crc;
+                    string crcStr = filename.Substring(idx + 2, 8);
+                    try
+                    {
+                        crc = uint.Parse(crcStr, System.Globalization.NumberStyles.HexNumber);
+                    }
+                    catch
+                    {
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
+                        else
+                        {
+                            Console.WriteLine("Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                        }
+                        continue;
+                    }
+
+                    List<FoundTexture> foundCrcList = textures.FindAll(s => s.crc == crc);
+                    if (foundCrcList.Count == 0)
+                    {
+                        Console.WriteLine("Texture skipped. Texture " + relativeFilePath + " is not present in your game setup.");
+                        continue;
+                    }
+
+                    idx = filename.IndexOf("-memconvert");
+                    if (idx > 0)
+                        markToConvert = true;
+
+                    using (FileStream fs = new FileStream(file, FileMode.Open, FileAccess.Read))
+                    {
+                        PixelFormat pixelFormat = foundCrcList[0].pixfmt;
+
+                        mod.data = fs.ReadToBuffer((int)fs.Length);
+                        Image image = new Image(mod.data, Image.ImageFormat.DDS);
+
+                        if (image.mipMaps[0].origWidth / image.mipMaps[0].origHeight !=
+                            foundCrcList[0].width / foundCrcList[0].height)
+                        {
+                            Console.WriteLine("Error in texture: " + relativeFilePath + " This texture has wrong aspect ratio, skipping texture...");
+                            continue;
+                        }
+
+                        PixelFormat newPixelFormat = pixelFormat;
+                        if (markToConvert)
+                            newPixelFormat = changeTextureType(pixelFormat, image.pixelFormat, foundCrcList[0].flags);
+
+                        if (!image.checkDDSHaveAllMipmaps() ||
+                           (foundCrcList[0].list.Find(s => s.path != "").numMips > 1 && image.mipMaps.Count() <= 1) ||
+                           (markToConvert && image.pixelFormat != newPixelFormat) ||
+                           (!markToConvert && image.pixelFormat != pixelFormat))
+                        {
+                            if (ipc)
+                            {
+                                Console.WriteLine("[IPC]PROCESSING_FILE Converting " + Path.GetFileName(file));
+                                Console.Out.Flush();
+                            }
+                            else
+                            {
+                                Console.WriteLine("Converting/correcting texture: " + relativeFilePath);
+                            }
+                            bool dxt1HasAlpha = false;
+                            byte dxt1Threshold = 128;
+                            if (foundCrcList[0].flags == TexProperty.TextureTypes.OneBitAlpha)
+                            {
+                                dxt1HasAlpha = true;
+                                if (image.pixelFormat == PixelFormat.ARGB ||
+                                    image.pixelFormat == PixelFormat.DXT3 ||
+                                    image.pixelFormat == PixelFormat.DXT5)
+                                {
+                                    Console.WriteLine("Warning for texture: " + relativeFilePath + ". This texture converted from full alpha to binary alpha.");
+                                }
+                            }
+                            image.correctMips(newPixelFormat, dxt1HasAlpha, dxt1Threshold);
+                            mod.data = image.StoreImageToDDS();
+                        }
+
+                        mod.textureName = foundCrcList[0].name;
+                        mod.binaryModType = 0;
+                        mod.textureCrc = crc;
+                        mod.markConvert = markToConvert;
+                        mods.Add(mod);
+                    }
+                }
+                else if (
+                    file.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+                    file.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase) ||
+                    file.EndsWith(".tga", StringComparison.OrdinalIgnoreCase) ||
+                    file.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                    file.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase))
+                {
+                    BinaryMod mod = new BinaryMod();
+                    string filename = Path.GetFileNameWithoutExtension(file).ToLowerInvariant();
+                    if (!filename.Contains("0x"))
+                    {
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
+                        else
+                        {
+                            Console.WriteLine("Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                        }
+                        continue;
+                    }
+                    int idx = filename.IndexOf("0x");
+                    if (filename.Length - idx < 10)
+                    {
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
+                        else
+                        {
+                            Console.WriteLine("Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                        }
+                        continue;
+                    }
+                    uint crc;
+                    string crcStr = filename.Substring(idx + 2, 8);
+                    try
+                    {
+                        crc = uint.Parse(crcStr, System.Globalization.NumberStyles.HexNumber);
+                    }
+                    catch
+                    {
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
+                        else
+                        {
+                            Console.WriteLine("Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                        }
+                        continue;
+                    }
+
+                    List<FoundTexture> foundCrcList = textures.FindAll(s => s.crc == crc);
+                    if (foundCrcList.Count == 0)
+                    {
+                        Console.WriteLine("Texture skipped. Texture " + relativeFilePath + " is not present in your game setup.");
+                        continue;
+                    }
+
+                    idx = filename.IndexOf("-memconvert");
+                    if (idx > 0)
+                        markToConvert = true;
+
+                    PixelFormat pixelFormat = foundCrcList[0].pixfmt;
+                    Image image = new Image(file, Image.ImageFormat.Unknown).convertToARGB();
+
+                    if (image.mipMaps[0].origWidth / image.mipMaps[0].origHeight !=
+                        foundCrcList[0].width / foundCrcList[0].height)
+                    {
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR_FILE_NOT_COMPATIBLE " + relativeFilePath);
+                            Console.Out.Flush();
+                        }
+                        else
+                        {
+                            Console.WriteLine("Error in texture: " + relativeFilePath + " This texture has wrong aspect ratio, skipping texture...");
+						}
+                        continue;
+                    }
+
+                    PixelFormat newPixelFormat = pixelFormat;
+                    if (markToConvert)
+                        newPixelFormat = changeTextureType(pixelFormat, image.pixelFormat, foundCrcList[0].flags);
+
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]PROCESSING_FILE Converting " + Path.GetFileName(file));
+                        Console.Out.Flush();
+                    }
+                    else
+                    {
+                        Console.WriteLine("Converting/correcting texture: " + relativeFilePath);
+                    }
+                    bool dxt1HasAlpha = false;
+                    byte dxt1Threshold = 128;
+                    if (foundCrcList[0].flags == TexProperty.TextureTypes.OneBitAlpha)
+                    {
+                        dxt1HasAlpha = true;
+                        if (image.pixelFormat == PixelFormat.ARGB ||
+                            image.pixelFormat == PixelFormat.DXT3 ||
+                            image.pixelFormat == PixelFormat.DXT5)
+                        {
+                            Console.WriteLine("Warning for texture: " + relativeFilePath + ". This texture converted from full alpha to no alpha.");
+                        }
+                    }
+                    image.correctMips(newPixelFormat, dxt1HasAlpha, dxt1Threshold);
+                    mod.data = image.StoreImageToDDS();
+                    mod.textureName = foundCrcList[0].name;
+                    mod.binaryModType = 0;
+                    mod.textureCrc = crc;
+                    mod.markConvert = markToConvert;
+                    mods.Add(mod);
+                }
+
+                for (int l = 0; l < mods.Count; l++)
+                {
+                    MipMaps.FileMod fileMod = new MipMaps.FileMod();
+                    Stream dst = MipMaps.compressData(mods[l].data);
+                    dst.SeekBegin();
+                    fileMod.offset = outFs.Position;
+                    fileMod.size = dst.Length;
+
+                    if (mods[l].binaryModType == 1)
+                    {
+                        fileMod.tag = MipMaps.FileBinaryTag;
+                        if (mods[l].packagePath.Contains("\\DLC\\"))
+                        {
+                            string dlcName = mods[l].packagePath.Split('\\')[3];
+                            fileMod.name = "D" + dlcName.Length + "-" + dlcName + "-";
+                        }
+                        else
+                        {
+                            fileMod.name = "B";
+                        }
+                        fileMod.name += Path.GetFileName(mods[l].packagePath).Length + "-" + Path.GetFileName(mods[l].packagePath) + "-E" + mods[l].exportId + ".bin";
+
+                        outFs.WriteInt32(mods[l].exportId);
+                        outFs.WriteStringASCIINull(mods[l].packagePath);
+                    }
+                    else if (mods[l].binaryModType == 2)
+                    {
+                        fileMod.tag = MipMaps.FileXdeltaTag;
+                        if (mods[l].packagePath.Contains("\\DLC\\"))
+                        {
+                            string dlcName = mods[l].packagePath.Split('\\')[3];
+                            fileMod.name = "D" + dlcName.Length + "-" + dlcName + "-";
+                        }
+                        else
+                        {
+                            fileMod.name = "B";
+                        }
+                        fileMod.name += Path.GetFileName(mods[l].packagePath).Length + "-" + Path.GetFileName(mods[l].packagePath) + "-E" + mods[l].exportId + ".xdelta";
+
+                        outFs.WriteInt32(mods[l].exportId);
+                        outFs.WriteStringASCIINull(mods[l].packagePath);
+                    }
+                    else
+                    {
+                        if (mods[l].markConvert)
+                            fileMod.tag = MipMaps.FileTextureTag2;
+                        else
+                            fileMod.tag = MipMaps.FileTextureTag;
+                        fileMod.name = mods[l].textureName + string.Format("_0x{0:X8}", mods[l].textureCrc) + ".dds";
+                        outFs.WriteStringASCIINull(mods[l].textureName);
+                        outFs.WriteUInt32(mods[l].textureCrc);
+                    }
+                    outFs.WriteFromStream(dst, dst.Length);
+                    modFiles.Add(fileMod);
+                }
+                mods.Clear();
+            }
+
+            if (modFiles.Count == 0)
+            {
+                outFs.Close();
+                if (File.Exists(memFilePath))
+                    File.Delete(memFilePath);
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]ERROR_NO_BUILDABLE_FILES");
+                    Console.Out.Flush();
+                }
+                return false;
+            }
+
+            long pos = outFs.Position;
+            outFs.SeekBegin();
+            outFs.WriteUInt32(TreeScan.TextureModTag);
+            outFs.WriteUInt32(TreeScan.TextureModVersion);
+            outFs.WriteInt64(pos);
+            outFs.JumpTo(pos);
+            outFs.WriteUInt32((uint)gameId);
+            outFs.WriteInt32(modFiles.Count);
+            for (int i = 0; i < modFiles.Count; i++)
+            {
+                outFs.WriteUInt32(modFiles[i].tag);
+                outFs.WriteStringASCIINull(modFiles[i].name);
+                outFs.WriteInt64(modFiles[i].offset);
+                outFs.WriteInt64(modFiles[i].size);
+            }
+
+            outFs.Close();
+
+            return true;
+        }
+
         static public byte[] calculateMD5(string filePath)
         {
             using (FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
@@ -700,23 +1847,19 @@ namespace MassEffectModder
             }
         }
 
-        static public List<string> detectBrokenMod(MeType gameType)
+        static public byte[] calculateMD5Fast(string filePath)
         {
-            List<string> mods = new List<string>();
-
-            for (int l = 0; l < badMOD.Count(); l++)
+            long size = new FileInfo(filePath).Length;
+            size = Math.Min(4000, size);
+            using (FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
             {
-                if (!File.Exists(GameData.GamePath + badMOD[l].path))
-                    continue;
-                byte[] md5 = calculateMD5(GameData.GamePath + badMOD[l].path);
-                if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, badMOD[l].md5))
+                byte[] buffer = fs.ReadToBuffer(size);
+                using (MD5 md5 = MD5.Create())
                 {
-                    if (!mods.Exists(s => s == badMOD[l].modName))
-                        mods.Add(badMOD[l].modName);
+                    md5.Initialize();
+                    return md5.ComputeHash(buffer, 0, (int)size);
                 }
             }
-
-            return mods;
         }
 
         static public List<string> detectMods(MeType gameType)
@@ -738,6 +1881,75 @@ namespace MassEffectModder
             return mods;
         }
 
+        static public List<string> detectBrokenMod(MeType gameType)
+        {
+            List<string> packageMainFiles = null;
+            List<string> packageDLCFiles = null;
+            List<string> sfarFiles = null;
+            List<string> mods = new List<string>();
+
+            if (gameType == MeType.ME1_TYPE)
+            {
+                packageMainFiles = Directory.GetFiles(GameData.MainData, "*.*",
+                SearchOption.AllDirectories).Where(s => s.EndsWith(".upk",
+                    StringComparison.OrdinalIgnoreCase) ||
+                    s.EndsWith(".u", StringComparison.OrdinalIgnoreCase) ||
+                    s.EndsWith(".sfm", StringComparison.OrdinalIgnoreCase)).ToList();
+                if (Directory.Exists(GameData.DLCData))
+                {
+                    packageDLCFiles = Directory.GetFiles(GameData.DLCData, "*.*",
+                    SearchOption.AllDirectories).Where(s => s.EndsWith(".upk",
+                        StringComparison.OrdinalIgnoreCase) ||
+                        s.EndsWith(".u", StringComparison.OrdinalIgnoreCase) ||
+                        s.EndsWith(".sfm", StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+                packageMainFiles.RemoveAll(s => s.ToLowerInvariant().Contains("localshadercache-pc-d3d-sm3.upk"));
+                packageMainFiles.RemoveAll(s => s.ToLowerInvariant().Contains("refshadercache-pc-d3d-sm3.upk"));
+            }
+            else if (gameType == MeType.ME2_TYPE)
+            {
+                packageMainFiles = Directory.GetFiles(GameData.MainData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
+                if (Directory.Exists(GameData.DLCData))
+                    packageDLCFiles = Directory.GetFiles(GameData.DLCData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+            else if (gameType == MeType.ME3_TYPE)
+            {
+                packageMainFiles = Directory.GetFiles(GameData.MainData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
+                if (Directory.Exists(GameData.DLCData))
+                {
+                    packageDLCFiles = Directory.GetFiles(GameData.DLCData, "*.pcc", SearchOption.AllDirectories).Where(item => item.EndsWith(".pcc", StringComparison.OrdinalIgnoreCase)).ToList();
+                    sfarFiles = Directory.GetFiles(GameData.DLCData, "Default.sfar", SearchOption.AllDirectories).ToList();
+                    for (int i = 0; i < sfarFiles.Count; i++)
+                    {
+                        if (File.Exists(Path.Combine(Path.GetDirectoryName(sfarFiles[i]), "Mount.dlc")))
+                            sfarFiles.RemoveAt(i--);
+                    }
+                    packageDLCFiles.RemoveAll(s => s.ToLowerInvariant().Contains("guidcache"));
+                }
+                packageMainFiles.RemoveAll(s => s.ToLowerInvariant().Contains("guidcache"));
+            }
+
+            packageMainFiles.Sort();
+            if (packageDLCFiles != null)
+                packageDLCFiles.Sort();
+            if (sfarFiles != null)
+                sfarFiles.Sort();
+
+            for (int l = 0; l < badMOD.Count(); l++)
+            {
+                if (!File.Exists(GameData.GamePath + badMOD[l].path))
+                    continue;
+                byte[] md5 = calculateMD5(GameData.GamePath + badMOD[l].path);
+                if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, badMOD[l].md5))
+                {
+                    if (!mods.Exists(s => s == badMOD[l].modName))
+                        mods.Add(badMOD[l].modName);
+                }
+            }
+
+            return mods;
+        }
+
         static public bool unpackSFARisNeeded()
         {
             if (Directory.Exists(GameData.DLCData))
@@ -753,7 +1965,7 @@ namespace MassEffectModder
             return false;
         }
 
-        static public bool checkGameFiles(MeType gameType, ref string errors, ref List<string> mods, bool ipc = false)
+        static public bool checkGameFiles(MeType gameType, ref string errors, ref List<string> mods, bool ipc)
         {
             bool vanilla = true;
             List<string> packageMainFiles = null;
@@ -761,6 +1973,7 @@ namespace MassEffectModder
             List<string> sfarFiles = null;
             List<string> tfcFiles = null;
             MD5FileEntry[] entries = null;
+
 
             if (gameType == MeType.ME1_TYPE)
             {
@@ -833,17 +2046,25 @@ namespace MassEffectModder
             }
 
             mods.Clear();
+            FileStream fs = null;
+            if (generateModsMd5Entries)
+                fs = new FileStream("MD5ModFileEntry" + (int)gameType + ".cs", FileMode.Create, FileAccess.Write);
+            if (generateMd5Entries)
+                fs = new FileStream("MD5FileEntry" + (int)gameType + ".cs", FileMode.Create, FileAccess.Write);
 
             int lastProgress = -1;
             for (int l = 0; l < packageMainFiles.Count; l++)
             {
-                int newProgress = (l + progress) * 100 / allFilesCount;
-                if (ipc && lastProgress != newProgress)
-                {
-                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-                    Console.Out.Flush();
-                    lastProgress = newProgress;
-                }
+				int newProgress = (l + progress) * 100 / allFilesCount;
+				if (ipc)
+				{
+	                if (lastProgress != newProgress)
+	                {
+	                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+	                    Console.Out.Flush();
+	                    lastProgress = newProgress;
+	                }
+				}
                 byte[] md5 = calculateMD5(packageMainFiles[l]);
                 bool found = false;
                 for (int p = 0; p < entries.Count(); p++)
@@ -857,36 +2078,96 @@ namespace MassEffectModder
                 if (found)
                     continue;
 
+                found = false;
+                for (int p = 0; p < modsEntries.Count(); p++)
+                {
+                    if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, modsEntries[p].md5))
+                    {
+                        found = true;
+                        if (!mods.Exists(s => s == modsEntries[p].modName))
+                            mods.Add(modsEntries[p].modName);
+                        break;
+                    }
+                }
+                if (found)
+                    continue;
+
+                found = false;
+                for (int p = 0; p < badMOD.Count(); p++)
+                {
+                    if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, badMOD[p].md5))
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (found)
+                    continue;
+
                 int index = -1;
                 for (int p = 0; p < entries.Count(); p++)
                 {
                     if (GameData.RelativeGameData(packageMainFiles[l]).ToLowerInvariant() == entries[p].path.ToLowerInvariant())
                     {
-                        index = p;
-                        break;
+                        if (generateMd5Entries)
+                        {
+                            if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, entries[p].md5))
+                            {
+                                index = p;
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            index = p;
+                            break;
+                        }
                     }
                 }
-                if (index == -1)
+                if (!generateMd5Entries && index == -1)
+                    continue;
+                if (generateMd5Entries && index != -1)
                     continue;
 
                 vanilla = false;
 
-                errors += "File " + packageMainFiles[l] + " has wrong MD5 checksum: ";
-                for (int i = 0; i < md5.Count(); i++)
+                if (generateModsMd5Entries)
                 {
-                    errors += string.Format("{0:x2}", md5[i]);
+                    fs.WriteStringASCII("new MD5ModFileEntry\n{\npath = @\"" + GameData.RelativeGameData(packageMainFiles[l]) + "\",\nmd5 = new byte[] { ");
+                    for (int i = 0; i < md5.Length; i++)
+                    {
+                        fs.WriteStringASCII(string.Format("0x{0:X2}, ", md5[i]));
+                    }
+                    fs.WriteStringASCII("},\nmodName = \"\",\n},\n");
                 }
-                errors += "\n, expected: ";
-                for (int i = 0; i < entries[index].md5.Count(); i++)
+                if (generateMd5Entries)
                 {
-                    errors += string.Format("{0:x2}", entries[index].md5[i]);
+                    fs.WriteStringASCII("new MD5FileEntry\n{\npath = @\"" + GameData.RelativeGameData(packageMainFiles[l]) + "\",\nmd5 = new byte[] { ");
+                    for (int i = 0; i < md5.Length; i++)
+                    {
+                        fs.WriteStringASCII(string.Format("0x{0:X2}, ", md5[i]));
+                    }
+                    fs.WriteStringASCII("},\nsize = " + new FileInfo(packageMainFiles[l]).Length + ",\n},\n");
                 }
-                errors += Environment.NewLine;
 
-                if (ipc)
+                if (!generateMd5Entries && !generateModsMd5Entries)
                 {
-                    Console.WriteLine("[IPC]ERROR " + packageMainFiles[l]);
-                    Console.Out.Flush();
+                    errors += "File " + packageMainFiles[l] + " has wrong MD5 checksum: ";
+                    for (int i = 0; i < md5.Count(); i++)
+                    {
+                        errors += string.Format("{0:x2}", md5[i]);
+                    }
+                    errors += "\n, expected: ";
+                    for (int i = 0; i < entries[index].md5.Count(); i++)
+                    {
+                        errors += string.Format("{0:x2}", entries[index].md5[i]);
+                    }
+                    errors += Environment.NewLine;
+	                if (ipc)
+	                {
+	                    Console.WriteLine("[IPC]ERROR " + packageMainFiles[l]);
+	                    Console.Out.Flush();
+					}
                 }
             }
             progress += packageMainFiles.Count();
@@ -895,13 +2176,16 @@ namespace MassEffectModder
             {
                 for (int l = 0; l < packageDLCFiles.Count; l++)
                 {
-                    int newProgress = (l + progress) * 100 / allFilesCount;
-                    if (ipc && lastProgress != newProgress)
-                    {
-                        Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-                        Console.Out.Flush();
-                        lastProgress = newProgress;
-                    }
+					if (ipc)
+					{
+						int newProgress = (l + progress) * 100 / allFilesCount;
+	                    if (lastProgress != newProgress)
+	                    {
+	                        Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+	                        Console.Out.Flush();
+	                        lastProgress = newProgress;
+	                    }
+					}
                     byte[] md5 = calculateMD5(packageDLCFiles[l]);
                     bool found = false;
                     for (int p = 0; p < entries.Count(); p++)
@@ -915,36 +2199,97 @@ namespace MassEffectModder
                     if (found)
                         continue;
 
+                    found = false;
+                    for (int p = 0; p < modsEntries.Count(); p++)
+                    {
+                        if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, modsEntries[p].md5))
+                        {
+                            found = true;
+                            if (!mods.Exists(s => s == modsEntries[p].modName))
+                                mods.Add(modsEntries[p].modName);
+                            break;
+                        }
+                    }
+                    if (found)
+                        continue;
+
+                    found = false;
+                    for (int p = 0; p < badMOD.Count(); p++)
+                    {
+                        if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, badMOD[p].md5))
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found)
+                        continue;
+
                     int index = -1;
                     for (int p = 0; p < entries.Count(); p++)
                     {
                         if (GameData.RelativeGameData(packageDLCFiles[l]).ToLowerInvariant() == entries[p].path.ToLowerInvariant())
                         {
-                            index = p;
-                            break;
+                            if (generateMd5Entries)
+                            {
+                                if (StructuralComparisons.StructuralEqualityComparer.Equals(md5, entries[p].md5))
+                                {
+                                    index = p;
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                index = p;
+                                break;
+                            }
                         }
                     }
-                    if (index == -1)
+                    if (!generateMd5Entries && index == -1)
+                        continue;
+                    if (generateMd5Entries && index != -1)
                         continue;
 
                     vanilla = false;
 
-                    errors += "File " + packageDLCFiles[l] + " has wrong MD5 checksum: ";
-                    for (int i = 0; i < md5.Count(); i++)
+                    if (generateModsMd5Entries)
                     {
-                        errors += string.Format("{0:x2}", md5[i]);
+                        fs.WriteStringASCII("new MD5ModFileEntry\n{\npath = @\"" + GameData.RelativeGameData(packageDLCFiles[l]) + "\",\nmd5 = new byte[] { ");
+                        for (int i = 0; i < md5.Length; i++)
+                        {
+                            fs.WriteStringASCII(string.Format("0x{0:X2}, ", md5[i]));
+                        }
+                        fs.WriteStringASCII("},\nmodName = \"\",\n},\n");
                     }
-                    errors += "\n, expected: ";
-                    for (int i = 0; i < entries[index].md5.Count(); i++)
+                    if (generateMd5Entries)
                     {
-                        errors += string.Format("{0:x2}", entries[index].md5[i]);
+                        fs.WriteStringASCII("new MD5FileEntry\n{\npath = @\"" + GameData.RelativeGameData(packageDLCFiles[l]) + "\",\nmd5 = new byte[] { ");
+                        for (int i = 0; i < md5.Length; i++)
+                        {
+                            fs.WriteStringASCII(string.Format("0x{0:X2}, ", md5[i]));
+                        }
+                        fs.WriteStringASCII("},\nsize = " + new FileInfo(packageDLCFiles[l]).Length + ",\n},\n");
                     }
-                    errors += Environment.NewLine;
 
-                    if (ipc)
+                    if (!generateMd5Entries && !generateModsMd5Entries)
                     {
-                        Console.WriteLine("[IPC]ERROR " + packageDLCFiles[l]);
-                        Console.Out.Flush();
+                        errors += "File " + packageDLCFiles[l] + " has wrong MD5 checksum: ";
+                        for (int i = 0; i < md5.Count(); i++)
+                        {
+                            errors += string.Format("{0:x2}", md5[i]);
+                        }
+                        errors += "\n, expected: ";
+                        for (int i = 0; i < entries[index].md5.Count(); i++)
+                        {
+                            errors += string.Format("{0:x2}", entries[index].md5[i]);
+                        }
+                        errors += Environment.NewLine;
+
+	                    if (ipc)
+	                    {
+	                        Console.WriteLine("[IPC]ERROR " + packageDLCFiles[l]);
+	                        Console.Out.Flush();
+						}
                     }
                 }
                 progress += packageDLCFiles.Count();
@@ -954,13 +2299,16 @@ namespace MassEffectModder
             {
                 for (int l = 0; l < sfarFiles.Count; l++)
                 {
-                    int newProgress = (l + progress) * 100 / allFilesCount;
-                    if (ipc && lastProgress != newProgress)
-                    {
-                        Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-                        Console.Out.Flush();
-                        lastProgress = newProgress;
-                    }
+					if (ipc)
+					{
+						int newProgress = (l + progress) * 100 / allFilesCount;
+	                    if (lastProgress != newProgress)
+	                    {
+	                        Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+	                        Console.Out.Flush();
+	                        lastProgress = newProgress;
+	                    }
+					}
                     byte[] md5 = calculateMD5(sfarFiles[l]);
                     bool found = false;
                     for (int p = 0; p < entries.Count(); p++)
@@ -987,23 +2335,26 @@ namespace MassEffectModder
 
                     vanilla = false;
 
-                    errors += "File " + sfarFiles[l] + " has wrong MD5 checksum: ";
-                    for (int i = 0; i < md5.Count(); i++)
+                    if (!generateMd5Entries && !generateModsMd5Entries)
                     {
-                        errors += string.Format("{0:x2}", md5[i]);
-                    }
-                    errors += "\n, expected: ";
-                    for (int i = 0; i < entries[index].md5.Count(); i++)
-                    {
-                        errors += string.Format("{0:x2}", entries[index].md5[i]);
-                    }
-                    errors += Environment.NewLine;
+                        errors += "File " + sfarFiles[l] + " has wrong MD5 checksum: ";
+                        for (int i = 0; i < md5.Count(); i++)
+                        {
+                            errors += string.Format("{0:x2}", md5[i]);
+                        }
+                        errors += "\n, expected: ";
+                        for (int i = 0; i < entries[index].md5.Count(); i++)
+                        {
+                            errors += string.Format("{0:x2}", entries[index].md5[i]);
+                        }
+                        errors += Environment.NewLine;
 
-                    if (ipc)
-                    {
-                        Console.WriteLine("[IPC]ERROR " + sfarFiles[l]);
-                        Console.Out.Flush();
-                    }
+	                    if (ipc)
+	                    {
+	                        Console.WriteLine("[IPC]ERROR " + sfarFiles[l]);
+	                        Console.Out.Flush();
+	                    }
+					}
                 }
                 progress += sfarFiles.Count();
             }
@@ -1012,13 +2363,16 @@ namespace MassEffectModder
             {
                 for (int l = 0; l < tfcFiles.Count; l++)
                 {
-                    int newProgress = (l + progress) * 100 / allFilesCount;
-                    if (ipc && lastProgress != newProgress)
-                    {
-                        Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-                        Console.Out.Flush();
-                        lastProgress = newProgress;
-                    }
+					if (ipc)
+					{
+						int newProgress = (l + progress) * 100 / allFilesCount;
+	                    if (lastProgress != newProgress)
+	                    {
+	                        Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+	                        Console.Out.Flush();
+	                        lastProgress = newProgress;
+	                    }
+					}
                     byte[] md5 = calculateMD5(tfcFiles[l]);
                     bool found = false;
                     for (int p = 0; p < entries.Count(); p++)
@@ -1045,207 +2399,32 @@ namespace MassEffectModder
 
                     vanilla = false;
 
-                    errors += "File " + tfcFiles[l] + " has wrong MD5 checksum: ";
-                    for (int i = 0; i < md5.Count(); i++)
+                    if (!generateMd5Entries && !generateModsMd5Entries)
                     {
-                        errors += string.Format("{0:x2}", md5[i]);
-                    }
-                    errors += "\n, expected: ";
-                    for (int i = 0; i < entries[index].md5.Count(); i++)
-                    {
-                        errors += string.Format("{0:x2}", entries[index].md5[i]);
-                    }
-                    errors += Environment.NewLine;
-
-                    if (ipc)
-                    {
-                        Console.WriteLine("[IPC]ERROR " + tfcFiles[l]);
-                        Console.Out.Flush();
-                    }
+                        errors += "File " + tfcFiles[l] + " has wrong MD5 checksum: ";
+                        for (int i = 0; i < md5.Count(); i++)
+                        {
+                            errors += string.Format("{0:x2}", md5[i]);
+                        }
+                        errors += "\n, expected: ";
+                        for (int i = 0; i < entries[index].md5.Count(); i++)
+                        {
+                            errors += string.Format("{0:x2}", entries[index].md5[i]);
+                        }
+                        errors += Environment.NewLine;
+	                    if (ipc)
+	                    {
+	                        Console.WriteLine("[IPC]ERROR " + tfcFiles[l]);
+	                        Console.Out.Flush();
+	                    }
+					}
                 }
                 progress += tfcFiles.Count();
             }
+            if (generateModsMd5Entries || generateMd5Entries)
+                fs.Close();
 
             return vanilla;
-        }
-
-        static public bool detectsMismatchPackagesAfter(MeType gameType, bool ipc = false)
-        {
-            ConfIni configIni = new ConfIni();
-            GameData gameData = new GameData(gameType, configIni);
-            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
-            {
-                Console.WriteLine("Error: Could not found the game!");
-                return false;
-            }
-
-            gameData.getPackages();
-
-            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    Program.MAINEXENAME);
-            string mapFile = Path.Combine(path, "me" + (int)gameType + "map.bin");
-            if (!File.Exists(mapFile))
-                return false;
-            using (FileStream fs = new FileStream(mapFile, FileMode.Open, FileAccess.Read))
-            {
-                uint tag = fs.ReadUInt32();
-                uint version = fs.ReadUInt32();
-                if (tag != CmdLineTools.textureMapBinTag || version != CmdLineTools.textureMapBinVersion)
-                {
-                    if (ipc)
-                    {
-                        Console.WriteLine("[IPC]ERROR_TEXTURE_MAP_WRONG");
-                        Console.Out.Flush();
-                    }
-                    else
-                    {
-                        Console.WriteLine("Detected wrong or old version of textures scan file!" + Environment.NewLine);
-                    }
-                    return false;
-                }
-
-                uint countTexture = fs.ReadUInt32();
-                for (int i = 0; i < countTexture; i++)
-                {
-                    int len = fs.ReadInt32();
-                    fs.ReadStringASCII(len);
-                    fs.ReadUInt32();
-                    uint countPackages = fs.ReadUInt32();
-                    for (int k = 0; k < countPackages; k++)
-                    {
-                        fs.ReadInt32();
-                        fs.ReadInt32();
-                        len = fs.ReadInt32();
-                        fs.ReadStringASCII(len);
-                    }
-                }
-
-                List<string> packages = new List<string>();
-                int numPackages = fs.ReadInt32();
-                for (int i = 0; i < numPackages; i++)
-                {
-                    int len = fs.ReadInt32();
-                    string pkgPath = fs.ReadStringASCII(len);
-                    pkgPath = GameData.GamePath + pkgPath;
-                    packages.Add(pkgPath);
-                }
-                Console.WriteLine("\nChecking for removed files since last game data scan...");
-                for (int i = 0; i < packages.Count; i++)
-                {
-                    if (GameData.packageFiles.Find(s => s.Equals(packages[i], StringComparison.OrdinalIgnoreCase)) == null)
-                    {
-                        if (ipc)
-                        {
-                            Console.WriteLine("[IPC]ERROR_REMOVED_FILE " + GameData.RelativeGameData(packages[i]));
-                            Console.Out.Flush();
-                        }
-                        else
-                        {
-                            Console.WriteLine("File: " + GameData.RelativeGameData(packages[i]));
-                        }
-                    }
-                }
-                Console.WriteLine("Finished checking for removed files since last game data scan.");
-
-                Console.WriteLine("\nChecking for additional files since last game data scan...");
-                for (int i = 0; i < GameData.packageFiles.Count; i++)
-                {
-                    if (packages.Find(s => s.Equals(GameData.packageFiles[i], StringComparison.OrdinalIgnoreCase)) == null)
-                    {
-                        if (ipc)
-                        {
-                            Console.WriteLine("[IPC]ERROR_ADDED_FILE " + GameData.RelativeGameData(GameData.packageFiles[i]));
-                            Console.Out.Flush();
-                        }
-                        else
-                        {
-                            Console.WriteLine("File: " + GameData.RelativeGameData(GameData.packageFiles[i]));
-                        }
-                    }
-                }
-                Console.WriteLine("Finished checking for additional files since last game data scan.");
-            }
-
-            return true;
-        }
-
-        static public bool checkGameFilesAfter(MeType gameType, bool ipc = false)
-        {
-            ConfIni configIni = new ConfIni();
-            GameData gameData = new GameData(gameType, configIni);
-            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
-            {
-                Console.WriteLine("Error: Could not found the game!");
-                return false;
-            }
-
-            gameData.getPackages();
-
-            Console.WriteLine("\nChecking for vanilla files after textures installation...");
-            string path = "";
-            if (GameData.gameType == MeType.ME1_TYPE)
-            {
-                path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
-            }
-            if (GameData.gameType == MeType.ME2_TYPE)
-            {
-                path = @"\BioGame\CookedPC\BIOC_Materials.pcc".ToLowerInvariant();
-            }
-            List<string> filesToUpdate = new List<string>();
-            for (int i = 0; i < GameData.packageFiles.Count; i++)
-            {
-                if (path != "" && GameData.packageFiles[i].ToLowerInvariant().Contains(path))
-                    continue;
-                filesToUpdate.Add(GameData.packageFiles[i].ToLowerInvariant());
-            }
-            int lastProgress = -1;
-            for (int i = 0; i < filesToUpdate.Count; i++)
-            {
-                int newProgress = (i + 1) * 100 / filesToUpdate.Count;
-                if (ipc && lastProgress != newProgress)
-                {
-                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-                    Console.Out.Flush();
-                    lastProgress = newProgress;
-                }
-                try
-                {
-                    using (FileStream fs = new FileStream(filesToUpdate[i], FileMode.Open, FileAccess.Read))
-                    {
-                        fs.SeekEnd();
-                        fs.Seek(-Package.MEMendFileMarker.Length, SeekOrigin.Current);
-                        string marker = fs.ReadStringASCII(Package.MEMendFileMarker.Length);
-                        if (marker != Package.MEMendFileMarker)
-                        {
-                            if (ipc)
-                            {
-                                Console.WriteLine("[IPC]ERROR_VANILLA_MOD_FILE " + filesToUpdate[i]);
-                                Console.Out.Flush();
-                            }
-                            else
-                            {
-                                Console.WriteLine("Replaced file: " + filesToUpdate[i]);
-                            }
-                        }
-                    }
-                }
-                catch
-                {
-                    if (ipc)
-                    {
-                        Console.WriteLine("[IPC]ERROR The file could not be opened: " + filesToUpdate[i]);
-                        Console.Out.Flush();
-                    }
-                    else
-                    {
-                        Console.WriteLine("The file could not be opened, skipped: " + filesToUpdate[i]);
-                    }
-                }
-            }
-
-            Console.WriteLine("Finished checking for vanilla files after textures installation");
-
-            return true;
         }
     }
 }

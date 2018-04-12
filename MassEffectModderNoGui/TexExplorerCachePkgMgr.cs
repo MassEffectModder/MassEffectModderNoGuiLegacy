@@ -66,7 +66,7 @@ namespace MassEffectModder
             packages.Clear();
         }
 
-        public void CloseAllWithSave(bool repack = false, bool appendMarker = true, bool ipc = false)
+        public void CloseAllWithSave(bool repack, bool appendMarker, bool ipc)
         {
             int lastProgress = -1;
             int skipCounter = 0;
@@ -78,13 +78,16 @@ namespace MassEffectModder
             for (int i = 0; i < packages.Count; i++)
             {
                 Package pkg = packages[i];
-                int newProgress = i * 100 / packages.Count;
-                if (ipc && lastProgress != newProgress)
-                {
-                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-                    Console.Out.Flush();
-                    lastProgress = newProgress;
-                }
+				if (ipc)
+				{
+	                int newProgress = i * 100 / packages.Count;
+	                if (lastProgress != newProgress)
+	                {
+	                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+	                    Console.Out.Flush();
+	                    lastProgress = newProgress;
+	                }
+				}
                 if (skipCounter > 10 && lowMemoryMode)
                 {
                     GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
