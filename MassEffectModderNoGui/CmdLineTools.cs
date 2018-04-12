@@ -1111,6 +1111,30 @@ namespace MassEffectModder
             return false;
         }
 
+        static public void AddMarkers(MeType gameType)
+        {
+            for (int i = 0; i < pkgsToMarker.Count; i++)
+            {
+                try
+                {
+                    using (FileStream fs = new FileStream(pkgsToMarker[i], FileMode.Open, FileAccess.ReadWrite))
+                    {
+                        fs.SeekEnd();
+                        fs.Seek(-Package.MEMendFileMarker.Length, SeekOrigin.Current);
+                        string marker = fs.ReadStringASCII(Package.MEMendFileMarker.Length);
+                        if (marker != Package.MEMendFileMarker)
+                        {
+                            fs.SeekEnd();
+                            fs.WriteStringASCII(Package.MEMendFileMarker);
+                        }
+                    }
+                }
+                catch
+                {
+                }
+            }
+        }
+
         private static bool ScanTextures(MeType gameId, bool ipc, bool repack = false)
         {
             Console.WriteLine("Scan textures started...");
@@ -1295,7 +1319,7 @@ namespace MassEffectModder
                 }
                 if (GameData.gameType == MeType.ME1_TYPE)
                     pkgsToMarker.Remove(GameData.GamePath + @"\BioGame\CookedPC\testVolumeLight_VFX.upk");
-                if (GameData.gameType == MeType.ME2_TYPE)
+                else if (GameData.gameType == MeType.ME2_TYPE)
                     pkgsToMarker.Remove(GameData.GamePath + @"\BioGame\CookedPC\BIOC_Materials.pcc");
 
                 if (repack)
@@ -1307,7 +1331,7 @@ namespace MassEffectModder
                     }
                     if (GameData.gameType == MeType.ME1_TYPE)
                         pkgsToRepack.Remove(GameData.GamePath + @"\BioGame\CookedPC\testVolumeLight_VFX.upk");
-                    if (GameData.gameType == MeType.ME2_TYPE)
+                    else if (GameData.gameType == MeType.ME2_TYPE)
                         pkgsToRepack.Remove(GameData.GamePath + @"\BioGame\CookedPC\BIOC_Materials.pcc");
                 }
 
@@ -1339,6 +1363,10 @@ namespace MassEffectModder
 
             if (!modded && repack)
                 RepackME23(gameId, ipc);
+
+
+            if (!modded)
+                AddMarkers(gameId);
 
 
             if (!guiInstaller)
