@@ -59,6 +59,7 @@ namespace MassEffectModder
         static List<FoundTexture> textures;
         static TreeScan treeScan;
         static public List<string> pkgsToRepack = null;
+        static public List<string> pkgsToMarker = null;
 
         static public bool applyModTag(int gameId, int MeuitmV, int AlotV)
         {
@@ -2297,8 +2298,6 @@ namespace MassEffectModder
                         Console.WriteLine("Error opening package file: " + GameData.RelativeGameData(pkgsToRepack[i]));
                     }
                 }
-                if (gameId == MeType.ME3_TYPE)
-                    TOCBinFile.UpdateAllTOCBinFiles();
             }
             Console.WriteLine("Repack finished.\n");
         }
@@ -2388,6 +2387,16 @@ namespace MassEffectModder
 
             if (!modded)
             {
+                pkgsToMarker = new List<string>();
+                for (int i = 0; i < GameData.packageFiles.Count; i++)
+                {
+                    pkgsToMarker.Add(GameData.packageFiles[i]);
+                }
+                if (GameData.gameType == MeType.ME1_TYPE)
+                    pkgsToMarker.Remove(GameData.GamePath + @"\BioGame\CookedPC\testVolumeLight_VFX.upk");
+                if (GameData.gameType == MeType.ME2_TYPE)
+                    pkgsToMarker.Remove(GameData.GamePath + @"\BioGame\CookedPC\BIOC_Materials.pcc");
+
                 if (repack)
                 {
                     pkgsToRepack = new List<string>();
@@ -2395,6 +2404,10 @@ namespace MassEffectModder
                     {
                         pkgsToRepack.Add(GameData.packageFiles[i]);
                     }
+                    if (GameData.gameType == MeType.ME1_TYPE)
+                        pkgsToRepack.Remove(GameData.GamePath + @"\BioGame\CookedPC\testVolumeLight_VFX.upk");
+                    if (GameData.gameType == MeType.ME2_TYPE)
+                        pkgsToRepack.Remove(GameData.GamePath + @"\BioGame\CookedPC\BIOC_Materials.pcc");
                 }
 
                 ScanTextures(gameId, ipc, repack);
@@ -2442,6 +2455,9 @@ namespace MassEffectModder
                 LODSettings.updateGFXSettings(gameId, engineConf, false, false);
                 Console.WriteLine("Updating LODs and other settings finished");
             }
+
+            if (gameId == MeType.ME3_TYPE)
+                TOCBinFile.UpdateAllTOCBinFiles();
 
             if (ipc)
             {

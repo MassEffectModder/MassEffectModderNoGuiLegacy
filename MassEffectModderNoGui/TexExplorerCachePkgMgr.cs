@@ -1,7 +1,7 @@
 /*
  * MassEffectModder
  *
- * Copyright (C) 2014-2017 Pawel Kolodziejski <aquadran at users.sourceforge.net>
+ * Copyright (C) 2014-2018 Pawel Kolodziejski <aquadran at users.sourceforge.net>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -66,7 +66,7 @@ namespace MassEffectModder
             packages.Clear();
         }
 
-        public void CloseAllWithSave(bool repack = false, bool ipc = false)
+        public void CloseAllWithSave(bool repack = false, bool appendMarker = true, bool ipc = false)
         {
             int lastProgress = -1;
             int skipCounter = 0;
@@ -93,14 +93,15 @@ namespace MassEffectModder
                 }
                 skipCounter++;
 
-                pkg.SaveToFile(repack);
+                if (pkg.SaveToFile(repack, false, appendMarker))
+                {
+                    if (repack && CmdLineTools.pkgsToRepack != null)
+                        CmdLineTools.pkgsToRepack.Remove(pkg.packagePath);
+                    if (appendMarker && CmdLineTools.pkgsToMarker != null)
+                        CmdLineTools.pkgsToMarker.Remove(pkg.packagePath);
+                }
                 pkg.Dispose();
-                if (repack && CmdLineTools.pkgsToRepack != null)
-                    CmdLineTools.pkgsToRepack.Remove(pkg.packagePath);
             }
-
-            if (GameData.gameType == MeType.ME3_TYPE)
-                TOCBinFile.UpdateAllTOCBinFiles();
 
             packages.Clear();
         }

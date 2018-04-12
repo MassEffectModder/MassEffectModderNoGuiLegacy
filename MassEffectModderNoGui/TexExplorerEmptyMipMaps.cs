@@ -35,38 +35,6 @@ namespace MassEffectModder
             public List<int> exportIDs;
         }
 
-        public void AddMarkerToPackages(string packagePath)
-        {
-            string path = "";
-            if (GameData.gameType == MeType.ME1_TYPE)
-            {
-                path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk".ToLowerInvariant();
-            }
-            if (GameData.gameType == MeType.ME2_TYPE)
-            {
-                path = @"\BioGame\CookedPC\BIOC_Materials.pcc".ToLowerInvariant();
-            }
-            if (path != "" && packagePath.ToLowerInvariant().Contains(path))
-                return;
-            try
-            {
-                using (FileStream fs = new FileStream(packagePath, FileMode.Open, FileAccess.ReadWrite))
-                {
-                    fs.SeekEnd();
-                    fs.Seek(-Package.MEMendFileMarker.Length, SeekOrigin.Current);
-                    string marker = fs.ReadStringASCII(Package.MEMendFileMarker.Length);
-                    if (marker != Package.MEMendFileMarker)
-                    {
-                        fs.SeekEnd();
-                        fs.WriteStringASCII(Package.MEMendFileMarker);
-                    }
-                }
-            }
-            catch
-            {
-            }
-        }
-
         public List<RemoveMipsEntry> prepareListToRemove(List<FoundTexture> textures)
         {
             List<RemoveMipsEntry> list = new List<RemoveMipsEntry>();
@@ -121,7 +89,6 @@ namespace MassEffectModder
                     lastProgress = newProgress;
                 }
 
-                bool modified = false;
                 Package package = null;
                 try
                 {
@@ -248,17 +215,12 @@ skip:
                             newData.WriteFromBuffer(texture.toArray(package.exportsTable[exportID].dataOffset + (uint)newData.Position));
                             package.setExportData(exportID, newData.ToArray());
                         }
-                        modified = true;
                     }
                 }
-                if (modified)
+                if (package.SaveToFile())
                 {
-                    package.SaveToFile();
-                }
-                else
-                {
-                    package.Dispose();
-                    AddMarkerToPackages(GameData.GamePath + list[i].pkgPath);
+                    if (CmdLineTools.pkgsToMarker != null)
+                        CmdLineTools.pkgsToMarker.Remove(package.packagePath);
                 }
                 package.Dispose();
             }
@@ -286,7 +248,6 @@ skip:
                     lastProgress = newProgress;
                 }
 
-                bool modified = false;
                 Package package = null;
                 try
                 {
@@ -337,25 +298,16 @@ skip:
                             newData.WriteFromBuffer(texture.toArray(package.exportsTable[exportID].dataOffset + (uint)newData.Position));
                             package.setExportData(exportID, newData.ToArray());
                         }
-                        modified = true;
                     }
                 }
-                if (modified)
+                if (package.SaveToFile(repack))
                 {
-                    package.SaveToFile(repack);
                     if (repack && CmdLineTools.pkgsToRepack != null)
                         CmdLineTools.pkgsToRepack.Remove(package.packagePath);
-                }
-                else
-                {
-                    package.Dispose();
-                    AddMarkerToPackages(GameData.GamePath + list[i].pkgPath);
+                    if (CmdLineTools.pkgsToMarker != null)
+                        CmdLineTools.pkgsToMarker.Remove(package.packagePath);
                 }
                 package.Dispose();
-            }
-            if (GameData.gameType == MeType.ME3_TYPE)
-            {
-                TOCBinFile.UpdateAllTOCBinFiles();
             }
         }
 
