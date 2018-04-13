@@ -1310,6 +1310,19 @@ namespace MassEffectModder
             if (gameId != MeType.ME1_TYPE)
                 gameData.getTfcTextures();
 
+            if (repack)
+            {
+                pkgsToRepack = new List<string>();
+                for (int i = 0; i < GameData.packageFiles.Count; i++)
+                {
+                    pkgsToRepack.Add(GameData.packageFiles[i]);
+                }
+                if (GameData.gameType == MeType.ME1_TYPE)
+                    pkgsToRepack.Remove(GameData.GamePath + @"\BioGame\CookedPC\testVolumeLight_VFX.upk");
+                else if (GameData.gameType == MeType.ME2_TYPE)
+                    pkgsToRepack.Remove(GameData.GamePath + @"\BioGame\CookedPC\BIOC_Materials.pcc");
+            }
+
             if (!modded)
             {
                 pkgsToMarker = new List<string>();
@@ -1321,19 +1334,6 @@ namespace MassEffectModder
                     pkgsToMarker.Remove(GameData.GamePath + @"\BioGame\CookedPC\testVolumeLight_VFX.upk");
                 else if (GameData.gameType == MeType.ME2_TYPE)
                     pkgsToMarker.Remove(GameData.GamePath + @"\BioGame\CookedPC\BIOC_Materials.pcc");
-
-                if (repack)
-                {
-                    pkgsToRepack = new List<string>();
-                    for (int i = 0; i < GameData.packageFiles.Count; i++)
-                    {
-                        pkgsToRepack.Add(GameData.packageFiles[i]);
-                    }
-                    if (GameData.gameType == MeType.ME1_TYPE)
-                        pkgsToRepack.Remove(GameData.GamePath + @"\BioGame\CookedPC\testVolumeLight_VFX.upk");
-                    else if (GameData.gameType == MeType.ME2_TYPE)
-                        pkgsToRepack.Remove(GameData.GamePath + @"\BioGame\CookedPC\BIOC_Materials.pcc");
-                }
 
                 ScanTextures(gameId, ipc, repack);
             }
@@ -1361,7 +1361,7 @@ namespace MassEffectModder
                 RemoveMipmaps(gameId, ipc, repack);
 
 
-            if (!modded && repack)
+            if (repack)
                 RepackME23(gameId, ipc);
 
 

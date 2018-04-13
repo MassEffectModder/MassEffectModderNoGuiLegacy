@@ -228,7 +228,7 @@ skip:
             }
         }
 
-        public void removeMipMapsME2ME3(List<FoundTexture> textures, bool repack, bool ipc)
+        public void removeMipMapsME2ME3(List<FoundTexture> textures, bool ipc, bool repack)
         {
             int lastProgress = -1;
             List<RemoveMipsEntry> list = prepareListToRemove(textures);
