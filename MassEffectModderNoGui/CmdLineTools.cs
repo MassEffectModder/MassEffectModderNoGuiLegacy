@@ -1287,7 +1287,7 @@ namespace MassEffectModder
                 Console.WriteLine("[IPC]STAGE_ADD STAGE_SAVING");
                 if (!modded)
                     Console.WriteLine("[IPC]STAGE_ADD STAGE_REMOVEMIPMAPS");
-                if (!modded && repack)
+                if (repack)
                     Console.WriteLine("[IPC]STAGE_ADD STAGE_REPACK");
                 Console.Out.Flush();
             }
