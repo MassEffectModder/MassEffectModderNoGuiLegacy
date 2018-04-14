@@ -1439,12 +1439,36 @@ namespace MassEffectModder
             {
                 try
                 {
+                    if (new FileInfo(files[i]).Length == 0)
+                    {
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR MEM mod file has 0 length: " + files[i]);
+                            Console.Out.Flush();
+                        }
+                        else
+                        {
+                            Console.WriteLine("MEM mod file has 0 length: " + files[i]);
+                        }
+                        continue;
+                    }
                     using (FileStream fs = new FileStream(files[i], FileMode.Open, FileAccess.Read))
                     {
                         uint tag = fs.ReadUInt32();
                         uint version = fs.ReadUInt32();
                         if (tag != TreeScan.TextureModTag || version != TreeScan.TextureModVersion)
+                        {
+                            if (ipc)
+                            {
+                                Console.WriteLine("[IPC]ERROR MEM mod file has wrong header: " + files[i]);
+                                Console.Out.Flush();
+                            }
+                            else
+                            {
+                                Console.WriteLine("MEM mod file has wrong header: " + files[i]);
+                            }
                             continue;
+                        }
                         fs.JumpTo(fs.ReadInt64());
                         fs.SkipInt32();
                         totalNumberOfMods += fs.ReadInt32();
@@ -1487,7 +1511,7 @@ namespace MassEffectModder
                             }
                             if (ipc)
                             {
-                                Console.WriteLine("[IPC]ERROR Bad MEM mod " + files[i]);
+                                Console.WriteLine("[IPC]ERROR MEM mod file has wrong header: " + files[i]);
                                 Console.Out.Flush();
                             }
                             continue;
@@ -1499,11 +1523,14 @@ namespace MassEffectModder
                             gameType = fs.ReadUInt32();
                             if ((MeType)gameType != GameData.gameType)
                             {
-                                Console.WriteLine("File " + files[i] + " is not a MEM mod valid for this game, skipping..." + Environment.NewLine);
                                 if (ipc)
                                 {
-                                    Console.WriteLine("[IPC]ERROR Bad MEM mod " + files[i]);
+                                    Console.WriteLine("[IPC]ERROR MEM mod valid for this game, skipping... " + files[i]);
                                     Console.Out.Flush();
+                                }
+                                else
+                                {
+                                    Console.WriteLine("File " + files[i] + " is not a MEM mod valid for this game, skipping..." + Environment.NewLine);
                                 }
                                 continue;
                             }
@@ -1540,6 +1567,19 @@ namespace MassEffectModder
                                 name = modFiles[l].name;
                                 exportId = fs.ReadInt32();
                                 pkgPath = fs.ReadStringASCIINull();
+                            }
+                            else
+                            {
+                                if (ipc)
+                                {
+                                    Console.WriteLine("[IPC]ERROR Unknown tag for file: " + name);
+                                    Console.Out.Flush();
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Unknown tag for file: " + name + Environment.NewLine);
+                                }
+                                continue;
                             }
 
                             if (ipc)
@@ -1579,10 +1619,18 @@ namespace MassEffectModder
                                         continue;
                                     }
                                     string errors = "";
-                                    if (special)
-                                        errors = replaceTextureSpecialME3Mod(image, foundTexture.list, cachePackageMgr, foundTexture.name, crc, tfcName, guid);
-                                    else
-                                        errors = new MipMaps().replaceTexture(image, foundTexture.list, cachePackageMgr, foundTexture.name, crc, false, modFiles[l].tag == MipMaps.FileTextureTag2);
+                                    try
+                                    {
+                                        if (special)
+                                            errors = replaceTextureSpecialME3Mod(image, foundTexture.list, cachePackageMgr, foundTexture.name, crc, tfcName, guid);
+                                        else
+                                            errors = new MipMaps().replaceTexture(image, foundTexture.list, cachePackageMgr, foundTexture.name, crc, false, modFiles[l].tag == MipMaps.FileTextureTag2);
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        errors += e.Message + Environment.NewLine;
+                                        errors += e.StackTrace + Environment.NewLine;
+                                    }
                                     if (errors != "")
                                     {
                                         if (ipc)
@@ -1622,15 +1670,13 @@ namespace MassEffectModder
                                 byte[] buffer = new Xdelta3Helper.Xdelta3().Decompress(pkg.getExportData(exportId), dst);
                                 pkg.setExportData(exportId, buffer);
                             }
-                            else
-                            {
-                                Console.WriteLine("Unknown tag for file: " + name + Environment.NewLine);
-                            }
                         }
                     }
                 }
-                catch
+                catch (Exception e)
                 {
+                    Console.WriteLine(e.Message);
+                    Console.WriteLine(e.StackTrace);
                     if (ipc)
                     {
                         Console.WriteLine("[IPC]ERROR Skipping not compatible mod: " + files[i]);
