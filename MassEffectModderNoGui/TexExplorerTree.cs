@@ -303,7 +303,6 @@ namespace MassEffectModder
 		                if (lastProgress != newProgress)
 		                {
 		                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-		                    Console.Out.Flush();
 		                    lastProgress = newProgress;
 		                }
 	                    Console.Out.Flush();
