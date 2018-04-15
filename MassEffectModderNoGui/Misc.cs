@@ -1139,9 +1139,9 @@ namespace MassEffectModder
                                     try
                                     {
                                         index = ParseLegacyMe3xScriptMod(textures, scriptLegacy, textureName);
-                                        f = textures[index];
-                                        if (mod.textureCrc == 0)
+                                        if (index == -1)
                                             throw new Exception();
+                                        f = textures[index];
                                     }
                                     catch
                                     {
