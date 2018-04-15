@@ -947,11 +947,9 @@ namespace MassEffectModder
         }
 
         static public bool convertDataModtoMem(string inputDir, string memFilePath,
-			MeType gameId, bool markToConvert, bool onlyIndividual, bool ipc)
+			MeType gameId, List<FoundTexture> textures, bool markToConvert, bool onlyIndividual, bool ipc)
         {
             string[] files = null;
-            List<FoundTexture> textures = new List<FoundTexture>();
-            new TreeScan().loadTexturesMap(gameId, textures);
 
             Console.WriteLine("Mods conversion started...");
 

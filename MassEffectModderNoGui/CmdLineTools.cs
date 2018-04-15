@@ -283,7 +283,9 @@ namespace MassEffectModder
 
         static public bool ConvertToMEM(MeType gameId, string inputDir, string memFile, bool markToConvert, bool ipc)
         {
-            return Misc.convertDataModtoMem(inputDir, memFile, gameId, markToConvert, false, ipc);
+            List<FoundTexture> textures = new List<FoundTexture>();
+            new TreeScan().loadTexturesMap(gameId, textures);
+            return Misc.convertDataModtoMem(inputDir, memFile, gameId, textures, markToConvert, false, ipc);
         }
 
         static public bool convertGameTexture(string inputFile, string outputFile, bool markToConvert)
