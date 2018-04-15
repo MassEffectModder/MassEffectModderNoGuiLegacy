@@ -1668,6 +1668,11 @@ namespace MassEffectModder
                                 }
                                 Package pkg = cachePackageMgr.OpenPackage(path);
                                 byte[] buffer = new Xdelta3Helper.Xdelta3().Decompress(pkg.getExportData(exportId), dst);
+                                if (buffer.Length == 0)
+                                {
+                                    Console.WriteLine("Warning: Xdelta patch for " + path + " failed to apply." + Environment.NewLine);
+                                    continue;
+                                }
                                 pkg.setExportData(exportId, buffer);
                             }
                         }
