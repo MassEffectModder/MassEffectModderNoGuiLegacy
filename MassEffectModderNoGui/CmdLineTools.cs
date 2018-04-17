@@ -1704,7 +1704,8 @@ namespace MassEffectModder
                 Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_SAVING");
                 Console.Out.Flush();
             }
-            cachePackageMgr.CloseAllWithSave(repack, !modded, ipc);
+            if (!special)
+                cachePackageMgr.CloseAllWithSave(repack, !modded, ipc);
             Console.WriteLine("Saving packages finished.\n");
 
             return status;
@@ -1720,7 +1721,7 @@ namespace MassEffectModder
                 MatchedTexture nodeTexture = list[n];
                 if (nodeTexture.path == "")
                     continue;
-                Package package = cachePackageMgr.OpenPackage(GameData.GamePath + nodeTexture.path);
+                Package package = new Package(GameData.GamePath + nodeTexture.path);
                 Texture texture = new Texture(package, nodeTexture.exportID, package.getExportData(nodeTexture.exportID));
                 string fmt = texture.properties.getProperty("Format").valueName;
                 PixelFormat pixelFormat = Image.getPixelFormatType(fmt);
@@ -1797,8 +1798,6 @@ namespace MassEffectModder
                 }
                 if (skip)
                     continue;
-
-                package.DisposeCache();
 
                 bool triggerCacheArc = false, triggerCacheCpr = false;
                 string archiveFile = "";
@@ -1960,7 +1959,7 @@ namespace MassEffectModder
                     cprTexture = texture;
                 if (triggerCacheArc)
                     arcTexture = texture;
-                package = null;
+                package.SaveToFile(false, false, false);
             }
             arcTexture = cprTexture = null;
 
