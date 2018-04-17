@@ -1172,7 +1172,7 @@ namespace MassEffectModder
             return true;
         }		
  
-        static private void RepackME23(MeType gameId, bool ipc)
+        static private void RepackME23(MeType gameId, bool modded, bool ipc)
         {
             Console.WriteLine("Repack started...");
             if (ipc)
@@ -1209,7 +1209,7 @@ namespace MassEffectModder
                     {
                         package.Dispose();
                         package = new Package(pkgsToRepack[i]);
-                        package.SaveToFile(true);
+                        package.SaveToFile(true, false, !modded);
                     }
                     package.Dispose();
                 }
@@ -1356,7 +1356,7 @@ namespace MassEffectModder
                 if (!loadTexturesMapFile(mapFile, ipc))
                     return false;
             }
-            bool status = applyMods(modFiles, repack, ipc);
+            bool status = applyMods(modFiles, modded, repack, ipc);
 
 
             if (!modded)
@@ -1364,7 +1364,7 @@ namespace MassEffectModder
 
 
             if (repack)
-                RepackME23(gameId, ipc);
+                RepackME23(gameId, modded, ipc);
 
 
             if (!modded)
@@ -1424,12 +1424,12 @@ namespace MassEffectModder
             List<string> memFiles = new List<string>();
             memFiles.Add(memFile);
 
-            applyMods(memFiles, false, false, true, tfcName, guid);
+            applyMods(memFiles, false, false, false, true, tfcName, guid);
 
             return true;
         }
 
-        static public bool applyMods(List<string> files, bool repack, bool ipc, bool special = false, string tfcName = "", byte[] guid = null)
+        static public bool applyMods(List<string> files, bool repack, bool modded, bool ipc, bool special = false, string tfcName = "", byte[] guid = null)
         {
             bool status = true;
             CachePackageMgr cachePackageMgr = new CachePackageMgr();
@@ -1704,7 +1704,7 @@ namespace MassEffectModder
                 Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_SAVING");
                 Console.Out.Flush();
             }
-            cachePackageMgr.CloseAllWithSave(repack, true, ipc);
+            cachePackageMgr.CloseAllWithSave(repack, !modded, ipc);
             Console.WriteLine("Saving packages finished.\n");
 
             return status;
