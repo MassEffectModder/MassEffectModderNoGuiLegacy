@@ -1444,7 +1444,7 @@ namespace MassEffectModder
             int totalNumberOfMods = 0;
             int currentNumberOfTotalMods = 1;
 
-            MipMaps.modsToReplace.Clear();
+            MipMaps.modsToReplace = new List<ModEntry>();
             for (int i = 0; i < files.Count; i++)
             {
                 try
