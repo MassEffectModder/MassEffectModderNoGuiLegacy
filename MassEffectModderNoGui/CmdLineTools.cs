@@ -196,6 +196,9 @@ namespace MassEffectModder
                 return false;
             }
 
+            bool foundRemoved = false;
+            bool foundAdded = false;
+
             using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
             {
                 uint tag = fs.ReadUInt32();
@@ -244,41 +247,47 @@ namespace MassEffectModder
                     pkgPath = GameData.GamePath + pkgPath;
                     packages.Add(pkgPath);
                 }
+
                 for (int i = 0; i < packages.Count; i++)
                 {
                     if (GameData.packageFiles.Find(s => s.Equals(packages[i], StringComparison.OrdinalIgnoreCase)) == null)
                     {
                         if (ipc)
                         {
-                            Console.WriteLine("[IPC]ERROR_REMOVED_FILE Detected removal of game files since last game data scan.");
+                            Console.WriteLine("[IPC]ERROR_REMOVED_FILE " + GameData.RelativeGameData(packages[i]));
                             Console.Out.Flush();
                         }
                         else
                         {
-                            Console.WriteLine("Detected removal of game files since last game data scan." + Environment.NewLine + Environment.NewLine);
+                            Console.WriteLine("Removed file since last game data scan: " + GameData.RelativeGameData(packages[i]));
                         }
-                        return false;
+                        foundRemoved = true;
                     }
                 }
+                if (!ipc && foundRemoved)
+                    Console.WriteLine("Above files removed since last game data scan.");
+
                 for (int i = 0; i < GameData.packageFiles.Count; i++)
                 {
                     if (packages.Find(s => s.Equals(GameData.packageFiles[i], StringComparison.OrdinalIgnoreCase)) == null)
                     {
                         if (ipc)
                         {
-                            Console.WriteLine("[IPC]ERROR_ADDED_FILE Detected additional game files not present in latest game data scan.");
+                            Console.WriteLine("[IPC]ERROR_ADDED_FILE " + GameData.RelativeGameData(GameData.packageFiles[i]));
                             Console.Out.Flush();
                         }
                         else
                         {
-                            Console.WriteLine("Detected additional game files not present in latest game data scan." + Environment.NewLine + Environment.NewLine);
+                            Console.WriteLine("File: " + GameData.RelativeGameData(GameData.packageFiles[i]));
                         }
-                        return false;
+                        foundAdded = true;
                     }
                 }
+                if (!ipc && foundAdded)
+                    Console.WriteLine("Above files added since last game data scan.");
             }
 
-            return true;
+            return !foundRemoved && !foundAdded;
         }
 
         static public bool ConvertToMEM(MeType gameId, string inputDir, string memFile, bool markToConvert, bool ipc)
