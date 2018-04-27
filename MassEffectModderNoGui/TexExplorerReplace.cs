@@ -19,12 +19,14 @@
  *
  */
 
+using Microsoft.VisualBasic.Devices;
 using StreamHelpers;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime;
 
 namespace MassEffectModder
 {
@@ -32,6 +34,55 @@ namespace MassEffectModder
     {
         public byte[] guid;
         public string name;
+    }
+
+    public struct ModEntry
+    {
+        public string packagePath;
+        public int exportId;
+
+        public string textureName;
+        public uint textureCrc;
+        public bool markConvert;
+        public Image cacheImage;
+        public List<byte[]> cacheCprMipmaps;
+        public Dictionary<List<Texture.MipMap>, int> masterTextures;
+        public List<Texture.MipMap> arcTexture;
+        public byte[] arcTfcGuid;
+        public string arcTfcName;
+        public List<Texture.MipMap> cprTexture;
+        public int instance;
+
+        public bool binaryModType;
+        public byte[] binaryModData;
+
+        public string memPath;
+        public long memEntryOffset;
+        public long memEntrySize;
+    };
+
+    public struct MapTexturesToMod
+    {
+        public string packagePath;
+        public int modIndex;
+        public int texturesIndex;
+        public int listIndex;
+    }
+
+    public struct MapPackagesToModEntry
+    {
+        public int modIndex;
+        public int texturesIndex;
+        public int listIndex;
+    }
+
+    public struct MapPackagesToMod
+    {
+        public string packagePath;
+        public List<MapPackagesToModEntry> textures;
+        public long usage;
+        public int instances;
+        public long weight;
     }
 
     public partial class MipMaps
@@ -49,6 +100,8 @@ namespace MassEffectModder
                 name = "Format"
             },
         };
+
+        public static List<ModEntry> modsToReplace;
 
         public PixelFormat changeTextureType(PixelFormat gamePixelFormat, PixelFormat texturePixelFormat,
                 ref Package package, ref Texture texture)
@@ -541,6 +594,729 @@ namespace MassEffectModder
             }
             masterTextures = null;
             arcTexture = cprTexture = null;
+
+            return errors;
+        }
+
+        public string replaceTextures(List<MapPackagesToMod> map, List<FoundTexture> textures,
+            bool repack, bool appendMarker, bool verify, bool ipc)
+        {
+            string errors = "";
+            int lastProgress = -1;
+            ulong memorySize = ((new ComputerInfo().TotalPhysicalMemory / 1024 / 1024) + 1023) / 1024;
+
+            for (int e = 0; e < map.Count; e++)
+            {
+                if (ipc)
+                {
+                    Console.WriteLine("[IPC]PROCESSING_FILE " + map[e].packagePath);
+                    int newProgress = (e + 1) * 100 / map.Count;
+                    if (lastProgress != newProgress)
+                    {
+                        Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+                        lastProgress = newProgress;
+                    }
+                    Console.Out.Flush();
+                }
+                else
+                {
+                    Console.WriteLine("Package: " + (e + 1) + " of " + map.Count + " started: " + map[e].packagePath);
+                }
+
+                Package package;
+                try
+                {
+                    package = new Package(GameData.GamePath + map[e].packagePath, true);
+                }
+                catch (Exception ex)
+                {
+                    errors += "---- Start --------------------------------------------" + Environment.NewLine;
+                    errors += "Error opening package file: " + GameData.GamePath + map[e].packagePath + Environment.NewLine;
+                    errors += ex.Message + Environment.NewLine + Environment.NewLine;
+                    errors += ex.StackTrace + Environment.NewLine + Environment.NewLine;
+                    errors += "---- End ----------------------------------------------" + Environment.NewLine + Environment.NewLine;
+                    continue;
+                }
+
+                for (int p = 0; p < map[e].textures.Count; p++)
+                {
+                    MapPackagesToModEntry entryMap = map[e].textures[p];
+                    MatchedTexture matched = textures[entryMap.texturesIndex].list[entryMap.listIndex];
+                    ModEntry mod = modsToReplace[entryMap.modIndex];
+                    if (mod.masterTextures == null)
+                        mod.masterTextures = new Dictionary<List<Texture.MipMap>, int>();
+
+                    Texture texture = new Texture(package, matched.exportID, package.getExportData(matched.exportID));
+                    string fmt = texture.properties.getProperty("Format").valueName;
+                    PixelFormat pixelFormat = Image.getPixelFormatType(fmt);
+
+                    while (texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
+                    {
+                        texture.mipMapsList.Remove(texture.mipMapsList.First(s => s.storageType == Texture.StorageTypes.empty));
+                    }
+
+                    Image image = mod.cacheImage;
+                    if (image == null)
+                    {
+                        using (FileStream fs = new FileStream(mod.memPath, FileMode.Open, FileAccess.Read))
+                        {
+                            fs.JumpTo(mod.memEntryOffset);
+                            byte[] data = decompressData(fs, mod.memEntrySize);
+                            image = new Image(data, Image.ImageFormat.DDS);
+                            if (memorySize > 8 || modsToReplace.Count == 1)
+                                mod.cacheImage = image;
+                        }
+                    }
+
+                    if (image.mipMaps[0].origWidth / image.mipMaps[0].origHeight !=
+                        texture.mipMapsList[0].width / texture.mipMapsList[0].height)
+                    {
+                        errors += "Error in texture: " + mod.textureName + " This texture has wrong aspect ratio, skipping texture..." + Environment.NewLine;
+                        continue;
+                    }
+
+                    if (GameData.gameType == MeType.ME1_TYPE && texture.mipMapsList.Count < 6)
+                    {
+                        for (int i = texture.mipMapsList.Count - 1; i != 0; i--)
+                            texture.mipMapsList.RemoveAt(i);
+                    }
+
+                    PixelFormat newPixelFormat = pixelFormat;
+                    if (mod.markConvert)
+                        newPixelFormat = changeTextureType(pixelFormat, image.pixelFormat, ref package, ref texture);
+
+                    if (!image.checkDDSHaveAllMipmaps() ||
+                        (texture.mipMapsList.Count > 1 && image.mipMaps.Count() <= 1) ||
+                        (mod.markConvert && image.pixelFormat != newPixelFormat) ||
+                        (!mod.markConvert && image.pixelFormat != pixelFormat))
+                    {
+                        bool dxt1HasAlpha = false;
+                        byte dxt1Threshold = 128;
+                        if (pixelFormat == PixelFormat.DXT1 && texture.properties.exists("CompressionSettings") &&
+                            texture.properties.getProperty("CompressionSettings").valueName == "TC_OneBitAlpha")
+                        {
+                            dxt1HasAlpha = true;
+                            if (image.pixelFormat == PixelFormat.ARGB ||
+                                image.pixelFormat == PixelFormat.DXT3 ||
+                                image.pixelFormat == PixelFormat.DXT5)
+                            {
+                                errors += "Warning for texture: " + mod.textureName + ". This texture converted from full alpha to binary alpha." + Environment.NewLine;
+                            }
+                        }
+                        image.correctMips(newPixelFormat, dxt1HasAlpha, dxt1Threshold);
+                        if (memorySize > 8 || modsToReplace.Count == 1)
+                            mod.cacheImage = image;
+                    }
+
+                    // remove lower mipmaps from source image which not exist in game data
+                    for (int t = 0; t < image.mipMaps.Count(); t++)
+                    {
+                        if (image.mipMaps[t].origWidth <= texture.mipMapsList[0].width &&
+                            image.mipMaps[t].origHeight <= texture.mipMapsList[0].height &&
+                            texture.mipMapsList.Count > 1)
+                        {
+                            if (!texture.mipMapsList.Exists(m => m.width == image.mipMaps[t].origWidth && m.height == image.mipMaps[t].origHeight))
+                            {
+                                image.mipMaps.RemoveAt(t--);
+                            }
+                        }
+                    }
+
+                    bool skip = false;
+                    // reuse lower mipmaps from game data which not exist in source image
+                    for (int t = 0; t < texture.mipMapsList.Count; t++)
+                    {
+                        if (texture.mipMapsList[t].width <= image.mipMaps[0].origWidth &&
+                            texture.mipMapsList[t].height <= image.mipMaps[0].origHeight)
+                        {
+                            if (!image.mipMaps.Exists(m => m.origWidth == texture.mipMapsList[t].width && m.origHeight == texture.mipMapsList[t].height))
+                            {
+                                byte[] data = texture.getMipMapData(texture.mipMapsList[t]);
+                                if (data == null)
+                                {
+                                    errors += "Error in game data: " + matched.path + ", skipping texture..." + Environment.NewLine;
+                                    skip = true;
+                                    break;
+                                }
+                                MipMap mipmap = new MipMap(data, texture.mipMapsList[t].width, texture.mipMapsList[t].height, pixelFormat);
+                                image.mipMaps.Add(mipmap);
+                            }
+                        }
+                    }
+                    if (skip)
+                        continue;
+
+                    if (!texture.properties.exists("LODGroup"))
+                        texture.properties.setByteValue("LODGroup", "TEXTUREGROUP_Character", "TextureGroup", 1025);
+
+                    if (mod.cacheCprMipmaps == null)
+                    {
+                        mod.cacheCprMipmaps = new List<byte[]>();
+                        for (int m = 0; m < image.mipMaps.Count(); m++)
+                        {
+                            if (GameData.gameType == MeType.ME1_TYPE)
+                                mod.cacheCprMipmaps.Add(texture.compressTexture(image.mipMaps[m].data, Texture.StorageTypes.extLZO));
+                            else
+                                mod.cacheCprMipmaps.Add(texture.compressTexture(image.mipMaps[m].data, Texture.StorageTypes.extZlib));
+                        }
+                    }
+
+                    if (verify)
+                        matched.crcs = new List<uint>();
+                    List<Texture.MipMap> mipmaps = new List<Texture.MipMap>();
+                    for (int m = 0; m < image.mipMaps.Count(); m++)
+                    {
+                        if (verify)
+                            matched.crcs.Add(texture.getCrcData(image.mipMaps[m].data));
+                        Texture.MipMap mipmap = new Texture.MipMap();
+                        mipmap.width = image.mipMaps[m].origWidth;
+                        mipmap.height = image.mipMaps[m].origHeight;
+                        if (texture.existMipmap(mipmap.width, mipmap.height))
+                            mipmap.storageType = texture.getMipmap(mipmap.width, mipmap.height).storageType;
+                        else
+                        {
+                            mipmap.storageType = texture.getTopMipmap().storageType;
+                            if (texture.mipMapsList.Count() > 1)
+                            {
+                                if (GameData.gameType == MeType.ME1_TYPE && matched.linkToMaster == -1)
+                                {
+                                    if (mipmap.storageType == Texture.StorageTypes.pccUnc)
+                                    {
+                                        mipmap.storageType = Texture.StorageTypes.pccLZO;
+                                    }
+                                }
+                                else if (GameData.gameType == MeType.ME1_TYPE && matched.linkToMaster != -1)
+                                {
+                                    if (mipmap.storageType == Texture.StorageTypes.pccUnc ||
+                                        mipmap.storageType == Texture.StorageTypes.pccLZO ||
+                                        mipmap.storageType == Texture.StorageTypes.pccZlib)
+                                    {
+                                        mipmap.storageType = Texture.StorageTypes.extLZO;
+                                    }
+                                }
+                                else if (GameData.gameType == MeType.ME2_TYPE || GameData.gameType == MeType.ME3_TYPE)
+                                {
+                                    if (texture.properties.exists("TextureFileCacheName"))
+                                    {
+                                        if (texture.mipMapsList.Count < 6)
+                                        {
+                                            mipmap.storageType = Texture.StorageTypes.pccUnc;
+                                            texture.properties.setBoolValue("NeverStream", true);
+                                        }
+                                        else
+                                        {
+                                            if (GameData.gameType == MeType.ME2_TYPE)
+                                                mipmap.storageType = Texture.StorageTypes.extLZO;
+                                            else
+                                                mipmap.storageType = Texture.StorageTypes.extZlib;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (GameData.gameType != MeType.ME1_TYPE)
+                        {
+                            if (mipmap.storageType == Texture.StorageTypes.extLZO)
+                                mipmap.storageType = Texture.StorageTypes.extZlib;
+                            if (mipmap.storageType == Texture.StorageTypes.pccLZO)
+                                mipmap.storageType = Texture.StorageTypes.pccZlib;
+                        }
+
+                        if (mod.arcTexture != null)
+                        {
+                            if (mod.arcTexture[m].storageType != mipmap.storageType)
+                            {
+                                mod.arcTexture = null;
+                            }
+                        }
+
+                        mipmap.width = image.mipMaps[m].width;
+                        mipmap.height = image.mipMaps[m].height;
+                        mipmaps.Add(mipmap);
+                        if (texture.mipMapsList.Count() == 1)
+                            break;
+                    }
+
+                    bool triggerCacheArc = false;
+                    bool newTfcFile = false;
+                    bool oldSpace = true;
+                    string archiveFile = "";
+                    if (texture.properties.exists("TextureFileCacheName"))
+                    {
+                        if (mod.arcTexture == null)
+                        {
+                            string archive = texture.properties.getProperty("TextureFileCacheName").valueName;
+                            archiveFile = Path.Combine(GameData.MainData, archive + ".tfc");
+                            if (matched.path.ToLowerInvariant().Contains("\\dlc"))
+                            {
+                                string DLCArchiveFile = Path.Combine(Path.GetDirectoryName(GameData.GamePath + matched.path), archive + ".tfc");
+                                if (File.Exists(DLCArchiveFile))
+                                    archiveFile = DLCArchiveFile;
+                                else if (!File.Exists(archiveFile))
+                                {
+                                    List<string> files = Directory.GetFiles(GameData.bioGamePath, archive + ".tfc",
+                                        SearchOption.AllDirectories).Where(item => item.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList();
+                                    if (files.Count == 1)
+                                        archiveFile = files[0];
+                                    else if (files.Count == 0)
+                                    {
+                                        DLCArchiveFile = Path.Combine(Path.GetDirectoryName(DLCArchiveFile),
+                                            "Textures_" + Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(GameData.GamePath + matched.path)) + ".tfc"));
+                                        if (File.Exists(DLCArchiveFile))
+                                            archiveFile = DLCArchiveFile;
+                                        else
+                                            archiveFile = Path.Combine(GameData.MainData, "Textures.tfc");
+                                    }
+                                    else
+                                        throw new Exception("");
+                                }
+                            }
+
+                            // check if texture fit in old space
+                            for (int mip = 0; mip < image.mipMaps.Count(); mip++)
+                            {
+                                Texture.MipMap testMipmap = new Texture.MipMap();
+                                testMipmap.width = image.mipMaps[mip].origWidth;
+                                testMipmap.height = image.mipMaps[mip].origHeight;
+                                if (texture.existMipmap(testMipmap.width, testMipmap.height))
+                                    testMipmap.storageType = texture.getMipmap(testMipmap.width, testMipmap.height).storageType;
+                                else
+                                {
+                                    oldSpace = false;
+                                    break;
+                                }
+
+                                if (testMipmap.storageType == Texture.StorageTypes.extZlib ||
+                                    testMipmap.storageType == Texture.StorageTypes.extLZO)
+                                {
+                                    Texture.MipMap oldTestMipmap = texture.getMipmap(testMipmap.width, testMipmap.height);
+                                    if (mod.cacheCprMipmaps[mip].Length > oldTestMipmap.compressedSize)
+                                    {
+                                        oldSpace = false;
+                                        break;
+                                    }
+                                }
+                                if (texture.mipMapsList.Count() == 1)
+                                    break;
+                            }
+
+                            long fileLength = new FileInfo(archiveFile).Length;
+                            if (!oldSpace && fileLength + 0x5000000 > 0x80000000)
+                            {
+                                archiveFile = "";
+                                foreach (TFCTexture newGuid in guids)
+                                {
+                                    archiveFile = Path.Combine(GameData.MainData, newGuid.name + ".tfc");
+                                    if (!File.Exists(archiveFile))
+                                    {
+                                        texture.properties.setNameValue("TextureFileCacheName", newGuid.name);
+                                        texture.properties.setStructValue("TFCFileGuid", "Guid", newGuid.guid);
+                                        using (FileStream fs = new FileStream(archiveFile, FileMode.CreateNew, FileAccess.Write))
+                                        {
+                                            fs.WriteFromBuffer(newGuid.guid);
+                                        }
+                                        newTfcFile = true;
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        fileLength = new FileInfo(archiveFile).Length;
+                                        if (fileLength + 0x5000000 < 0x80000000)
+                                        {
+                                            texture.properties.setNameValue("TextureFileCacheName", newGuid.name);
+                                            texture.properties.setStructValue("TFCFileGuid", "Guid", newGuid.guid);
+                                            break;
+                                        }
+                                    }
+                                    archiveFile = "";
+                                }
+                                if (archiveFile == "")
+                                    throw new Exception("No free TFC texture file!");
+                            }
+                        }
+                        else
+                        {
+                            texture.properties.setNameValue("TextureFileCacheName", mod.arcTfcName);
+                            texture.properties.setStructValue("TFCFileGuid", "Guid", mod.arcTfcGuid);
+                        }
+                    }
+
+                    for (int m = 0; m < image.mipMaps.Count(); m++)
+                    {
+                        Texture.MipMap mipmap = mipmaps[m];
+                        mipmap.uncompressedSize = image.mipMaps[m].data.Length;
+                        if (GameData.gameType == MeType.ME1_TYPE)
+                        {
+                            if (mipmap.storageType == Texture.StorageTypes.pccLZO ||
+                                mipmap.storageType == Texture.StorageTypes.pccZlib)
+                            {
+                                if (matched.linkToMaster == -1)
+                                    mipmap.newData = mod.cacheCprMipmaps[m];
+                                else
+                                    mipmap.newData = mod.masterTextures.First(s => s.Value == matched.linkToMaster).Key[m].newData;
+                                mipmap.compressedSize = mipmap.newData.Length;
+                            }
+                            if (mipmap.storageType == Texture.StorageTypes.pccUnc)
+                            {
+                                mipmap.compressedSize = mipmap.uncompressedSize;
+                                mipmap.newData = image.mipMaps[m].data;
+                            }
+                            if ((mipmap.storageType == Texture.StorageTypes.extLZO ||
+                                mipmap.storageType == Texture.StorageTypes.extZlib) && matched.linkToMaster != -1)
+                            {
+                                mipmap.compressedSize = mod.masterTextures.First(s => s.Value == matched.linkToMaster).Key[m].compressedSize;
+                                mipmap.dataOffset = mod.masterTextures.First(s => s.Value == matched.linkToMaster).Key[m].dataOffset;
+                            }
+                        }
+                        else
+                        {
+                            if (mipmap.storageType == Texture.StorageTypes.extZlib ||
+                                mipmap.storageType == Texture.StorageTypes.extLZO)
+                            {
+                                if (mod.cacheCprMipmaps.Count != image.mipMaps.Count())
+                                    throw new Exception();
+                                mipmap.newData = mod.cacheCprMipmaps[m];
+                                mipmap.compressedSize = mipmap.newData.Length;
+                            }
+
+                            if (mipmap.storageType == Texture.StorageTypes.pccUnc ||
+                                mipmap.storageType == Texture.StorageTypes.extUnc)
+                            {
+                                mipmap.compressedSize = mipmap.uncompressedSize;
+                                mipmap.newData = image.mipMaps[m].data;
+                            }
+                            if (mipmap.storageType == Texture.StorageTypes.extZlib ||
+                                mipmap.storageType == Texture.StorageTypes.extLZO ||
+                                mipmap.storageType == Texture.StorageTypes.extUnc)
+                            {
+                                if (mod.arcTexture == null)
+                                {
+                                    triggerCacheArc = true;
+
+                                    if (!newTfcFile && oldSpace)
+                                    {
+                                        try
+                                        {
+                                            using (FileStream fs = new FileStream(archiveFile, FileMode.Open, FileAccess.Write))
+                                            {
+                                                Texture.MipMap oldMipmap = texture.getMipmap(mipmap.width, mipmap.height);
+                                                fs.JumpTo(oldMipmap.dataOffset);
+                                                mipmap.dataOffset = oldMipmap.dataOffset;
+                                                fs.WriteFromBuffer(mipmap.newData);
+                                            }
+                                        }
+                                        catch
+                                        {
+                                            throw new Exception("Problem with access to TFC file: " + archiveFile);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            using (FileStream fs = new FileStream(archiveFile, FileMode.Open, FileAccess.Write))
+                                            {
+                                                fs.SeekEnd();
+                                                mipmap.dataOffset = (uint)fs.Position;
+                                                fs.WriteFromBuffer(mipmap.newData);
+                                            }
+                                        }
+                                        catch
+                                        {
+                                            throw new Exception("Problem with access to TFC file: " + archiveFile);
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    if (mod.arcTexture[m].width != mipmap.width ||
+                                        mod.arcTexture[m].height != mipmap.height)
+                                        throw new Exception();
+                                    mipmap.dataOffset = mod.arcTexture[m].dataOffset;
+                                }
+                            }
+                        }
+                        mipmaps[m] = mipmap;
+                        if (texture.mipMapsList.Count() == 1)
+                            break;
+                    }
+
+                    texture.replaceMipMaps(mipmaps);
+                    texture.properties.setIntValue("SizeX", texture.mipMapsList.First().width);
+                    texture.properties.setIntValue("SizeY", texture.mipMapsList.First().height);
+                    if (texture.properties.exists("MipTailBaseIdx"))
+                        texture.properties.setIntValue("MipTailBaseIdx", texture.mipMapsList.Count() - 1);
+
+                    using (MemoryStream newData = new MemoryStream())
+                    {
+                        newData.WriteFromBuffer(texture.properties.toArray());
+                        newData.WriteFromBuffer(texture.toArray(0, false)); // filled later
+                        package.setExportData(matched.exportID, newData.ToArray());
+                    }
+
+                    using (MemoryStream newData = new MemoryStream())
+                    {
+                        newData.WriteFromBuffer(texture.properties.toArray());
+                        newData.WriteFromBuffer(texture.toArray(package.exportsTable[matched.exportID].dataOffset + (uint)newData.Position));
+                        package.setExportData(matched.exportID, newData.ToArray());
+                    }
+
+                    if (GameData.gameType == MeType.ME1_TYPE)
+                    {
+                        if (matched.linkToMaster == -1)
+                            mod.masterTextures.Add(texture.mipMapsList, entryMap.listIndex);
+                    }
+                    else
+                    {
+                        if (triggerCacheArc)
+                        {
+                            mod.arcTexture = texture.mipMapsList;
+                            mod.arcTfcGuid = texture.properties.getProperty("TFCFileGuid").valueStruct;
+                            mod.arcTfcName = texture.properties.getProperty("TextureFileCacheName").valueName;
+                        }
+                    }
+
+                    matched.removeEmptyMips = false;
+
+                    mod.instance--;
+                    if (mod.instance < 0)
+                        throw new Exception();
+                    if (mod.instance == 0)
+                    {
+                        if (mod.arcTexture != null)
+                        {
+                            mod.arcTexture.Clear();
+                            mod.arcTexture = null;
+                        }
+                        if (mod.cacheCprMipmaps != null)
+                        {
+                            mod.cacheCprMipmaps.Clear();
+                            mod.cacheCprMipmaps = null;
+                        }
+                        mod.cacheImage = null;
+                        mod.arcTfcGuid = null;
+                        if (mod.masterTextures != null)
+                        {
+                            mod.masterTextures.Clear();
+                            mod.masterTextures = null;
+                        }
+                    }
+
+                    if (memorySize <= 6 && mod.cacheCprMipmaps != null && modsToReplace.Count != 1)
+                    {
+                        mod.cacheCprMipmaps.Clear();
+                        mod.cacheCprMipmaps = null;
+                    }
+
+                    modsToReplace[entryMap.modIndex] = mod;
+                    textures[entryMap.texturesIndex].list[entryMap.listIndex] = matched;
+                }
+
+                if (package.SaveToFile(repack, false, appendMarker))
+                {
+                    if (repack && CmdLineTools.pkgsToRepack != null)
+                        CmdLineTools.pkgsToRepack.Remove(package.packagePath);
+                    if (appendMarker && CmdLineTools.pkgsToMarker != null)
+                        CmdLineTools.pkgsToMarker.Remove(package.packagePath);
+                }
+                package.Dispose();
+                package = null;
+
+                if (memorySize < 16 && modsToReplace.Count != 1)
+                {
+                    GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+                    GC.Collect();
+                }
+            }
+
+            return errors;
+        }
+
+        public string replaceModsFromList(List<FoundTexture> textures, bool repack, bool appendMarker, bool verify, bool ipc)
+        {
+            string errors = "";
+            bool binaryMods = false;
+
+            if (!ipc)
+            {
+                Console.WriteLine("Preparing...");
+            }
+
+            // Remove duplicates
+            for (int i = 0; i < modsToReplace.Count; i++)
+            {
+                ModEntry mod = modsToReplace[i];
+                for (int l = 0; l < i; l++)
+                {
+                    if (mod.binaryModType)
+                        binaryMods = true;
+                    if ((mod.textureCrc != 0 && mod.textureCrc == modsToReplace[l].textureCrc) ||
+                        (mod.binaryModType && modsToReplace[l].binaryModType &&
+                        mod.exportId == modsToReplace[l].exportId &&
+                        mod.packagePath.ToLowerInvariant() == modsToReplace[l].packagePath.ToLowerInvariant()))
+                    {
+                        modsToReplace.RemoveAt(l);
+                        i--;
+                        break;
+                    }
+                }
+            }
+
+            List<MapTexturesToMod> map = new List<MapTexturesToMod>();
+            List<MapTexturesToMod> mapSlaves = new List<MapTexturesToMod>();
+
+            for (int k = 0; k < textures.Count; k++)
+            {
+                int index = -1;
+                for (int t = 0; t < modsToReplace.Count; t++)
+                {
+                    if (textures[k].crc == modsToReplace[t].textureCrc)
+                    {
+                        index = t;
+                        break;
+                    }
+                }
+                if (index == -1)
+                    continue;
+
+                for (int t = 0; t < textures[k].list.Count; t++)
+                {
+                    if (textures[k].list[t].path == "")
+                        continue;
+
+                    MapTexturesToMod entry = new MapTexturesToMod();
+                    entry.packagePath = textures[k].list[t].path;
+                    entry.modIndex = index;
+                    entry.listIndex = t;
+                    entry.texturesIndex = k;
+                    if (GameData.gameType == MeType.ME1_TYPE && textures[k].list[t].linkToMaster != -1)
+                        mapSlaves.Add(entry);
+                    else
+                        map.Add(entry);
+
+                    ModEntry mod = modsToReplace[index];
+                    mod.instance++;
+                    modsToReplace[index] = mod;
+                }
+            }
+
+
+            map.Sort((x, y) => x.packagePath.CompareTo(y.packagePath));
+            List<MapPackagesToMod> mapPackages = new List<MapPackagesToMod>();
+            string previousPath = "";
+            int packagesIndex = -1;
+            for (int i = 0; i < map.Count; i++)
+            {
+                MapPackagesToModEntry entry = new MapPackagesToModEntry();
+                entry.modIndex = map[i].modIndex;
+                entry.texturesIndex = map[i].texturesIndex;
+                entry.listIndex = map[i].listIndex;
+                string path = map[i].packagePath.ToLowerInvariant();
+                if (previousPath == path)
+                {
+                    mapPackages[packagesIndex].textures.Add(entry);
+                    MapPackagesToMod mapEntry = mapPackages[packagesIndex];
+                    mapEntry.usage += modsToReplace[map[i].modIndex].memEntrySize;
+                    mapEntry.instances += modsToReplace[map[i].modIndex].instance;
+                    mapPackages[packagesIndex] = mapEntry;
+                }
+                else
+                {
+                    MapPackagesToMod mapEntry = new MapPackagesToMod();
+                    mapEntry.textures = new List<MapPackagesToModEntry>();
+                    mapEntry.textures.Add(entry);
+                    mapEntry.packagePath = map[i].packagePath;
+                    mapEntry.usage = modsToReplace[map[i].modIndex].memEntrySize;
+                    mapEntry.instances = modsToReplace[map[i].modIndex].instance;
+                    previousPath = map[i].packagePath.ToLowerInvariant();
+                    mapPackages.Add(mapEntry);
+                    packagesIndex++;
+                }
+            }
+            map.Clear();
+
+            for (int i = 0; i < map.Count; i++)
+            {
+                MapPackagesToMod mapEntry = mapPackages[i];
+                mapEntry.weight = mapEntry.usage * mapEntry.instances;
+            }
+
+            mapSlaves.Sort((x, y) => x.packagePath.CompareTo(y.packagePath));
+            previousPath = "";
+            for (int i = 0; i < mapSlaves.Count; i++)
+            {
+                MapPackagesToModEntry entry = new MapPackagesToModEntry();
+                entry.modIndex = mapSlaves[i].modIndex;
+                entry.texturesIndex = mapSlaves[i].texturesIndex;
+                entry.listIndex = mapSlaves[i].listIndex;
+                string path = mapSlaves[i].packagePath.ToLowerInvariant();
+                if (previousPath == path)
+                {
+                    mapPackages[packagesIndex].textures.Add(entry);
+                    MapPackagesToMod mapEntry = mapPackages[packagesIndex];
+                    mapEntry.usage += modsToReplace[mapSlaves[i].modIndex].memEntrySize;
+                    mapEntry.instances = modsToReplace[mapSlaves[i].modIndex].instance;
+                    mapPackages[packagesIndex] = mapEntry;
+                }
+                else
+                {
+                    MapPackagesToMod mapEntry = new MapPackagesToMod();
+                    mapEntry.textures = new List<MapPackagesToModEntry>();
+                    mapEntry.textures.Add(entry);
+                    mapEntry.packagePath = mapSlaves[i].packagePath;
+                    mapEntry.usage = modsToReplace[mapSlaves[i].modIndex].memEntrySize;
+                    mapEntry.instances = modsToReplace[mapSlaves[i].modIndex].instance;
+                    previousPath = mapSlaves[i].packagePath.ToLowerInvariant();
+                    mapPackages.Add(mapEntry);
+                    packagesIndex++;
+                }
+            }
+            mapSlaves.Clear();
+
+            if (binaryMods)
+            {
+                if (!ipc)
+                {
+                    Console.WriteLine("Installing binary mods...");
+                }
+
+                for (int i = 0; i < modsToReplace.Count; i++)
+                {
+                    ModEntry mod = modsToReplace[i];
+                    if (mod.binaryModType)
+                    {
+                        string path = GameData.GamePath + mod.packagePath;
+                        if (!File.Exists(path))
+                        {
+                            errors += "Warning: File " + path + " not exists in your game setup." + Environment.NewLine;
+                            continue;
+                        }
+                        Package pkg = new Package(path);
+                        pkg.setExportData(mod.exportId, mod.binaryModData);
+                        if (pkg.SaveToFile(repack, false, appendMarker))
+                        {
+                            if (repack && CmdLineTools.pkgsToRepack != null)
+                                CmdLineTools.pkgsToRepack.Remove(pkg.packagePath);
+                            if (appendMarker && CmdLineTools.pkgsToMarker != null)
+                                CmdLineTools.pkgsToMarker.Remove(pkg.packagePath);
+                        }
+                        pkg.Dispose();
+                    }
+                }
+            }
+
+            if (mapPackages.Count != 0)
+            {
+                if (!ipc)
+                {
+                    Console.WriteLine("Installing texture mods...");
+                }
+
+                errors += replaceTextures(mapPackages, textures, repack, appendMarker, verify, ipc);
+            }
+
+            modsToReplace.Clear();
 
             return errors;
         }
