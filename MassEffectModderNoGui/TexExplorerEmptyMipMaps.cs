@@ -94,7 +94,7 @@ namespace MassEffectModder
                 Package package = null;
                 try
                 {
-                    package = new Package(GameData.GamePath + list[i].pkgPath, true);
+                    package = new Package(GameData.GamePath + list[i].pkgPath);
                 }
                 catch (Exception e)
                 {
@@ -261,7 +261,7 @@ namespace MassEffectModder
                 Package package = null;
                 try
                 {
-                    package = new Package(GameData.GamePath + list[i].pkgPath, true);
+                    package = new Package(GameData.GamePath + list[i].pkgPath);
                 }
                 catch (Exception e)
                 {

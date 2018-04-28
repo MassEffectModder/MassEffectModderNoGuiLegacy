@@ -164,7 +164,7 @@ namespace MassEffectModder
                 Package package;
                 try
                 {
-                    package = new Package(GameData.GamePath + map[e].packagePath, true);
+                    package = new Package(GameData.GamePath + map[e].packagePath);
                 }
                 catch (Exception ex)
                 {

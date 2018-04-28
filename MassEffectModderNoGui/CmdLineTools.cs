@@ -2053,7 +2053,7 @@ namespace MassEffectModder
                 }
                 try
                 {
-                    package = new Package(GameData.packageFiles[i], true);
+                    package = new Package(GameData.packageFiles[i]);
                 }
                 catch (Exception e)
                 {
