@@ -1213,7 +1213,7 @@ namespace MassEffectModder
                 }
                 try
                 {
-                    Package package = new Package(pkgsToRepack[i], false, true);
+                    Package package = new Package(pkgsToRepack[i], true);
                     if (!package.compressed || package.compressed && package.compressionType != Package.CompressionType.Zlib)
                     {
                         package.Dispose();
@@ -1683,7 +1683,7 @@ namespace MassEffectModder
             return status;
         }
 
-        static public string replaceTextureSpecialME3Mod(Image image, List<MatchedTexture> list, CachePackageMgr cachePackageMgr, string textureName, uint crc, string tfcName, byte[] guid)
+        static public string replaceTextureSpecialME3Mod(Image image, List<MatchedTexture> list, string textureName, uint crc, string tfcName, byte[] guid)
         {
             Texture arcTexture = null, cprTexture = null;
             string errors = "";
