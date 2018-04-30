@@ -1365,7 +1365,7 @@ namespace MassEffectModder
                 if (!loadTexturesMapFile(mapFile, ipc))
                     return false;
             }
-            bool status = applyMods(modFiles, modded, repack, ipc);
+            applyMods(modFiles, repack, modded, ipc);
 
 
             if (!modded)
