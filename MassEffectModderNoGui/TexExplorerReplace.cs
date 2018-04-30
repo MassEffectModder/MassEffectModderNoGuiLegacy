@@ -83,6 +83,8 @@ namespace MassEffectModder
         public long usage;
         public int instances;
         public long weight;
+        public bool slave;
+        public MipMaps.RemoveMipsEntry removeMips;
     }
 
     public partial class MipMaps
@@ -137,7 +139,7 @@ namespace MassEffectModder
         }
 
         public string replaceTextures(List<MapPackagesToMod> map, List<FoundTexture> textures,
-            bool repack, bool appendMarker, bool verify, bool ipc)
+            bool repack, bool appendMarker, bool verify, bool removeMips, bool ipc)
         {
             string errors = "";
             int lastProgress = -1;
@@ -616,6 +618,17 @@ namespace MassEffectModder
                     }
 
                     matched.removeEmptyMips = false;
+                    if (!map[e].slave)
+                    {
+                        for (int r = 0; r < map[e].removeMips.exportIDs.Count; r++)
+                        {
+                            if (map[e].removeMips.exportIDs[r] == matched.exportID)
+                            {
+                                map[e].removeMips.exportIDs.RemoveAt(r);
+                                break;
+                            }
+                        }
+                    }
 
                     mod.instance--;
                     if (mod.instance < 0)
@@ -651,14 +664,24 @@ namespace MassEffectModder
                     textures[entryMap.texturesIndex].list[entryMap.listIndex] = matched;
                 }
 
-                if (package.SaveToFile(repack, false, appendMarker))
+                if (removeMips && !map[e].slave)
                 {
-                    if (repack && CmdLineTools.pkgsToRepack != null)
-                        CmdLineTools.pkgsToRepack.Remove(package.packagePath);
-                    if (appendMarker && CmdLineTools.pkgsToMarker != null)
-                        CmdLineTools.pkgsToMarker.Remove(package.packagePath);
+                    if (GameData.gameType == MeType.ME1_TYPE)
+                        removeMipMapsME1(1, textures, package, map[e].removeMips, ipc);
+                    else
+                        removeMipMapsME2ME3(textures, package, map[e].removeMips, ipc, repack);
                 }
-                package.Dispose();
+                else
+                {
+                    if (package.SaveToFile(repack, false, appendMarker))
+                    {
+	                    if (repack && CmdLineTools.pkgsToRepack != null)
+	                        CmdLineTools.pkgsToRepack.Remove(package.packagePath);
+	                    if (appendMarker && CmdLineTools.pkgsToMarker != null)
+	                        CmdLineTools.pkgsToMarker.Remove(package.packagePath);
+                    }
+                    package.Dispose();
+                }
                 package = null;
 
                 if (memorySize < 16 && modsToReplace.Count != 1)
@@ -671,7 +694,8 @@ namespace MassEffectModder
             return errors;
         }
 
-        public string replaceModsFromList(List<FoundTexture> textures, bool repack, bool appendMarker, bool verify, bool ipc)
+        public string replaceModsFromList(List<FoundTexture> textures,
+            bool repack, bool appendMarker, bool verify, bool removeMips, bool ipc)
         {
             string errors = "";
             bool binaryMods = false;
@@ -767,18 +791,14 @@ namespace MassEffectModder
                     mapEntry.packagePath = map[i].packagePath;
                     mapEntry.usage = modsToReplace[map[i].modIndex].memEntrySize;
                     mapEntry.instances = modsToReplace[map[i].modIndex].instance;
+                    mapEntry.removeMips.exportIDs = new List<int>();
+                    mapEntry.removeMips.pkgPath = map[i].packagePath;
                     previousPath = map[i].packagePath.ToLowerInvariant();
                     mapPackages.Add(mapEntry);
                     packagesIndex++;
                 }
             }
             map.Clear();
-
-            for (int i = 0; i < map.Count; i++)
-            {
-                MapPackagesToMod mapEntry = mapPackages[i];
-                mapEntry.weight = mapEntry.usage * mapEntry.instances;
-            }
 
             mapSlaves.Sort((x, y) => x.packagePath.CompareTo(y.packagePath));
             previousPath = "";
@@ -805,12 +825,41 @@ namespace MassEffectModder
                     mapEntry.packagePath = mapSlaves[i].packagePath;
                     mapEntry.usage = modsToReplace[mapSlaves[i].modIndex].memEntrySize;
                     mapEntry.instances = modsToReplace[mapSlaves[i].modIndex].instance;
+                    mapEntry.slave = true;
                     previousPath = mapSlaves[i].packagePath.ToLowerInvariant();
                     mapPackages.Add(mapEntry);
                     packagesIndex++;
                 }
             }
             mapSlaves.Clear();
+
+            if (removeMips)
+            {
+                for (int k = 0; k < textures.Count; k++)
+                {
+                    for (int t = 0; t < textures[k].list.Count; t++)
+                    {
+                        if (textures[k].list[t].path == "")
+                            continue;
+                        if (textures[k].list[t].removeEmptyMips)
+                        {
+                            for (int e = 0; e < mapPackages.Count; e++)
+                            {
+                                if (mapPackages[e].slave)
+                                    continue;
+                                if (mapPackages[e].packagePath == textures[k].list[t].path)
+                                {
+                                    mapPackages[e].removeMips.exportIDs.Add(textures[k].list[t].exportID);
+                                    MatchedTexture f = textures[k].list[t];
+                                    f.removeEmptyMips = false;
+                                    textures[k].list[t] = f;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             if (binaryMods)
             {
@@ -851,7 +900,7 @@ namespace MassEffectModder
                     Console.WriteLine("Installing texture mods...");
                 }
 
-                errors += replaceTextures(mapPackages, textures, repack, appendMarker, verify, ipc);
+                errors += replaceTextures(mapPackages, textures, repack, appendMarker, verify, removeMips, ipc);
             }
 
             modsToReplace.Clear();

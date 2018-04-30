@@ -52,6 +52,7 @@ namespace MassEffectModder
 
         static List<FoundTexture> textures;
         static TreeScan treeScan;
+        static MipMaps mipMaps;
         static public List<string> pkgsToRepack = null;
         static public List<string> pkgsToMarker = null;
 
@@ -1158,7 +1159,6 @@ namespace MassEffectModder
 
         private static bool RemoveMipmaps(MeType gameId, bool ipc, bool repack = false)
         {
-            MipMaps mipMaps = new MipMaps();
             Console.WriteLine("Remove mipmaps started...");
             if (ipc)
             {
@@ -1242,6 +1242,7 @@ namespace MassEffectModder
         {
             textures = new List<FoundTexture>();
             treeScan = new TreeScan();
+            mipMaps = new MipMaps();
             ConfIni configIni = new ConfIni();
             GameData gameData = new GameData(gameId, configIni);
             if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
@@ -1674,7 +1675,7 @@ namespace MassEffectModder
                 }
             }
 
-            new MipMaps().replaceModsFromList(textures, repack, !modded, false, ipc);
+            mipMaps.replaceModsFromList(textures, repack, !modded, false, !modded, ipc);
 
             MipMaps.modsToReplace.Clear();
 
