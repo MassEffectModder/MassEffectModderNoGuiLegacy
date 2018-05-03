@@ -2062,7 +2062,7 @@ namespace MassEffectModder
                 {
                     Console.WriteLine("Package " + (i + 1) + " of " + GameData.packageFiles.Count + " - " + GameData.RelativeGameData(GameData.packageFiles[i]));
                 }
-                int newProgress = i * 100 / GameData.packageFiles.Count;
+                int newProgress = (i + 1) * 100 / GameData.packageFiles.Count;
                 if (ipc && lastProgress != newProgress)
                 {
                     Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
