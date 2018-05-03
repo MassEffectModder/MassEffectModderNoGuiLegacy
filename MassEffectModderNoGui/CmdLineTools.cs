@@ -1123,8 +1123,14 @@ namespace MassEffectModder
             return false;
         }
 
-        static public void AddMarkers(MeType gameType)
+        static public void AddMarkers(MeType gameType, bool ipc)
         {
+            Console.WriteLine("Adding markers started...");
+            if (ipc)
+            {
+                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_INSTALLMARKERS");
+                Console.Out.Flush();
+            }
             for (int i = 0; i < pkgsToMarker.Count; i++)
             {
                 try
@@ -1145,6 +1151,7 @@ namespace MassEffectModder
                 {
                 }
             }
+            Console.WriteLine("Adding markers finished.");
         }
 
         private static bool ScanTextures(MeType gameId, bool ipc, bool repack = false)
@@ -1300,6 +1307,8 @@ namespace MassEffectModder
                     Console.WriteLine("[IPC]STAGE_ADD STAGE_REMOVEMIPMAPS");
                 if (repack)
                     Console.WriteLine("[IPC]STAGE_ADD STAGE_REPACK");
+                if (!modded)
+                    Console.WriteLine("[IPC]STAGE_ADD STAGE_INSTALLMARKERS");
                 Console.Out.Flush();
             }
 
@@ -1377,7 +1386,7 @@ namespace MassEffectModder
 
 
             if (!modded)
-                AddMarkers(gameId);
+                AddMarkers(gameId, ipc);
 
 
             if (!guiInstaller)
