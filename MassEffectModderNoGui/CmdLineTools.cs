@@ -1131,8 +1131,16 @@ namespace MassEffectModder
                 Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_INSTALLMARKERS");
                 Console.Out.Flush();
             }
+            int lastProgress = -1;
             for (int i = 0; i < pkgsToMarker.Count; i++)
             {
+                int newProgress = (i * 100 / pkgsToMarker.Count);
+                if (ipc && lastProgress != newProgress)
+                {
+                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+                    Console.Out.Flush();
+                    lastProgress = newProgress;
+                }
                 try
                 {
                     using (FileStream fs = new FileStream(pkgsToMarker[i], FileMode.Open, FileAccess.ReadWrite))
