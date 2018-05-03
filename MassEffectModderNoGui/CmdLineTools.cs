@@ -1128,7 +1128,7 @@ namespace MassEffectModder
             Console.WriteLine("Adding markers started...");
             if (ipc)
             {
-                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_INSTALLMARKERS");
+                Console.WriteLine("[IPC]STAGE_CONTEXT STAGE_MARKERS");
                 Console.Out.Flush();
             }
             int lastProgress = -1;
@@ -1316,7 +1316,7 @@ namespace MassEffectModder
                 if (repack)
                     Console.WriteLine("[IPC]STAGE_ADD STAGE_REPACK");
                 if (!modded)
-                    Console.WriteLine("[IPC]STAGE_ADD STAGE_INSTALLMARKERS");
+                    Console.WriteLine("[IPC]STAGE_ADD STAGE_MARKERS");
                 Console.Out.Flush();
             }
 
