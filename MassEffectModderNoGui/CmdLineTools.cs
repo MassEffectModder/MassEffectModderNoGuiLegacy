@@ -1134,7 +1134,7 @@ namespace MassEffectModder
             int lastProgress = -1;
             for (int i = 0; i < pkgsToMarker.Count; i++)
             {
-                int newProgress = (i * 100 / pkgsToMarker.Count);
+                int newProgress = (i + 1) * 100 / pkgsToMarker.Count;
                 if (ipc && lastProgress != newProgress)
                 {
                     Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
