@@ -923,7 +923,8 @@ namespace MassEffectModder
         static public PixelFormat changeTextureType(PixelFormat gamePixelFormat, PixelFormat texturePixelFormat, TexProperty.TextureTypes flags)
         {
             if ((gamePixelFormat == PixelFormat.DXT5 || gamePixelFormat == PixelFormat.DXT1 || gamePixelFormat == PixelFormat.ATI2) &&
-                (texturePixelFormat == PixelFormat.RGB || texturePixelFormat == PixelFormat.ARGB || texturePixelFormat == PixelFormat.ATI2))
+                (texturePixelFormat == PixelFormat.RGB || texturePixelFormat == PixelFormat.ARGB ||
+                 texturePixelFormat == PixelFormat.ATI2 || texturePixelFormat == PixelFormat.V8U8))
             {
                 if (texturePixelFormat == PixelFormat.ARGB && flags == TexProperty.TextureTypes.OneBitAlpha)
                 {
@@ -935,11 +936,22 @@ namespace MassEffectModder
                 {
                     gamePixelFormat = PixelFormat.ATI2;
                 }
-                else if ((gamePixelFormat == PixelFormat.DXT5 || gamePixelFormat == PixelFormat.DXT1) &&
-                    (texturePixelFormat == PixelFormat.ARGB || texturePixelFormat == PixelFormat.RGB) &&
-                    flags == TexProperty.TextureTypes.Normal)
+                else if (GameData.gameType != MeType.ME3_TYPE && texturePixelFormat == PixelFormat.ARGB &&
+                    flags == TexProperty.TextureTypes.Normalmap)
                 {
                     gamePixelFormat = PixelFormat.ARGB;
+                }
+                else if ((gamePixelFormat == PixelFormat.DXT5 || gamePixelFormat == PixelFormat.DXT1) &&
+                    (texturePixelFormat == PixelFormat.ARGB || texturePixelFormat == PixelFormat.RGB) &&
+                    flags != TexProperty.TextureTypes.Normal)
+                {
+                    gamePixelFormat = PixelFormat.ARGB;
+                }
+                else if ((gamePixelFormat == PixelFormat.DXT5 || gamePixelFormat == PixelFormat.DXT1) &&
+                    texturePixelFormat == PixelFormat.V8U8 && GameData.gameType == MeType.ME3_TYPE &&
+                    flags == TexProperty.TextureTypes.Normal)
+                {
+                    gamePixelFormat = PixelFormat.V8U8;
                 }
             }
 
