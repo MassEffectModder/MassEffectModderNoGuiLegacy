@@ -712,10 +712,10 @@ namespace MassEffectModder
                 {
                     if (package.SaveToFile(repack, false, appendMarker))
                     {
-	                    if (repack && CmdLineTools.pkgsToRepack != null)
-	                        CmdLineTools.pkgsToRepack.Remove(package.packagePath);
-	                    if (appendMarker && CmdLineTools.pkgsToMarker != null)
-	                        CmdLineTools.pkgsToMarker.Remove(package.packagePath);
+                        if (repack && CmdLineTools.pkgsToRepack != null)
+                            CmdLineTools.pkgsToRepack.Remove(package.packagePath);
+                        if (appendMarker && CmdLineTools.pkgsToMarker != null)
+                            CmdLineTools.pkgsToMarker.Remove(package.packagePath);
                     }
                     package.Dispose();
                 }

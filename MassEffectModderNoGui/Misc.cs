@@ -1016,12 +1016,12 @@ namespace MassEffectModder
                 if (ipc)
                 {
                     Console.WriteLine("[IPC]PROCESSING_FILE " + Path.GetFileName(file));
-	                int newProgress = (n * 100) / files.Count();
-	                if (lastProgress != newProgress)
-	                {
-	                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-	                    lastProgress = newProgress;
-	                }
+                    int newProgress = (n * 100) / files.Count();
+                    if (lastProgress != newProgress)
+                    {
+                        Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+                        lastProgress = newProgress;
+                    }
                     Console.Out.Flush();
                 }
                 else
@@ -1735,7 +1735,7 @@ namespace MassEffectModder
                         else
                         {
                             Console.WriteLine("Error in texture: " + relativeFilePath + " This texture has wrong aspect ratio, skipping texture...");
-						}
+                        }
                         continue;
                     }
 
@@ -2093,16 +2093,16 @@ namespace MassEffectModder
             int lastProgress = -1;
             for (int l = 0; l < packageMainFiles.Count; l++)
             {
-				int newProgress = (l + progress) * 100 / allFilesCount;
-				if (ipc)
-				{
-	                if (lastProgress != newProgress)
-	                {
-	                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-	                    Console.Out.Flush();
-	                    lastProgress = newProgress;
-	                }
-				}
+                int newProgress = (l + progress) * 100 / allFilesCount;
+                if (ipc)
+                {
+                    if (lastProgress != newProgress)
+                    {
+                        Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+                        Console.Out.Flush();
+                        lastProgress = newProgress;
+                    }
+                }
                 byte[] md5 = calculateMD5(packageMainFiles[l]);
                 bool found = false;
                 for (int p = 0; p < entries.Count(); p++)
@@ -2201,11 +2201,11 @@ namespace MassEffectModder
                         errors += string.Format("{0:x2}", entries[index].md5[i]);
                     }
                     errors += Environment.NewLine;
-	                if (ipc)
-	                {
-	                    Console.WriteLine("[IPC]ERROR " + packageMainFiles[l]);
-	                    Console.Out.Flush();
-					}
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]ERROR " + packageMainFiles[l]);
+                        Console.Out.Flush();
+                    }
                 }
             }
             progress += packageMainFiles.Count();
@@ -2214,16 +2214,16 @@ namespace MassEffectModder
             {
                 for (int l = 0; l < packageDLCFiles.Count; l++)
                 {
-					if (ipc)
-					{
-						int newProgress = (l + progress) * 100 / allFilesCount;
-	                    if (lastProgress != newProgress)
-	                    {
-	                        Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-	                        Console.Out.Flush();
-	                        lastProgress = newProgress;
-	                    }
-					}
+                    if (ipc)
+                    {
+                        int newProgress = (l + progress) * 100 / allFilesCount;
+                        if (lastProgress != newProgress)
+                        {
+                            Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+                            Console.Out.Flush();
+                            lastProgress = newProgress;
+                        }
+                    }
                     byte[] md5 = calculateMD5(packageDLCFiles[l]);
                     bool found = false;
                     for (int p = 0; p < entries.Count(); p++)
@@ -2323,11 +2323,11 @@ namespace MassEffectModder
                         }
                         errors += Environment.NewLine;
 
-	                    if (ipc)
-	                    {
-	                        Console.WriteLine("[IPC]ERROR " + packageDLCFiles[l]);
-	                        Console.Out.Flush();
-						}
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR " + packageDLCFiles[l]);
+                            Console.Out.Flush();
+                        }
                     }
                 }
                 progress += packageDLCFiles.Count();
@@ -2337,16 +2337,16 @@ namespace MassEffectModder
             {
                 for (int l = 0; l < sfarFiles.Count; l++)
                 {
-					if (ipc)
-					{
-						int newProgress = (l + progress) * 100 / allFilesCount;
-	                    if (lastProgress != newProgress)
-	                    {
-	                        Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-	                        Console.Out.Flush();
-	                        lastProgress = newProgress;
-	                    }
-					}
+                    if (ipc)
+                    {
+                        int newProgress = (l + progress) * 100 / allFilesCount;
+                        if (lastProgress != newProgress)
+                        {
+                            Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+                            Console.Out.Flush();
+                            lastProgress = newProgress;
+                        }
+                    }
                     byte[] md5 = calculateMD5(sfarFiles[l]);
                     bool found = false;
                     for (int p = 0; p < entries.Count(); p++)
@@ -2387,12 +2387,12 @@ namespace MassEffectModder
                         }
                         errors += Environment.NewLine;
 
-	                    if (ipc)
-	                    {
-	                        Console.WriteLine("[IPC]ERROR " + sfarFiles[l]);
-	                        Console.Out.Flush();
-	                    }
-					}
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR " + sfarFiles[l]);
+                            Console.Out.Flush();
+                        }
+                    }
                 }
                 progress += sfarFiles.Count();
             }
@@ -2401,16 +2401,16 @@ namespace MassEffectModder
             {
                 for (int l = 0; l < tfcFiles.Count; l++)
                 {
-					if (ipc)
-					{
-						int newProgress = (l + progress) * 100 / allFilesCount;
-	                    if (lastProgress != newProgress)
-	                    {
-	                        Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
-	                        Console.Out.Flush();
-	                        lastProgress = newProgress;
-	                    }
-					}
+                    if (ipc)
+                    {
+                        int newProgress = (l + progress) * 100 / allFilesCount;
+                        if (lastProgress != newProgress)
+                        {
+                            Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+                            Console.Out.Flush();
+                            lastProgress = newProgress;
+                        }
+                    }
                     byte[] md5 = calculateMD5(tfcFiles[l]);
                     bool found = false;
                     for (int p = 0; p < entries.Count(); p++)
@@ -2450,12 +2450,12 @@ namespace MassEffectModder
                             errors += string.Format("{0:x2}", entries[index].md5[i]);
                         }
                         errors += Environment.NewLine;
-	                    if (ipc)
-	                    {
-	                        Console.WriteLine("[IPC]ERROR " + tfcFiles[l]);
-	                        Console.Out.Flush();
-	                    }
-					}
+                        if (ipc)
+                        {
+                            Console.WriteLine("[IPC]ERROR " + tfcFiles[l]);
+                            Console.Out.Flush();
+                        }
+                    }
                 }
                 progress += tfcFiles.Count();
             }

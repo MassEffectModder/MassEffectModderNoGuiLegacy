@@ -170,7 +170,7 @@ namespace MassEffectModder
                         }
                         else
                         {
-                        	Console.WriteLine("Error: Texture " + package.exportsTable[exportID].objectName + " not found in package: " + removeEntry.pkgPath + ", skipping..." + Environment.NewLine);
+                            Console.WriteLine("Error: Texture " + package.exportsTable[exportID].objectName + " not found in package: " + removeEntry.pkgPath + ", skipping..." + Environment.NewLine);
                         }
                         continue;
                     }
@@ -191,7 +191,7 @@ namespace MassEffectModder
                             }
                             else
                             {
-                            	Console.WriteLine("Error: Texture " + package.exportsTable[exportID].objectName + " in package: " + foundMasterTex.path + " has wrong reference, skipping..." + Environment.NewLine);
+                                Console.WriteLine("Error: Texture " + package.exportsTable[exportID].objectName + " in package: " + foundMasterTex.path + " has wrong reference, skipping..." + Environment.NewLine);
                             }
                             continue;
                         }
@@ -291,7 +291,7 @@ namespace MassEffectModder
                     }
                     return;
                 }
-             	removeMipMapsME2ME3(textures, package, list[i], ipc, repack);
+                removeMipMapsME2ME3(textures, package, list[i], ipc, repack);
             }
         }
 

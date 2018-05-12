@@ -1194,8 +1194,8 @@ namespace MassEffectModder
             Console.WriteLine("Remove mipmaps finished.\n");
 
             return true;
-        }		
- 
+        }
+
         static private void RepackME23(MeType gameId, bool modded, bool ipc)
         {
             Console.WriteLine("Repack started...");
@@ -2141,7 +2141,7 @@ namespace MassEffectModder
                             }
                             continue;
                         }
-                        
+
                         for (int m = 0; m < texture.mipMapsList.Count; m++)
                         {
                             try
