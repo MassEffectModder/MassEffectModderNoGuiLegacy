@@ -271,6 +271,9 @@ namespace MassEffectModder
             Console.WriteLine("  -check-game-data-only-vanilla <game id> [-ipc]\n");
             Console.WriteLine("     Check game data with md5 database.\n");
             Console.WriteLine("");
+            Console.WriteLine("  -check-for-markers <game id> [-ipc]\n");
+            Console.WriteLine("     Check game data for markers.\n");
+            Console.WriteLine("");
             Console.WriteLine("  -install-mods <game id> <input dir> [-repack] [-ipc] [-alot-mode]\n");
             Console.WriteLine("     Install MEM mods from input directory.\n");
             Console.WriteLine("");
@@ -289,7 +292,7 @@ namespace MassEffectModder
             Console.WriteLine("  -remove-lods <game id>\n");
             Console.WriteLine("     Remove LODs settings.\n");
             Console.WriteLine("");
-            Console.WriteLine("  -print-lods <game id>\n");
+            Console.WriteLine("  -print-lods <game id> [-ipc]\n");
             Console.WriteLine("     Print LODs settings.\n");
             Console.WriteLine("");
             Console.WriteLine("  -convert-to-mem <game id> <input dir> <output file> [-mark-to-convert] [-ipc]\n");
@@ -442,6 +445,7 @@ namespace MassEffectModder
                 cmd.Equals("-check-game-data-mismatch", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-after", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-only-vanilla", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-check-for-markers", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-extract-all-dds", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-extract-all-png", StringComparison.OrdinalIgnoreCase))
             {
@@ -511,10 +515,12 @@ namespace MassEffectModder
                 cmd.Equals("-extract-mem", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-bad-mods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-detect-mods", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-print-lods", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-textures", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-mismatch", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-after", StringComparison.OrdinalIgnoreCase) ||
-                cmd.Equals("-check-game-data-only-vanilla", StringComparison.OrdinalIgnoreCase))
+                cmd.Equals("-check-game-data-only-vanilla", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-check-for-markers", StringComparison.OrdinalIgnoreCase))
             {
                 for (int l = 0; l < args.Length; l++)
                 {
@@ -591,7 +597,7 @@ namespace MassEffectModder
             }
             else if (cmd.Equals("-print-lods", StringComparison.OrdinalIgnoreCase))
             {
-                if (!CmdLineTools.PrintLODSettings(gameId))
+                if (!CmdLineTools.PrintLODSettings(gameId, ipc))
                     goto fail;
             }
             else if (cmd.Equals("-check-game-data-textures", StringComparison.OrdinalIgnoreCase))
@@ -617,6 +623,11 @@ namespace MassEffectModder
                 loadEmbeddedDlls();
                 loadMD5Tables();
                 if (!CmdLineTools.CheckGameData(gameId, ipc))
+                    goto fail;
+            }
+            else if (cmd.Equals("-check-for-markers", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!CmdLineTools.CheckForMarkers(gameId, ipc))
                     goto fail;
             }
             else if (cmd.Equals("-convert-game-image", StringComparison.OrdinalIgnoreCase))

@@ -979,7 +979,7 @@ namespace MassEffectModder
             return true;
         }
 
-        public static bool PrintLODSettings(MeType gameId)
+        public static bool PrintLODSettings(MeType gameId, bool ipc)
         {
             ConfIni configIni = new ConfIni();
             GameData gameData = new GameData(gameId, configIni);
@@ -988,9 +988,16 @@ namespace MassEffectModder
             if (!exist)
                 return true;
             ConfIni engineConf = new ConfIni(path);
-            string log = "";
-            LODSettings.readLOD(gameId, engineConf, ref log);
-            Console.WriteLine(log);
+            if (ipc)
+            {
+                LODSettings.readLODIpc(gameId, engineConf);
+            }
+            else
+            {
+                string log = "";
+                LODSettings.readLOD(gameId, engineConf, ref log);
+                Console.WriteLine(log);
+            }
 
             return true;
         }
@@ -1031,6 +1038,76 @@ namespace MassEffectModder
             }
 
             return vanilla;
+        }
+
+        public static bool CheckForMarkers(MeType gameId, bool ipc)
+        {
+            ConfIni configIni = new ConfIni();
+            GameData gameData = new GameData(gameId, configIni);
+            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
+            {
+                Console.WriteLine("Error: Could not found the game!");
+                return false;
+            }
+
+            gameData.getPackages();
+
+            List<string> packages = new List<string>();
+            for (int i = 0; i < GameData.packageFiles.Count; i++)
+            {
+                packages.Add(GameData.packageFiles[i]);
+            }
+            if (GameData.gameType == MeType.ME1_TYPE)
+                packages.Remove(GameData.GamePath + @"\BioGame\CookedPC\testVolumeLight_VFX.upk");
+            else if (GameData.gameType == MeType.ME2_TYPE)
+                packages.Remove(GameData.GamePath + @"\BioGame\CookedPC\BIOC_Materials.pcc");
+
+            int lastProgress = -1;
+            for (int i = 0; i < packages.Count; i++)
+            {
+                int newProgress = (i + 1) * 100 / packages.Count;
+                if (ipc && lastProgress != newProgress)
+                {
+                    Console.WriteLine("[IPC]TASK_PROGRESS " + newProgress);
+                    Console.Out.Flush();
+                    lastProgress = newProgress;
+                }
+                try
+                {
+                    using (FileStream fs = new FileStream(packages[i], FileMode.Open, FileAccess.Read))
+                    {
+                        fs.SeekEnd();
+                        fs.Seek(-Package.MEMendFileMarker.Length, SeekOrigin.Current);
+                        string marker = fs.ReadStringASCII(Package.MEMendFileMarker.Length);
+                        if (marker == Package.MEMendFileMarker)
+                        {
+                            if (ipc)
+                            {
+                                Console.WriteLine("[IPC]ERROR_FILEMARKER_FOUND " + packages[i]);
+                                Console.Out.Flush();
+                            }
+                            else
+                            {
+                                Console.WriteLine("Error: detected marker: " + packages[i]);
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    if (ipc)
+                    {
+                        Console.WriteLine("[IPC]ERROR File is 0 bytes: " + packages[i]);
+                        Console.Out.Flush();
+                    }
+                    else
+                    {
+                        Console.WriteLine("Error: file is 0 bytes " + packages[i]);
+                    }
+                }
+            }
+
+            return true;
         }
 
         public static bool DetectBadMods(MeType gameId, bool ipc)
