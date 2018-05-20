@@ -694,6 +694,7 @@ namespace MassEffectModder
             else if (cmd.Equals("-extract-mem", StringComparison.OrdinalIgnoreCase))
             {
                 loadEmbeddedDlls();
+                loadMD5Tables();
                 if (!CmdLineTools.extractMEM(gameId, input, output, ipc))
                     goto fail;
             }
