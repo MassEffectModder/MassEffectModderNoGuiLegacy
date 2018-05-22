@@ -1594,7 +1594,10 @@ namespace MassEffectModder
                 }
                 else
                 {
-                    Console.WriteLine("Preparing mod: " + (i + 1) + " of " + files.Count + " - " + Path.GetFileName(files[i]));
+                    if (special)
+                        Console.WriteLine("Installing mod: " + (i + 1) + " of " + files.Count + " - " + Path.GetFileName(files[i]));
+                    else
+                        Console.WriteLine("Preparing mod: " + (i + 1) + " of " + files.Count + " - " + Path.GetFileName(files[i]));
                 }
 
                 try
