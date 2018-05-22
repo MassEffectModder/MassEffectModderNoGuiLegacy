@@ -1504,11 +1504,11 @@ namespace MassEffectModder
             return true;
         }
 
-        static public bool applyMEMSpecialModME3(string memFile, string tfcName, byte[] guid)
+        static public bool applyMEMSpecialModME3(MeType gameId, string memFile, string tfcName, byte[] guid)
         {
             textures = new List<FoundTexture>();
             ConfIni configIni = new ConfIni();
-            GameData gameData = new GameData(MeType.ME3_TYPE, configIni);
+            GameData gameData = new GameData(gameId, configIni);
             if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
             {
                 Console.WriteLine("Error: Could not found the game!");
@@ -1520,7 +1520,7 @@ namespace MassEffectModder
 
             string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     Program.MAINEXENAME);
-            string mapFile = Path.Combine(path, "me3map.bin");
+            string mapFile = Path.Combine(path, "me" + (int)gameId + "map.bin");
             if (!loadTexturesMapFile(mapFile, false))
                 return false;
 
@@ -1921,11 +1921,19 @@ namespace MassEffectModder
                                 }
                                 else
                                 {
-                                    mipmap.storageType = Texture.StorageTypes.extZlib;
+                                    if (GameData.gameType == MeType.ME2_TYPE)
+                                        mipmap.storageType = Texture.StorageTypes.extLZO;
+                                    else
+                                        mipmap.storageType = Texture.StorageTypes.extZlib;
                                 }
                             }
                         }
                     }
+
+                    if (mipmap.storageType == Texture.StorageTypes.extLZO)
+                        mipmap.storageType = Texture.StorageTypes.extZlib;
+                    if (mipmap.storageType == Texture.StorageTypes.pccLZO)
+                        mipmap.storageType = Texture.StorageTypes.pccZlib;
 
                     mipmap.uncompressedSize = image.mipMaps[m].data.Length;
                     if (mipmap.storageType == Texture.StorageTypes.extZlib ||
@@ -1952,6 +1960,7 @@ namespace MassEffectModder
                         mipmap.newData = image.mipMaps[m].data;
                     }
                     if (mipmap.storageType == Texture.StorageTypes.extZlib ||
+                        mipmap.storageType == Texture.StorageTypes.extLZO ||
                         mipmap.storageType == Texture.StorageTypes.extUnc)
                     {
                         if (arcTexture == null ||

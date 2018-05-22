@@ -393,7 +393,7 @@ namespace MassEffectModder
             Console.WriteLine("     output dir: directory where textures converted to PNG are placed");
             Console.WriteLine("     Textures are extracted with only top mipmap.");
             Console.WriteLine("");
-            Console.WriteLine("  -me3dlcmod-for-mgamerz <mem file> <tfc name> [<guid in 16 hex digits>]\n");
+            Console.WriteLine("  -dlc-mod-for-mgamerz <game id> <mem file> <tfc name> [<guid in 16 hex digits>]\n");
             Console.WriteLine("     Replace textures from <mem file> and store in new <tfc name> file.");
             Console.WriteLine("     New TFC name must be added earlier to PCC files.");
             Console.WriteLine("");
@@ -446,6 +446,7 @@ namespace MassEffectModder
                 cmd.Equals("-check-game-data-after", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-game-data-only-vanilla", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-check-for-markers", StringComparison.OrdinalIgnoreCase) ||
+                cmd.Equals("-dlc-mod-for-mgamerz", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-extract-all-dds", StringComparison.OrdinalIgnoreCase) ||
                 cmd.Equals("-extract-all-png", StringComparison.OrdinalIgnoreCase))
             {
@@ -773,6 +774,12 @@ namespace MassEffectModder
             }
             else if (cmd.Equals("-me3dlcmod-for-mgamerz", StringComparison.OrdinalIgnoreCase))
             {
+                if (gameId == MeType.ME1_TYPE)
+                {
+                    Console.WriteLine("Error: wrong game id, supported only ME2 and ME3!");
+                    DisplayHelp();
+                    goto fail;
+                }
                 if (args.Length != 3 && args.Length != 4)
                 {
                     Console.WriteLine("Error: wrong arguments!");
@@ -799,7 +806,7 @@ namespace MassEffectModder
                     guid = Guid.NewGuid().ToByteArray();
                 loadEmbeddedDlls();
                 loadMD5Tables();
-                if (!CmdLineTools.applyMEMSpecialModME3(input, tfcName, guid))
+                if (!CmdLineTools.applyMEMSpecialModME3(gameId, input, tfcName, guid))
                     goto fail;
             }
             else
