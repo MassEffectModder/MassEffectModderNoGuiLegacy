@@ -1697,15 +1697,24 @@ namespace MassEffectModder
                                 foundTexture = textures.Find(s => s.crc == crc);
                                 if (foundTexture.crc != 0)
                                 {
-                                    ModEntry entry = new ModEntry();
-                                    entry.textureCrc = foundTexture.crc;
-                                    entry.textureName = foundTexture.name;
-                                    if (modFiles[l].tag == MipMaps.FileTextureTag2)
-                                        entry.markConvert = true;
-                                    entry.memPath = files[i];
-                                    entry.memEntryOffset = fs.Position;
-                                    entry.memEntrySize = size;
-                                    MipMaps.modsToReplace.Add(entry);
+                                    if (special)
+                                    {
+                                        dst = MipMaps.decompressData(fs, size);
+                                        Image image = new Image(dst, Image.ImageFormat.DDS);
+                                        replaceTextureSpecialME3Mod(image, foundTexture.list, foundTexture.name, crc, tfcName, guid);
+                                    }
+                                    else
+                                    {
+                                        ModEntry entry = new ModEntry();
+                                        entry.textureCrc = foundTexture.crc;
+                                        entry.textureName = foundTexture.name;
+                                        if (modFiles[l].tag == MipMaps.FileTextureTag2)
+                                            entry.markConvert = true;
+                                        entry.memPath = files[i];
+                                        entry.memEntryOffset = fs.Position;
+                                        entry.memEntrySize = size;
+                                        MipMaps.modsToReplace.Add(entry);
+                                    }
                                 }
                                 else
                                 {
@@ -1769,7 +1778,8 @@ namespace MassEffectModder
                 }
             }
 
-            mipMaps.replaceModsFromList(textures, repack, !modded, false, !modded, ipc);
+            if (!special)
+                mipMaps.replaceModsFromList(textures, repack, !modded, false, !modded, ipc);
 
             MipMaps.modsToReplace.Clear();
 
@@ -1778,10 +1788,9 @@ namespace MassEffectModder
             return status;
         }
 
-        static public string replaceTextureSpecialME3Mod(Image image, List<MatchedTexture> list, string textureName, uint crc, string tfcName, byte[] guid)
+        static public void replaceTextureSpecialME3Mod(Image image, List<MatchedTexture> list, string textureName, uint crc, string tfcName, byte[] guid)
         {
             Texture arcTexture = null, cprTexture = null;
-            string errors = "";
 
             for (int n = 0; n < list.Count; n++)
             {
@@ -1801,7 +1810,7 @@ namespace MassEffectModder
                 if (image.mipMaps[0].origWidth / image.mipMaps[0].origHeight !=
                     texture.mipMapsList[0].width / texture.mipMapsList[0].height)
                 {
-                    errors += "Error in texture: " + textureName + " This texture has wrong aspect ratio, skipping texture..." + Environment.NewLine;
+                    Console.WriteLine("Error in texture: " + textureName + " This texture has wrong aspect ratio, skipping texture...");
                     break;
                 }
 
@@ -1821,7 +1830,7 @@ namespace MassEffectModder
                                 image.pixelFormat == PixelFormat.DXT3 ||
                                 image.pixelFormat == PixelFormat.DXT5)
                             {
-                                errors += "Warning for texture: " + textureName + ". This texture converted from full alpha to binary alpha." + Environment.NewLine;
+                                Console.WriteLine("Warning for texture: " + textureName + ". This texture converted from full alpha to binary alpha.");
                             }
                         }
                     }
@@ -1854,7 +1863,7 @@ namespace MassEffectModder
                             byte[] data = texture.getMipMapData(texture.mipMapsList[t]);
                             if (data == null)
                             {
-                                errors += "Error in game data: " + nodeTexture.path + ", skipping texture..." + Environment.NewLine;
+                                Console.WriteLine("Error in game data: " + nodeTexture.path + ", skipping texture...");
                                 skip = true;
                                 break;
                             }
@@ -2029,8 +2038,6 @@ namespace MassEffectModder
                 package.SaveToFile(false, false, false);
             }
             arcTexture = cprTexture = null;
-
-            return errors;
         }
 
         static public bool extractAllTextures(MeType gameId, string outputDir, bool png, string textureTfcFilter)
