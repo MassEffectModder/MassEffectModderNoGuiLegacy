@@ -772,7 +772,7 @@ namespace MassEffectModder
                     if (!CmdLineTools.extractAllTextures(gameId, output, true, ""))
                         goto fail;
             }
-            else if (cmd.Equals("-me3dlcmod-for-mgamerz", StringComparison.OrdinalIgnoreCase))
+            else if (cmd.Equals("-dlc-mod-for-mgamerz", StringComparison.OrdinalIgnoreCase))
             {
                 if (gameId == MeType.ME1_TYPE)
                 {
@@ -780,19 +780,19 @@ namespace MassEffectModder
                     DisplayHelp();
                     goto fail;
                 }
-                if (args.Length != 3 && args.Length != 4)
+                if (args.Length < 4)
                 {
                     Console.WriteLine("Error: wrong arguments!");
                     DisplayHelp();
                     goto fail;
                 }
 
-                input = args[1];
-                string tfcName = args[2];
+                input = args[2];
+                string tfcName = args[3];
                 byte[] guid;
-                if (args.Length == 4)
+                if (args.Length == 5)
                 {
-                    if (args[3].Length != 32)
+                    if (args[4].Length != 32)
                     {
                         Console.WriteLine("Error: wrong guid!");
                         DisplayHelp();
@@ -800,7 +800,7 @@ namespace MassEffectModder
                     }
                     guid = new byte[16];
                     for (int i = 0; i < 32; i += 2)
-                        guid[i / 2] = Convert.ToByte(args[3].Substring(i, 2), 16);
+                        guid[i / 2] = Convert.ToByte(args[4].Substring(i, 2), 16);
                 }
                 else
                     guid = Guid.NewGuid().ToByteArray();
