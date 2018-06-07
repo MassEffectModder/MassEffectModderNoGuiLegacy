@@ -393,9 +393,8 @@ namespace MassEffectModder
             Console.WriteLine("     output dir: directory where textures converted to PNG are placed");
             Console.WriteLine("     Textures are extracted with only top mipmap.");
             Console.WriteLine("");
-            Console.WriteLine("  -dlc-mod-for-mgamerz <game id> <mem file> <tfc name> [<guid in 16 hex digits>]\n");
-            Console.WriteLine("     Replace textures from <mem file> and store in new <tfc name> file.");
-            Console.WriteLine("     New TFC name must be added earlier to PCC files.");
+            Console.WriteLine("  -dlc-mod-for-mgamerz <game id> <input dir> <tfc name> [<guid in 16 hex digits>]\n");
+            Console.WriteLine("     Replace textures with from <input dir> and store in new <tfc name> file.");
             Console.WriteLine("");
             Console.WriteLine("\n");
         }
@@ -806,7 +805,7 @@ namespace MassEffectModder
                     guid = Guid.NewGuid().ToByteArray();
                 loadEmbeddedDlls();
                 loadMD5Tables();
-                if (!CmdLineTools.applyMEMSpecialModME3(gameId, input, tfcName, guid))
+                if (!CmdLineTools.applyModsSpecial(gameId, input, tfcName, guid))
                     goto fail;
             }
             else

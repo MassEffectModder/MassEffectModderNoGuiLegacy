@@ -1504,35 +1504,7 @@ namespace MassEffectModder
             return true;
         }
 
-        static public bool applyMEMSpecialModME3(MeType gameId, string memFile, string tfcName, byte[] guid)
-        {
-            textures = new List<FoundTexture>();
-            ConfIni configIni = new ConfIni();
-            GameData gameData = new GameData(gameId, configIni);
-            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
-            {
-                Console.WriteLine("Error: Could not found the game!");
-                return false;
-            }
-
-            gameData.getPackages();
-            gameData.getTfcTextures();
-
-            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    Program.MAINEXENAME);
-            string mapFile = Path.Combine(path, "me" + (int)gameId + "map.bin");
-            if (!loadTexturesMapFile(mapFile, false))
-                return false;
-
-            List<string> memFiles = new List<string>();
-            memFiles.Add(memFile);
-
-            applyMods(memFiles, false, false, false, true, tfcName, guid);
-
-            return true;
-        }
-
-        static public bool applyMods(List<string> files, bool repack, bool modded, bool ipc, bool special = false, string tfcName = "", byte[] guid = null)
+        static public bool applyMods(List<string> files, bool repack, bool modded, bool ipc)
         {
             bool status = true;
 
@@ -1594,10 +1566,7 @@ namespace MassEffectModder
                 }
                 else
                 {
-                    if (special)
-                        Console.WriteLine("Installing mod: " + (i + 1) + " of " + files.Count + " - " + Path.GetFileName(files[i]));
-                    else
-                        Console.WriteLine("Preparing mod: " + (i + 1) + " of " + files.Count + " - " + Path.GetFileName(files[i]));
+                    Console.WriteLine("Preparing mod: " + (i + 1) + " of " + files.Count + " - " + Path.GetFileName(files[i]));
                 }
 
                 try
@@ -1700,24 +1669,15 @@ namespace MassEffectModder
                                 foundTexture = textures.Find(s => s.crc == crc);
                                 if (foundTexture.crc != 0)
                                 {
-                                    if (special)
-                                    {
-                                        dst = MipMaps.decompressData(fs, size);
-                                        Image image = new Image(dst, Image.ImageFormat.DDS);
-                                        replaceTextureSpecialME3Mod(image, foundTexture.list, foundTexture.name, crc, tfcName, guid);
-                                    }
-                                    else
-                                    {
-                                        ModEntry entry = new ModEntry();
-                                        entry.textureCrc = foundTexture.crc;
-                                        entry.textureName = foundTexture.name;
-                                        if (modFiles[l].tag == MipMaps.FileTextureTag2)
-                                            entry.markConvert = true;
-                                        entry.memPath = files[i];
-                                        entry.memEntryOffset = fs.Position;
-                                        entry.memEntrySize = size;
-                                        MipMaps.modsToReplace.Add(entry);
-                                    }
+                                    ModEntry entry = new ModEntry();
+                                    entry.textureCrc = foundTexture.crc;
+                                    entry.textureName = foundTexture.name;
+                                    if (modFiles[l].tag == MipMaps.FileTextureTag2)
+                                        entry.markConvert = true;
+                                    entry.memPath = files[i];
+                                    entry.memEntryOffset = fs.Position;
+                                    entry.memEntrySize = size;
+                                    MipMaps.modsToReplace.Add(entry);
                                 }
                                 else
                                 {
@@ -1781,14 +1741,81 @@ namespace MassEffectModder
                 }
             }
 
-            if (!special)
-                mipMaps.replaceModsFromList(textures, repack, !modded, false, !modded, ipc);
+            mipMaps.replaceModsFromList(textures, repack, !modded, false, !modded, ipc);
 
             MipMaps.modsToReplace.Clear();
 
             Console.WriteLine("Process textures finished.\n");
 
             return status;
+        }
+
+        static public bool applyModsSpecial(MeType gameId, string inputDir, string tfcName, byte[] guid)
+        {
+            textures = new List<FoundTexture>();
+            ConfIni configIni = new ConfIni();
+            GameData gameData = new GameData(gameId, configIni);
+            if (GameData.GamePath == null || !Directory.Exists(GameData.GamePath))
+            {
+                Console.WriteLine("Error: Could not found the game!");
+                return false;
+            }
+
+            gameData.getPackages();
+            gameData.getTfcTextures();
+
+            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    Program.MAINEXENAME);
+            string mapFile = Path.Combine(path, "me" + (int)gameId + "map.bin");
+            if (!loadTexturesMapFile(mapFile, false))
+                return false;
+
+            List<string> files;
+            files = Directory.GetFiles(inputDir, "*.dds").Where(item => item.EndsWith(".dds", StringComparison.OrdinalIgnoreCase)).ToList();
+            files.Sort();
+
+            for (int i = 0; i < files.Count; i++)
+            {
+                string file = files[i];
+                string relativeFilePath = file.Substring(inputDir.TrimEnd('\\').Length + 1);
+                Console.WriteLine("Installing mod: " + (i + 1) + " of " + files.Count + " - " + Path.GetFileName(files[i]));
+
+                string filename = Path.GetFileNameWithoutExtension(file).ToLowerInvariant();
+                if (!filename.Contains("0x"))
+                {
+                    Console.WriteLine("Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                    continue;
+                }
+                int idx = filename.IndexOf("0x");
+                if (filename.Length - idx < 10)
+                {
+                    Console.WriteLine("Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                    continue;
+                }
+                uint crc;
+                string crcStr = filename.Substring(idx + 2, 8);
+                try
+                {
+                    crc = uint.Parse(crcStr, System.Globalization.NumberStyles.HexNumber);
+                }
+                catch
+                {
+                    Console.WriteLine("Texture filename not valid: " + relativeFilePath + " Texture filename must include texture CRC (0xhhhhhhhh). Skipping texture...");
+                    continue;
+                }
+
+                List<FoundTexture> foundCrcList = textures.FindAll(s => s.crc == crc);
+                if (foundCrcList.Count == 0)
+                {
+                    Console.WriteLine("Texture skipped. Texture " + relativeFilePath + " is not present in your game setup.");
+                    continue;
+                }
+
+                Image image = new Image(File.ReadAllBytes(file), Image.ImageFormat.DDS);
+                replaceTextureSpecialME3Mod(image, foundCrcList[0].list, foundCrcList[0].name, crc, tfcName, guid);
+            }
+
+            return true;
         }
 
         static public void replaceTextureSpecialME3Mod(Image image, List<MatchedTexture> list, string textureName, uint crc, string tfcName, byte[] guid)
