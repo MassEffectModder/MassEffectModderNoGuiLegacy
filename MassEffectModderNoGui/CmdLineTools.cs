@@ -1976,9 +1976,11 @@ namespace MassEffectModder
                         }
                         else
                         {
-                            if (cprTexture.mipMapsList[m].width != mipmap.width ||
-                                cprTexture.mipMapsList[m].height != mipmap.height)
-                                throw new Exception();
+                            if ((mipmap.width >= 4 && cprTexture.mipMapsList[m].width != mipmap.width) ||
+                                (mipmap.height >= 4 && cprTexture.mipMapsList[m].height != mipmap.height))
+                            {
+                                throw new Exception("Dimensions mismatch!");
+                            }
                             mipmap.newData = cprTexture.mipMapsList[m].newData;
                         }
                         mipmap.compressedSize = mipmap.newData.Length;
@@ -2037,9 +2039,11 @@ namespace MassEffectModder
                         }
                         else
                         {
-                            if (arcTexture.mipMapsList[m].width != mipmap.width ||
-                                arcTexture.mipMapsList[m].height != mipmap.height)
-                                throw new Exception();
+                            if ((mipmap.width >= 4 && arcTexture.mipMapsList[m].width != mipmap.width) ||
+                                (mipmap.height >= 4 && arcTexture.mipMapsList[m].height != mipmap.height))
+                            {
+                                throw new Exception("Dimensions mismatch!");
+                            }
                             mipmap.dataOffset = arcTexture.mipMapsList[m].dataOffset;
                         }
                     }
