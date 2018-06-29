@@ -1965,6 +1965,11 @@ namespace MassEffectModder
                     if (mipmap.storageType == Texture.StorageTypes.pccLZO)
                         mipmap.storageType = Texture.StorageTypes.pccZlib;
 
+                    if (arcTexture != null && mipmap.storageType != arcTexture.mipMapsList[m].storageType)
+                    {
+                        arcTexture = null;
+                    }
+
                     mipmap.uncompressedSize = image.mipMaps[m].data.Length;
                     if (mipmap.storageType == Texture.StorageTypes.extZlib ||
                         mipmap.storageType == Texture.StorageTypes.extLZO)
