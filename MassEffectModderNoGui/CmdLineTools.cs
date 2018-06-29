@@ -1750,7 +1750,7 @@ namespace MassEffectModder
             return status;
         }
 
-        static public bool applyModsSpecial(MeType gameId, string inputDir, string tfcName, byte[] guid)
+        static public bool applyModsSpecial(MeType gameId, string inputDir, bool verify, string tfcName, byte[] guid)
         {
             textures = new List<FoundTexture>();
             ConfIni configIni = new ConfIni();
@@ -1812,13 +1812,43 @@ namespace MassEffectModder
                 }
 
                 Image image = new Image(File.ReadAllBytes(file), Image.ImageFormat.DDS);
-                replaceTextureSpecialME3Mod(image, foundCrcList[0].list, foundCrcList[0].name, crc, tfcName, guid);
+                replaceTextureSpecialME3Mod(image, foundCrcList[0].list, foundCrcList[0].name, crc, verify, tfcName, guid);
+            }
+
+            if (verify)
+            {
+                Console.WriteLine("Verification...");
+                for (int k = 0; k < textures.Count; k++)
+                {
+                    FoundTexture foundTexture = textures[k];
+                    for (int t = 0; t < foundTexture.list.Count; t++)
+                    {
+                        if (foundTexture.list[t].path == "")
+                            continue;
+                        MatchedTexture matchedTexture = foundTexture.list[t];
+                        if (matchedTexture.crcs != null)
+                        {
+                            Console.WriteLine("Texture: " + foundTexture.name + " in " + matchedTexture.path);
+                            Package pkg = new Package(GameData.GamePath + matchedTexture.path);
+                            Texture texture = new Texture(pkg, matchedTexture.exportID, pkg.getExportData(matchedTexture.exportID));
+                            for (int m = 0; m < matchedTexture.crcs.Count(); m++)
+                            {
+                                if (matchedTexture.crcs[m] != texture.getCrcData(texture.getMipMapDataByIndex(m)))
+                                {
+                                    Console.WriteLine("CRC does not match: Texture: " + foundTexture.name + ", instance: " + t + ", mipmap: " + m);
+                                }
+                            }
+                            pkg.Dispose();
+                        }
+                    }
+                }
             }
 
             return true;
         }
 
-        static public void replaceTextureSpecialME3Mod(Image image, List<MatchedTexture> list, string textureName, uint crc, string tfcName, byte[] guid)
+        static public void replaceTextureSpecialME3Mod(Image image, List<MatchedTexture> list, string textureName, uint crc,
+            bool verify, string tfcName, byte[] guid)
         {
             Texture arcTexture = null, cprTexture = null;
 
@@ -1929,9 +1959,13 @@ namespace MassEffectModder
                     }
                 }
 
+                if (verify)
+                    nodeTexture.crcs = new List<uint>();
                 List<Texture.MipMap> mipmaps = new List<Texture.MipMap>();
                 for (int m = 0; m < image.mipMaps.Count(); m++)
                 {
+                    if (verify)
+                        nodeTexture.crcs.Add(texture.getCrcData(image.mipMaps[m].data));
                     Texture.MipMap mipmap = new Texture.MipMap();
                     mipmap.width = image.mipMaps[m].origWidth;
                     mipmap.height = image.mipMaps[m].origHeight;

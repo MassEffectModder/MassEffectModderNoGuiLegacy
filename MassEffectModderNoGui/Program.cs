@@ -393,8 +393,10 @@ namespace MassEffectModder
             Console.WriteLine("     output dir: directory where textures converted to PNG are placed");
             Console.WriteLine("     Textures are extracted with only top mipmap.");
             Console.WriteLine("");
-            Console.WriteLine("  -dlc-mod-for-mgamerz <game id> <input dir> <tfc name> [<guid in 16 hex digits>]\n");
+            Console.WriteLine("  -dlc-mod-for-mgamerz <game id> <input dir> <tfc name> [<guid in 16 hex digits>] [-verify]\n");
             Console.WriteLine("     Replace textures with from <input dir> and store in new <tfc name> file.");
+            Console.WriteLine("     guid: specify guid for new tfc instead random generated.");
+            Console.WriteLine("     verify: Check all crc of replaced textures.");
             Console.WriteLine("");
             Console.WriteLine("\n");
         }
@@ -788,8 +790,17 @@ namespace MassEffectModder
 
                 input = args[2];
                 string tfcName = args[3];
+
+                bool verify = false;
+                for (int l = 0; l < args.Length; l++)
+                {
+                    if (args[l].ToLowerInvariant() == "-verify")
+                        verify = true;
+                }
+
                 byte[] guid;
-                if (args.Length == 5)
+                if ((args.Length == 5 && !verify) ||
+                    (args.Length == 6 && verify))
                 {
                     if (args[4].Length != 32)
                     {
@@ -803,9 +814,10 @@ namespace MassEffectModder
                 }
                 else
                     guid = Guid.NewGuid().ToByteArray();
+
                 loadEmbeddedDlls();
                 loadMD5Tables();
-                if (!CmdLineTools.applyModsSpecial(gameId, input, tfcName, guid))
+                if (!CmdLineTools.applyModsSpecial(gameId, input, verify, tfcName, guid))
                     goto fail;
             }
             else
