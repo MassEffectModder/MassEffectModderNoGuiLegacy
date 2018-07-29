@@ -56,14 +56,6 @@ namespace MassEffectModder
             public long dataOffset;
         }
 
-        class FileArrayComparer : IComparer<FileEntry>
-        {
-            public int Compare(FileEntry x, FileEntry y)
-            {
-                return StructuralComparisons.StructuralComparer.Compare(x.filenameHash, y.filenameHash);
-            }
-        }
-
         static private int getNumberOfFiles(string path)
         {
             if (!File.Exists(path))

@@ -173,7 +173,6 @@ namespace MassEffectModder
 
             if (!GameData.FullScanME1Game)
             {
-                GameData.packageFiles.Sort();
                 int count = GameData.packageFiles.Count;
                 for (int i = 0; i < count; i++)
                 {
@@ -208,7 +207,7 @@ namespace MassEffectModder
                 {
                     sortedFiles.Add(GameData.RelativeGameData(GameData.packageFiles[i]).ToLowerInvariant());
                 }
-                sortedFiles.Sort();
+                sortedFiles.Sort(StringComparer.OrdinalIgnoreCase);
 
                 for (int k = 0; k < textures.Count; k++)
                 {

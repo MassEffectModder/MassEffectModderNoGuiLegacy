@@ -391,7 +391,7 @@ namespace MassEffectModder
             list.AddRange(Directory.GetFiles(inputDir, "*.tga").Where(item => item.EndsWith(".tga", StringComparison.OrdinalIgnoreCase)));
             list.AddRange(Directory.GetFiles(inputDir, "*.jpg").Where(item => item.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)));
             list.AddRange(Directory.GetFiles(inputDir, "*.jpeg").Where(item => item.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)));
-            list.Sort();
+            list.Sort(StringComparer.OrdinalIgnoreCase);
 
             if (!Directory.Exists(outputDir))
                 Directory.CreateDirectory(outputDir);
@@ -480,7 +480,7 @@ namespace MassEffectModder
             ulong dstLen = 0;
             ulong numEntries = 0;
             List<string> list = Directory.GetFiles(inputDir, "*.tpf").Where(item => item.EndsWith(".tpf", StringComparison.OrdinalIgnoreCase)).ToList();
-            list.Sort();
+            list.Sort(StringComparer.OrdinalIgnoreCase);
             files = list.ToArray();
 
             if (!Directory.Exists(outputDir))
@@ -572,7 +572,7 @@ namespace MassEffectModder
             string[] files = null;
             ulong numEntries = 0;
             List<string> list = Directory.GetFiles(inputDir, "*.mod").Where(item => item.EndsWith(".mod", StringComparison.OrdinalIgnoreCase)).ToList();
-            list.Sort();
+            list.Sort(StringComparer.OrdinalIgnoreCase);
             files = list.ToArray();
 
             if (!Directory.Exists(outputDir))
@@ -706,7 +706,7 @@ namespace MassEffectModder
 
             string[] files = null;
             List<string> list = Directory.GetFiles(inputDir, "*.mem").Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
-            list.Sort();
+            list.Sort(StringComparer.OrdinalIgnoreCase);
             files = list.ToArray();
 
             if (!Directory.Exists(outputDir))
@@ -1772,7 +1772,7 @@ namespace MassEffectModder
 
             List<string> files;
             files = Directory.GetFiles(inputDir, "*.dds").Where(item => item.EndsWith(".dds", StringComparison.OrdinalIgnoreCase)).ToList();
-            files.Sort();
+            files.Sort(StringComparer.OrdinalIgnoreCase);
 
             for (int i = 0; i < files.Count; i++)
             {
@@ -2210,7 +2210,6 @@ namespace MassEffectModder
             }
 
             gameData.getPackages();
-            GameData.packageFiles.Sort();
             if (gameId != MeType.ME1_TYPE)
                 gameData.getTfcTextures();
 
