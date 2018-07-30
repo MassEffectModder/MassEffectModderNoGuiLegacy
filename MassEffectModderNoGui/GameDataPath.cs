@@ -27,6 +27,14 @@ using System.Linq;
 
 namespace MassEffectModder
 {
+    public class AsciiStringComparer : IComparer<string>
+    {
+        public int Compare(string x, string y)
+        {
+            return string.CompareOrdinal(x.ToLowerInvariant(), y.ToLowerInvariant());
+        }
+    }
+
     public class GameData
     {
         static private string _path = null;
@@ -355,7 +363,7 @@ namespace MassEffectModder
                     packageFiles.AddRange(pccs);
                 packageFiles.RemoveAll(s => s.ToLowerInvariant().Contains("guidcache"));
             }
-            packageFiles.Sort(StringComparer.OrdinalIgnoreCase);
+            packageFiles.Sort(new AsciiStringComparer());
             return true;
         }
 
