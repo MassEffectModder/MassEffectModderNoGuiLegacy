@@ -944,7 +944,7 @@ namespace MassEffectModder
             return true;
         }
 
-        public static bool ApplyLODAndGfxSettings(MeType gameId, bool softShadowsME1, bool meuitmMode)
+        public static bool ApplyLODAndGfxSettings(MeType gameId, bool softShadowsME1, bool meuitmMode, bool limit2k)
         {
             ConfIni configIni = new ConfIni();
             GameData gameData = new GameData(gameId, configIni);
@@ -959,7 +959,7 @@ namespace MassEffectModder
             if (!exist)
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
             ConfIni engineConf = new ConfIni(path);
-            LODSettings.updateLOD(gameId, engineConf);
+            LODSettings.updateLOD(gameId, engineConf, limit2k);
             LODSettings.updateGFXSettings(gameId, engineConf, softShadowsME1, meuitmMode);
 
             return true;
@@ -1330,7 +1330,7 @@ namespace MassEffectModder
             Console.WriteLine("Repack finished.\n");
         }
 
-        public static bool InstallMods(MeType gameId, string inputDir, bool ipc, bool repack, bool guiInstaller)
+        public static bool InstallMods(MeType gameId, string inputDir, bool ipc, bool repack, bool guiInstaller, bool limit2k)
         {
             textures = new List<FoundTexture>();
             treeScan = new TreeScan();
@@ -1485,7 +1485,7 @@ namespace MassEffectModder
                 if (!exist)
                     Directory.CreateDirectory(Path.GetDirectoryName(path));
                 ConfIni engineConf = new ConfIni(path);
-                LODSettings.updateLOD(gameId, engineConf);
+                LODSettings.updateLOD(gameId, engineConf, limit2k);
                 LODSettings.updateGFXSettings(gameId, engineConf, false, false);
                 Console.WriteLine("Updating LODs and other settings finished");
             }

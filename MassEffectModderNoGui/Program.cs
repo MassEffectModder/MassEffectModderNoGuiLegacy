@@ -274,7 +274,7 @@ namespace MassEffectModder
             Console.WriteLine("  -check-for-markers <game id> [-ipc]\n");
             Console.WriteLine("     Check game data for markers.\n");
             Console.WriteLine("");
-            Console.WriteLine("  -install-mods <game id> <input dir> [-repack] [-ipc] [-alot-mode]\n");
+            Console.WriteLine("  -install-mods <game id> <input dir> [-repack] [-ipc] [-alot-mode] [-limit2k]\n");
             Console.WriteLine("     Install MEM mods from input directory.\n");
             Console.WriteLine("");
             Console.WriteLine("  -apply-me1-laa\n");
@@ -550,14 +550,17 @@ namespace MassEffectModder
                 loadMD5Tables();
                 bool guiInstaller = false;
                 bool repack = false;
+                bool limit2k = false;
                 for (int l = 0; l < args.Length; l++)
                 {
                     if (args[l].ToLowerInvariant() == "-alot-mode")
                         guiInstaller = true;
                     if (args[l].ToLowerInvariant() == "-repack")
                         repack = true;
+                    if (args[l].ToLowerInvariant() == "-limit2k")
+                        limit2k = true;
                 }
-                if (!CmdLineTools.InstallMods(gameId, input, ipc, repack, guiInstaller))
+                if (!CmdLineTools.InstallMods(gameId, input, ipc, repack, guiInstaller, limit2k))
                     goto fail;
             }
             else if (cmd.Equals("-apply-me1-laa", StringComparison.OrdinalIgnoreCase))
@@ -581,15 +584,18 @@ namespace MassEffectModder
             {
                 bool softShadowsME1 = false;
                 bool meuitmMode = false;
+                bool limit2k = false;
                 for (int l = 0; l < args.Length; l++)
                 {
                     if (args[l].ToLowerInvariant() == "-soft-shadows-mode")
                         softShadowsME1 = true;
                     if (args[l].ToLowerInvariant() == "-meuitm-mode")
                         meuitmMode = true;
+                    if (args[l].ToLowerInvariant() == "-limit2k")
+                        limit2k = true;
                 }
 
-                if (!CmdLineTools.ApplyLODAndGfxSettings(gameId, softShadowsME1, meuitmMode))
+                if (!CmdLineTools.ApplyLODAndGfxSettings(gameId, softShadowsME1, meuitmMode, limit2k))
                     goto fail;
             }
             else if (cmd.Equals("-remove-lods", StringComparison.OrdinalIgnoreCase))
