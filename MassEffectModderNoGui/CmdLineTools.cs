@@ -32,6 +32,7 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
 using System.Windows.Forms;
+using System.Windows.Media.Imaging;
 
 namespace MassEffectModder
 {
@@ -2122,7 +2123,7 @@ namespace MassEffectModder
             arcTexture = cprTexture = null;
         }
 
-        static public bool extractAllTextures(MeType gameId, string outputDir, bool png, string textureTfcFilter)
+        static public bool extractAllTextures(MeType gameId, string outputDir, bool png, bool pccOnly, string textureTfcFilter)
         {
             ConfIni configIni = new ConfIni();
             GameData gameData = new GameData(gameId, configIni);
@@ -2149,33 +2150,54 @@ namespace MassEffectModder
 
             for (int i = 0; i < textures.Count; i++)
             {
+                string outputFile = Path.Combine(outputDir, textures[i].name +
+                        string.Format("_0x{0:X8}", textures[i].crc));
                 if (png)
                 {
-                    new MipMaps().extractTextureToPng(Path.Combine(outputDir, textures[i].name +
-                        string.Format("_0x{0:X8}", textures[i].crc) + ".png"), GameData.GamePath +
-                        textures[i].list.Find(s => s.path != "").path, textures[i].list[0].exportID);
+                    outputFile += ".png";
                 }
                 else
                 {
-                    string outputFile = Path.Combine(outputDir, textures[i].name +
-                        string.Format("_0x{0:X8}", textures[i].crc) + ".dds");
-                    string packagePath = GameData.GamePath + textures[i].list.Find(s => s.path != "").path;
-                    int exportID = textures[i].list.Find(s => s.path != "").exportID;
-                    Package package = new Package(packagePath);
-                    Texture texture = new Texture(package, exportID, package.getExportData(exportID));
-                    package.Dispose();
-                    if (textureTfcFilter != "" && texture.properties.exists("TextureFileCacheName"))
+                    outputFile += ".dds";
+                }
+
+                string packagePath = GameData.GamePath + textures[i].list.Find(s => s.path != "").path;
+                int exportID = textures[i].list.Find(s => s.path != "").exportID;
+                Package package = new Package(packagePath);
+                Texture texture = new Texture(package, exportID, package.getExportData(exportID));
+                package.Dispose();
+                if (textureTfcFilter != "" && texture.properties.exists("TextureFileCacheName"))
+                {
+                    string archive = texture.properties.getProperty("TextureFileCacheName").valueName;
+                    if (archive != textureTfcFilter)
+                        continue;
+                }
+                else if (pccOnly && texture.properties.exists("TextureFileCacheName"))
+                {
+                    continue;
+                }
+                while (texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
+                {
+                    texture.mipMapsList.Remove(texture.mipMapsList.First(s => s.storageType == Texture.StorageTypes.empty));
+                }
+                List<MipMap> mipmaps = new List<MipMap>();
+                PixelFormat pixelFormat = Image.getPixelFormatType(texture.properties.getProperty("Format").valueName);
+                if (png)
+                {
+                    Texture.MipMap mipmap = texture.getTopMipmap();
+                    byte[] data = texture.getTopImageData();
+                    if (data == null)
+                        continue;
+                    PngBitmapEncoder image = Image.convertToPng(data, mipmap.width, mipmap.height, pixelFormat);
+                    if (File.Exists(outputFile))
+                        File.Delete(outputFile);
+                    using (FileStream fs = new FileStream(outputFile, FileMode.CreateNew, FileAccess.Write))
                     {
-                        string archive = texture.properties.getProperty("TextureFileCacheName").valueName;
-                        if (archive != textureTfcFilter)
-                            continue;
+                        image.Save(fs);
                     }
-                    while (texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
-                    {
-                        texture.mipMapsList.Remove(texture.mipMapsList.First(s => s.storageType == Texture.StorageTypes.empty));
-                    }
-                    List<MipMap> mipmaps = new List<MipMap>();
-                    PixelFormat pixelFormat = Image.getPixelFormatType(texture.properties.getProperty("Format").valueName);
+                }
+                else
+                {
                     for (int k = 0; k < texture.mipMapsList.Count; k++)
                     {
                         byte[] data = texture.getMipMapDataByIndex(k);
