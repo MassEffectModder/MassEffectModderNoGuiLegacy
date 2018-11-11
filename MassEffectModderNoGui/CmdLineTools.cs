@@ -2167,15 +2167,16 @@ namespace MassEffectModder
                 Package package = new Package(packagePath);
                 Texture texture = new Texture(package, exportID, package.getExportData(exportID));
                 package.Dispose();
-                if (pccOnly && texture.properties.exists("TextureFileCacheName"))
+                bool tfcPropExists = texture.properties.exists("TextureFileCacheName");
+                if (pccOnly && tfcPropExists)
                 {
                     continue;
                 }
-                else if (tfcOnly && !texture.properties.exists("TextureFileCacheName"))
+                else if (tfcOnly && !tfcPropExists)
                 {
                     continue;
                 }
-                else if (!pccOnly && !tfcOnly && textureTfcFilter != "" && texture.properties.exists("TextureFileCacheName"))
+                else if (!pccOnly && !tfcOnly && textureTfcFilter != "" && tfcPropExists)
                 {
                     string archive = texture.properties.getProperty("TextureFileCacheName").valueName;
                     if (archive != textureTfcFilter)
