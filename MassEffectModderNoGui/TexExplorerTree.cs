@@ -553,10 +553,7 @@ namespace MassEffectModder
                     {
                         crc = texture.getCrcTopMipmap();
                     }
-                    catch
-                    {
-                    }
-                    if (crc == 0)
+                    catch (Exception e)
                     {
                         if (ipc)
                         {
@@ -565,7 +562,11 @@ namespace MassEffectModder
                         }
                         else
                         {
-                            Console.WriteLine("Error: Texture " + package.exportsTable[i].objectName + " is broken in package: " + packagePath + ", skipping..." + Environment.NewLine);
+                            Console.WriteLine(">>>>>>>>>");
+                            Console.WriteLine(e.Message);
+                            Console.WriteLine("Error: Texture " + package.exportsTable[i].objectName + " is broken in package: " +
+                                packagePath + ", skipping...");
+                            Console.WriteLine("<<<<<<<<<" + Environment.NewLine);
                         }
                         continue;
                     }
