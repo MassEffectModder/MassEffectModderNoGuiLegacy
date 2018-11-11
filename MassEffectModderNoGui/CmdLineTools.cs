@@ -2181,11 +2181,6 @@ namespace MassEffectModder
                     if (archive != textureTfcFilter)
                         continue;
                 }
-                while (texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
-                {
-                    texture.mipMapsList.Remove(texture.mipMapsList.First(s => s.storageType == Texture.StorageTypes.empty));
-                }
-                List<MipMap> mipmaps = new List<MipMap>();
                 PixelFormat pixelFormat = Image.getPixelFormatType(texture.properties.getProperty("Format").valueName);
                 if (png)
                 {
@@ -2203,6 +2198,11 @@ namespace MassEffectModder
                 }
                 else
                 {
+                    while (texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
+                    {
+                        texture.mipMapsList.Remove(texture.mipMapsList.First(s => s.storageType == Texture.StorageTypes.empty));
+                    }
+                    List<MipMap> mipmaps = new List<MipMap>();
                     for (int k = 0; k < texture.mipMapsList.Count; k++)
                     {
                         byte[] data = texture.getMipMapDataByIndex(k);
