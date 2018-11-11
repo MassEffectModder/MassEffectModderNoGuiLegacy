@@ -563,10 +563,11 @@ namespace MassEffectModder
                         else
                         {
                             Console.WriteLine(">>>>>>>>>");
-                            Console.WriteLine(e.Message);
                             Console.WriteLine("Error: Texture " + package.exportsTable[i].objectName + " is broken in package: " +
-                                Environment.NewLine + packagePath + Environment.NewLine +
-                                "Export Id: " + (i + 1) + ", skipping...");
+                                Environment.NewLine + packagePath);
+                            Console.WriteLine(e.Message);
+                            Console.WriteLine("Export Id: " + (i + 1));
+                            Console.WriteLine("skipping...");
                             Console.WriteLine("<<<<<<<<<" + Environment.NewLine);
                         }
                         continue;
