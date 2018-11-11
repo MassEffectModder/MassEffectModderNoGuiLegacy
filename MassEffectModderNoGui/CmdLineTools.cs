@@ -2123,7 +2123,8 @@ namespace MassEffectModder
             arcTexture = cprTexture = null;
         }
 
-        static public bool extractAllTextures(MeType gameId, string outputDir, bool png, bool pccOnly, string textureTfcFilter)
+        static public bool extractAllTextures(MeType gameId, string outputDir, bool png, bool pccOnly,
+            bool tfcOnly, string textureTfcFilter)
         {
             ConfIni configIni = new ConfIni();
             GameData gameData = new GameData(gameId, configIni);
@@ -2166,15 +2167,19 @@ namespace MassEffectModder
                 Package package = new Package(packagePath);
                 Texture texture = new Texture(package, exportID, package.getExportData(exportID));
                 package.Dispose();
-                if (textureTfcFilter != "" && texture.properties.exists("TextureFileCacheName"))
+                if (pccOnly && texture.properties.exists("TextureFileCacheName"))
+                {
+                    continue;
+                }
+                else if (tfcOnly && !texture.properties.exists("TextureFileCacheName"))
+                {
+                    continue;
+                }
+                else if (!pccOnly && !tfcOnly && textureTfcFilter != "" && texture.properties.exists("TextureFileCacheName"))
                 {
                     string archive = texture.properties.getProperty("TextureFileCacheName").valueName;
                     if (archive != textureTfcFilter)
                         continue;
-                }
-                else if (pccOnly && texture.properties.exists("TextureFileCacheName"))
-                {
-                    continue;
                 }
                 while (texture.mipMapsList.Exists(s => s.storageType == Texture.StorageTypes.empty))
                 {

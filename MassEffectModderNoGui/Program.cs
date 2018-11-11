@@ -382,18 +382,20 @@ namespace MassEffectModder
             Console.WriteLine("     output pixel format: DXT1 (no alpha), DXT1a (alpha), DXT3, DXT5, ATI2, V8U8, G8, RGBA, RGB");
             Console.WriteLine("     For DXT1a you have to set the alpha threshold (0-255). 128 is suggested as a default value.");
             Console.WriteLine("");
-            Console.WriteLine("  -extract-all-dds <game id> <output dir> [TFC filter name|-pcc-only]\n");
+            Console.WriteLine("  -extract-all-dds <game id> <output dir> [TFC filter name|-pcc-only|-tfc-only]\n");
             Console.WriteLine("     game id: 1 for ME1, 2 for ME2, 3 for ME3");
             Console.WriteLine("     output dir: directory where textures converted to DDS are placed");
             Console.WriteLine("     TFC filter name: it will filter only textures stored in specific TFC file.");
             Console.WriteLine("     Or option: -pcc-only to extract only textures stored in packages.");
+            Console.WriteLine("     Or option: -tfc-only to extract only textures stored in TFC files.");
             Console.WriteLine("     Textures are extracted as they are in game data, only DDS header is added.");
             Console.WriteLine("");
-            Console.WriteLine("  -extract-all-png <game id> <output dir> [TFC filter name|-pcc-only]\n");
+            Console.WriteLine("  -extract-all-png <game id> <output dir> [TFC filter name|-pcc-only|-tfc-only]\n");
             Console.WriteLine("     game id: 1 for ME1, 2 for ME2, 3 for ME3");
             Console.WriteLine("     output dir: directory where textures converted to PNG are placed");
             Console.WriteLine("     TFC filter name: it will filter only textures stored in specific TFC file.");
             Console.WriteLine("     Or option: -pcc-only to extract only textures stored in packages.");
+            Console.WriteLine("     Or option: -tfc-only to extract only textures stored in TFC files.");
             Console.WriteLine("     Textures are extracted with only top mipmap.");
             Console.WriteLine("");
             Console.WriteLine("  -dlc-mod-for-mgamerz <game id> <input dir> <tfc name> [<guid in 16 hex digits>] [-verify]\n");
@@ -773,14 +775,15 @@ namespace MassEffectModder
                 if (args.Length > 3)
                     tfcFilter = args[3];
                 bool pccOnly = tfcFilter == "-pcc-only";
+                bool tfcOnly = tfcFilter == "-tfc-only";
 
                 loadEmbeddedDlls();
                 loadMD5Tables();
                 if (cmd.Equals("-extract-all-dds", StringComparison.OrdinalIgnoreCase))
-                    if (!CmdLineTools.extractAllTextures(gameId, output, false, pccOnly, tfcFilter))
+                    if (!CmdLineTools.extractAllTextures(gameId, output, false, pccOnly, tfcOnly, tfcFilter))
                         goto fail;
                 if (cmd.Equals("-extract-all-png", StringComparison.OrdinalIgnoreCase))
-                    if (!CmdLineTools.extractAllTextures(gameId, output, true, pccOnly, ""))
+                    if (!CmdLineTools.extractAllTextures(gameId, output, true, pccOnly, tfcOnly, tfcFilter))
                         goto fail;
             }
             else if (cmd.Equals("-dlc-mod-for-mgamerz", StringComparison.OrdinalIgnoreCase))
