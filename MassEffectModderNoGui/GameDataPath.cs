@@ -244,6 +244,7 @@ namespace MassEffectModder
                 return true;
 
             tfcFiles = Directory.GetFiles(GamePath, "*.tfc", SearchOption.AllDirectories).Where(item => item.EndsWith(".tfc", StringComparison.OrdinalIgnoreCase)).ToList();
+            tfcFiles.Sort(new AsciiStringComparer());
             return true;
         }
 
