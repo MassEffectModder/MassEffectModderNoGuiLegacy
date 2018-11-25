@@ -1963,6 +1963,7 @@ namespace MassEffectModder
                     Console.WriteLine("[IPC]ERROR_NO_BUILDABLE_FILES");
                     Console.Out.Flush();
                 }
+                Console.WriteLine("No mods are created");
                 return false;
             }
 
