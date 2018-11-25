@@ -24,13 +24,9 @@ using StreamHelpers;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Security.AccessControl;
-using System.Security.Principal;
-using System.Text;
 using System.Windows.Forms;
 using System.Windows.Media.Imaging;
 
