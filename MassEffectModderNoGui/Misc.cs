@@ -1092,7 +1092,7 @@ namespace MassEffectModder
             if (!onlyIndividual)
             {
                 list = Directory.GetFiles(inputDir, "*.mem").Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
-                list.Sort(new AsciiStringComparer());
+                list.Sort(StringComparer.OrdinalIgnoreCase);
                 list2 = Directory.GetFiles(inputDir, "*.tpf").Where(item => item.EndsWith(".tpf", StringComparison.OrdinalIgnoreCase)).ToList();
                 list2.AddRange(Directory.GetFiles(inputDir, "*.mod").Where(item => item.EndsWith(".mod", StringComparison.OrdinalIgnoreCase)));
             }
@@ -1109,7 +1109,7 @@ namespace MassEffectModder
             list2.AddRange(Directory.GetFiles(inputDir, "*.tga").Where(item => item.EndsWith(".tga", StringComparison.OrdinalIgnoreCase)));
             list2.AddRange(Directory.GetFiles(inputDir, "*.jpg").Where(item => item.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)));
             list2.AddRange(Directory.GetFiles(inputDir, "*.jpeg").Where(item => item.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)));
-            list2.Sort(new AsciiStringComparer());
+            list2.Sort(StringComparer.OrdinalIgnoreCase);
             list.AddRange(list2);
             files = list.ToArray();
 
@@ -2137,21 +2137,37 @@ namespace MassEffectModder
                 entries = Program.entriesME3;
             }
 
+            for (int i = 0; i < packageMainFiles.Count; i++)
+            {
+                packageMainFiles[i] = GameData.RelativeGameData(packageMainFiles[i]);
+            }
             packageMainFiles.Sort(new AsciiStringComparer());
             int allFilesCount = packageMainFiles.Count();
             int progress = 0;
             if (packageDLCFiles != null)
             {
+                for (int i = 0; i < packageDLCFiles.Count; i++)
+                {
+                    packageDLCFiles[i] = GameData.RelativeGameData(packageDLCFiles[i]);
+                }
                 packageDLCFiles.Sort(new AsciiStringComparer());
                 allFilesCount += packageDLCFiles.Count();
             }
             if (sfarFiles != null)
             {
+                for (int i = 0; i < sfarFiles.Count; i++)
+                {
+                    sfarFiles[i] = GameData.RelativeGameData(sfarFiles[i]);
+                }
                 sfarFiles.Sort(new AsciiStringComparer());
                 allFilesCount += sfarFiles.Count();
             }
             if (tfcFiles != null)
             {
+                for (int i = 0; i < tfcFiles.Count; i++)
+                {
+                    tfcFiles[i] = GameData.RelativeGameData(tfcFiles[i]);
+                }
                 tfcFiles.Sort(new AsciiStringComparer());
                 allFilesCount += tfcFiles.Count();
             }
@@ -2176,7 +2192,7 @@ namespace MassEffectModder
                         lastProgress = newProgress;
                     }
                 }
-                byte[] md5 = calculateMD5(packageMainFiles[l]);
+                byte[] md5 = calculateMD5(GameData.GamePath + packageMainFiles[l]);
                 bool found = false;
                 for (int p = 0; p < entries.Count(); p++)
                 {
@@ -2218,7 +2234,7 @@ namespace MassEffectModder
                 int index = -1;
                 for (int p = 0; p < entries.Count(); p++)
                 {
-                    if (GameData.RelativeGameData(packageMainFiles[l]).ToLowerInvariant() == entries[p].path.ToLowerInvariant())
+                    if (packageMainFiles[l].ToLowerInvariant() == entries[p].path.ToLowerInvariant())
                     {
                         if (generateMd5Entries)
                         {
@@ -2244,7 +2260,7 @@ namespace MassEffectModder
 
                 if (generateModsMd5Entries)
                 {
-                    fs.WriteStringASCII("new MD5ModFileEntry\n{\npath = @\"" + GameData.RelativeGameData(packageMainFiles[l]) + "\",\nmd5 = new byte[] { ");
+                    fs.WriteStringASCII("new MD5ModFileEntry\n{\npath = @\"" + packageMainFiles[l] + "\",\nmd5 = new byte[] { ");
                     for (int i = 0; i < md5.Length; i++)
                     {
                         fs.WriteStringASCII(string.Format("0x{0:X2}, ", md5[i]));
@@ -2253,12 +2269,12 @@ namespace MassEffectModder
                 }
                 if (generateMd5Entries)
                 {
-                    fs.WriteStringASCII("new MD5FileEntry\n{\npath = @\"" + GameData.RelativeGameData(packageMainFiles[l]) + "\",\nmd5 = new byte[] { ");
+                    fs.WriteStringASCII("new MD5FileEntry\n{\npath = @\"" + packageMainFiles[l] + "\",\nmd5 = new byte[] { ");
                     for (int i = 0; i < md5.Length; i++)
                     {
                         fs.WriteStringASCII(string.Format("0x{0:X2}, ", md5[i]));
                     }
-                    fs.WriteStringASCII("},\nsize = " + new FileInfo(packageMainFiles[l]).Length + ",\n},\n");
+                    fs.WriteStringASCII("},\nsize = " + new FileInfo(GameData.GamePath + packageMainFiles[l]).Length + ",\n},\n");
                 }
 
                 if (!generateMd5Entries && !generateModsMd5Entries)
@@ -2297,7 +2313,7 @@ namespace MassEffectModder
                             lastProgress = newProgress;
                         }
                     }
-                    byte[] md5 = calculateMD5(packageDLCFiles[l]);
+                    byte[] md5 = calculateMD5(GameData.GamePath + packageDLCFiles[l]);
                     bool found = false;
                     for (int p = 0; p < entries.Count(); p++)
                     {
@@ -2339,7 +2355,7 @@ namespace MassEffectModder
                     int index = -1;
                     for (int p = 0; p < entries.Count(); p++)
                     {
-                        if (GameData.RelativeGameData(packageDLCFiles[l]).ToLowerInvariant() == entries[p].path.ToLowerInvariant())
+                        if (packageDLCFiles[l].ToLowerInvariant() == entries[p].path.ToLowerInvariant())
                         {
                             if (generateMd5Entries)
                             {
@@ -2365,7 +2381,7 @@ namespace MassEffectModder
 
                     if (generateModsMd5Entries)
                     {
-                        fs.WriteStringASCII("new MD5ModFileEntry\n{\npath = @\"" + GameData.RelativeGameData(packageDLCFiles[l]) + "\",\nmd5 = new byte[] { ");
+                        fs.WriteStringASCII("new MD5ModFileEntry\n{\npath = @\"" + packageDLCFiles[l] + "\",\nmd5 = new byte[] { ");
                         for (int i = 0; i < md5.Length; i++)
                         {
                             fs.WriteStringASCII(string.Format("0x{0:X2}, ", md5[i]));
@@ -2374,12 +2390,12 @@ namespace MassEffectModder
                     }
                     if (generateMd5Entries)
                     {
-                        fs.WriteStringASCII("new MD5FileEntry\n{\npath = @\"" + GameData.RelativeGameData(packageDLCFiles[l]) + "\",\nmd5 = new byte[] { ");
+                        fs.WriteStringASCII("new MD5FileEntry\n{\npath = @\"" + packageDLCFiles[l] + "\",\nmd5 = new byte[] { ");
                         for (int i = 0; i < md5.Length; i++)
                         {
                             fs.WriteStringASCII(string.Format("0x{0:X2}, ", md5[i]));
                         }
-                        fs.WriteStringASCII("},\nsize = " + new FileInfo(packageDLCFiles[l]).Length + ",\n},\n");
+                        fs.WriteStringASCII("},\nsize = " + new FileInfo(GameData.GamePath + packageDLCFiles[l]).Length + ",\n},\n");
                     }
 
                     if (!generateMd5Entries && !generateModsMd5Entries)
@@ -2420,7 +2436,7 @@ namespace MassEffectModder
                             lastProgress = newProgress;
                         }
                     }
-                    byte[] md5 = calculateMD5(sfarFiles[l]);
+                    byte[] md5 = calculateMD5(GameData.GamePath + sfarFiles[l]);
                     bool found = false;
                     for (int p = 0; p < entries.Count(); p++)
                     {
@@ -2435,7 +2451,7 @@ namespace MassEffectModder
                     int index = -1;
                     for (int p = 0; p < entries.Count(); p++)
                     {
-                        if (GameData.RelativeGameData(sfarFiles[l]).ToLowerInvariant() == entries[p].path.ToLowerInvariant())
+                        if (sfarFiles[l].ToLowerInvariant() == entries[p].path.ToLowerInvariant())
                         {
                             index = p;
                             break;
@@ -2484,7 +2500,7 @@ namespace MassEffectModder
                             lastProgress = newProgress;
                         }
                     }
-                    byte[] md5 = calculateMD5(tfcFiles[l]);
+                    byte[] md5 = calculateMD5(GameData.GamePath + tfcFiles[l]);
                     bool found = false;
                     for (int p = 0; p < entries.Count(); p++)
                     {
@@ -2499,7 +2515,7 @@ namespace MassEffectModder
                     int index = -1;
                     for (int p = 0; p < entries.Count(); p++)
                     {
-                        if (GameData.RelativeGameData(tfcFiles[l]).ToLowerInvariant() == entries[p].path.ToLowerInvariant())
+                        if (tfcFiles[l].ToLowerInvariant() == entries[p].path.ToLowerInvariant())
                         {
                             index = p;
                             break;

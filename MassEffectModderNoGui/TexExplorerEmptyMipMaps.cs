@@ -235,7 +235,7 @@ namespace MassEffectModder
             if (package.SaveToFile(false, false, true))
             {
                 if (CmdLineTools.pkgsToMarker != null)
-                    CmdLineTools.pkgsToMarker.Remove(package.packagePath);
+                    CmdLineTools.pkgsToMarker.Remove(GameData.RelativeGameData(package.packagePath));
             }
             package.Dispose();
         }
@@ -247,7 +247,7 @@ namespace MassEffectModder
             string path = "";
             if (GameData.gameType == MeType.ME2_TYPE)
             {
-                path = GameData.GamePath + @"\BioGame\CookedPC\BIOC_Materials.pcc";
+                path = @"\BioGame\CookedPC\BIOC_Materials.pcc";
             }
             for (int i = 0; i < list.Count; i++)
             {
@@ -326,9 +326,9 @@ namespace MassEffectModder
             if (package.SaveToFile(repack, false, true))
             {
                 if (repack && CmdLineTools.pkgsToRepack != null)
-                    CmdLineTools.pkgsToRepack.Remove(package.packagePath);
+                    CmdLineTools.pkgsToRepack.Remove(GameData.RelativeGameData(package.packagePath));
                 if (CmdLineTools.pkgsToMarker != null)
-                    CmdLineTools.pkgsToMarker.Remove(package.packagePath);
+                    CmdLineTools.pkgsToMarker.Remove(GameData.RelativeGameData(package.packagePath));
             }
             package.Dispose();
         }

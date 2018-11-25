@@ -19,7 +19,6 @@
  *
  */
 
-using Microsoft.Win32;
 using StreamHelpers;
 using System;
 using System.Collections;
@@ -58,19 +57,19 @@ namespace MassEffectModder
             string path = "";
             if (gameId == (int)MeType.ME1_TYPE)
             {
-                path = GameData.GamePath + @"\BioGame\CookedPC\testVolumeLight_VFX.upk";
+                path = @"\BioGame\CookedPC\testVolumeLight_VFX.upk";
             }
             if (gameId == (int)MeType.ME2_TYPE)
             {
-                path = GameData.GamePath + @"\BioGame\CookedPC\BIOC_Materials.pcc";
+                path = @"\BioGame\CookedPC\BIOC_Materials.pcc";
             }
             if (gameId == (int)MeType.ME3_TYPE)
             {
-                path = GameData.GamePath + @"\BIOGame\CookedPCConsole\adv_combat_tutorial_xbox_D_Int.afc";
+                path = @"\BIOGame\CookedPCConsole\adv_combat_tutorial_xbox_D_Int.afc";
             }
             try
             {
-                using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.ReadWrite))
+                using (FileStream fs = new FileStream(GameData.GamePath + path, FileMode.Open, FileAccess.ReadWrite))
                 {
                     fs.Seek(-16, SeekOrigin.End);
                     int prevMeuitmV = fs.ReadInt32();
@@ -242,7 +241,6 @@ namespace MassEffectModder
                 {
                     int len = fs.ReadInt32();
                     string pkgPath = fs.ReadStringASCII(len);
-                    pkgPath = GameData.GamePath + pkgPath;
                     packages.Add(pkgPath);
                 }
 
@@ -252,12 +250,12 @@ namespace MassEffectModder
                     {
                         if (ipc)
                         {
-                            Console.WriteLine("[IPC]ERROR_REMOVED_FILE " + GameData.RelativeGameData(packages[i]));
+                            Console.WriteLine("[IPC]ERROR_REMOVED_FILE " + packages[i]);
                             Console.Out.Flush();
                         }
                         else
                         {
-                            Console.WriteLine("Removed file since last game data scan: " + GameData.RelativeGameData(packages[i]));
+                            Console.WriteLine("Removed file since last game data scan: " + packages[i]);
                         }
                         foundRemoved = true;
                     }
@@ -271,12 +269,12 @@ namespace MassEffectModder
                     {
                         if (ipc)
                         {
-                            Console.WriteLine("[IPC]ERROR_ADDED_FILE " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                            Console.WriteLine("[IPC]ERROR_ADDED_FILE " + GameData.packageFiles[i]);
                             Console.Out.Flush();
                         }
                         else
                         {
-                            Console.WriteLine("File: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                            Console.WriteLine("File: " + GameData.packageFiles[i]);
                         }
                         foundAdded = true;
                     }
@@ -1055,9 +1053,9 @@ namespace MassEffectModder
                 packages.Add(GameData.packageFiles[i]);
             }
             if (GameData.gameType == MeType.ME1_TYPE)
-                packages.Remove(GameData.GamePath + @"\BioGame\CookedPC\testVolumeLight_VFX.upk");
+                packages.Remove(@"\BioGame\CookedPC\testVolumeLight_VFX.upk");
             else if (GameData.gameType == MeType.ME2_TYPE)
-                packages.Remove(GameData.GamePath + @"\BioGame\CookedPC\BIOC_Materials.pcc");
+                packages.Remove(@"\BioGame\CookedPC\BIOC_Materials.pcc");
 
             int lastProgress = -1;
             for (int i = 0; i < packages.Count; i++)
@@ -1071,7 +1069,7 @@ namespace MassEffectModder
                 }
                 try
                 {
-                    using (FileStream fs = new FileStream(packages[i], FileMode.Open, FileAccess.Read))
+                    using (FileStream fs = new FileStream(GameData.GamePath + packages[i], FileMode.Open, FileAccess.Read))
                     {
                         fs.SeekEnd();
                         fs.Seek(-Package.MEMendFileMarker.Length, SeekOrigin.Current);
@@ -1217,7 +1215,7 @@ namespace MassEffectModder
                 }
                 try
                 {
-                    using (FileStream fs = new FileStream(pkgsToMarker[i], FileMode.Open, FileAccess.ReadWrite))
+                    using (FileStream fs = new FileStream(GameData.GamePath + pkgsToMarker[i], FileMode.Open, FileAccess.ReadWrite))
                     {
                         fs.SeekEnd();
                         fs.Seek(-Package.MEMendFileMarker.Length, SeekOrigin.Current);
@@ -1280,7 +1278,7 @@ namespace MassEffectModder
             }
 
             if (gameId == MeType.ME2_TYPE)
-                pkgsToRepack.Remove(GameData.GamePath + @"\BioGame\CookedPC\BIOC_Materials.pcc");
+                pkgsToRepack.Remove(@"\BioGame\CookedPC\BIOC_Materials.pcc");
             int lastProgress = -1;
             for (int i = 0; i < pkgsToRepack.Count; i++)
             {
@@ -1302,11 +1300,11 @@ namespace MassEffectModder
                 }
                 try
                 {
-                    Package package = new Package(pkgsToRepack[i], true);
+                    Package package = new Package(GameData.GamePath + pkgsToRepack[i], true);
                     if (!package.compressed || package.compressed && package.compressionType != Package.CompressionType.Zlib)
                     {
                         package.Dispose();
-                        package = new Package(pkgsToRepack[i]);
+                        package = new Package(GameData.GamePath + pkgsToRepack[i]);
                         package.SaveToFile(true, false, !modded);
                     }
                     package.Dispose();
@@ -1315,12 +1313,12 @@ namespace MassEffectModder
                 {
                     if (ipc)
                     {
-                        Console.WriteLine("[IPC]ERROR Error opening package file: " + GameData.RelativeGameData(pkgsToRepack[i]));
+                        Console.WriteLine("[IPC]ERROR Error opening package file: " + pkgsToRepack[i]);
                         Console.Out.Flush();
                     }
                     else
                     {
-                        Console.WriteLine("Error opening package file: " + GameData.RelativeGameData(pkgsToRepack[i]));
+                        Console.WriteLine("Error opening package file: " + pkgsToRepack[i]);
                     }
                 }
             }
@@ -1420,9 +1418,9 @@ namespace MassEffectModder
                     pkgsToRepack.Add(GameData.packageFiles[i]);
                 }
                 if (GameData.gameType == MeType.ME1_TYPE)
-                    pkgsToRepack.Remove(GameData.GamePath + @"\BioGame\CookedPC\testVolumeLight_VFX.upk");
+                    pkgsToRepack.Remove(@"\BioGame\CookedPC\testVolumeLight_VFX.upk");
                 else if (GameData.gameType == MeType.ME2_TYPE)
-                    pkgsToRepack.Remove(GameData.GamePath + @"\BioGame\CookedPC\BIOC_Materials.pcc");
+                    pkgsToRepack.Remove(@"\BioGame\CookedPC\BIOC_Materials.pcc");
             }
 
             if (!modded)
@@ -1433,9 +1431,9 @@ namespace MassEffectModder
                     pkgsToMarker.Add(GameData.packageFiles[i]);
                 }
                 if (GameData.gameType == MeType.ME1_TYPE)
-                    pkgsToMarker.Remove(GameData.GamePath + @"\BioGame\CookedPC\testVolumeLight_VFX.upk");
+                    pkgsToMarker.Remove(@"\BioGame\CookedPC\testVolumeLight_VFX.upk");
                 else if (GameData.gameType == MeType.ME2_TYPE)
-                    pkgsToMarker.Remove(GameData.GamePath + @"\BioGame\CookedPC\BIOC_Materials.pcc");
+                    pkgsToMarker.Remove(@"\BioGame\CookedPC\BIOC_Materials.pcc");
 
                 ScanTextures(gameId, ipc, repack);
             }
@@ -2158,9 +2156,9 @@ namespace MassEffectModder
                     outputFile += ".dds";
                 }
 
-                string packagePath = GameData.GamePath + textures[i].list.Find(s => s.path != "").path;
+                string packagePath = textures[i].list.Find(s => s.path != "").path;
                 int exportID = textures[i].list.Find(s => s.path != "").exportID;
-                Package package = new Package(packagePath);
+                Package package = new Package(GameData.GamePath + packagePath);
                 Texture texture = new Texture(package, exportID, package.getExportData(exportID));
                 package.Dispose();
                 bool tfcPropExists = texture.properties.exists("TextureFileCacheName");
@@ -2249,7 +2247,7 @@ namespace MassEffectModder
                 }
                 else
                 {
-                    Console.WriteLine("Package " + (i + 1) + " of " + GameData.packageFiles.Count + " - " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                    Console.WriteLine("Package " + (i + 1) + " of " + GameData.packageFiles.Count + " - " + GameData.packageFiles[i]);
                 }
                 int newProgress = (i + 1) * 100 / GameData.packageFiles.Count;
                 if (ipc && lastProgress != newProgress)
@@ -2260,13 +2258,13 @@ namespace MassEffectModder
                 }
                 try
                 {
-                    package = new Package(GameData.packageFiles[i]);
+                    package = new Package(GameData.GamePath + GameData.packageFiles[i]);
                 }
                 catch (Exception e)
                 {
                     if (ipc)
                     {
-                        Console.WriteLine("[IPC]ERROR_TEXTURE_SCAN_DIAGNOSTIC Error opening package file: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                        Console.WriteLine("[IPC]ERROR_TEXTURE_SCAN_DIAGNOSTIC Error opening package file: " + GameData.packageFiles[i]);
                         Console.Out.Flush();
                     }
                     else
@@ -2300,13 +2298,13 @@ namespace MassEffectModder
                             if (ipc)
                             {
                                 Console.WriteLine("[IPC]ERROR_TEXTURE_SCAN_DIAGNOSTIC Error reading texture data for texture: " +
-                                    package.exportsTable[e].objectName + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                                    package.exportsTable[e].objectName + " in package: " + GameData.packageFiles[i]);
                                 Console.Out.Flush();
                             }
                             else
                             {
                                 Console.WriteLine("Error: Failed reading texture data for texture: " +
-                                    package.exportsTable[e].objectName + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                                    package.exportsTable[e].objectName + " in package: " + GameData.packageFiles[i]);
                             }
                             continue;
                         }
@@ -2318,15 +2316,15 @@ namespace MassEffectModder
                             if (ipc)
                             {
                                 Console.WriteLine("[IPC]ERROR_MIPMAPS_NOT_REMOVED Empty mipmaps not removed in texture: " +
-                                package.exportsTable[e].objectName + " in package: " +
-                                GameData.RelativeGameData(GameData.packageFiles[i]));
+                                    package.exportsTable[e].objectName + " in package: " +
+                                    GameData.packageFiles[i]);
                                 Console.Out.Flush();
                             }
                             else
                             {
                                 Console.WriteLine("ERROR: Empty mipmaps not removed in texture: " +
-                                package.exportsTable[e].objectName + " in package: " +
-                                GameData.RelativeGameData(GameData.packageFiles[i]));
+                                    package.exportsTable[e].objectName + " in package: " +
+                                    GameData.packageFiles[i]);
                             }
                             continue;
                         }
@@ -2342,13 +2340,13 @@ namespace MassEffectModder
                                 if (ipc)
                                 {
                                     Console.WriteLine("[IPC]ERROR_TEXTURE_SCAN_DIAGNOSTIC Issue opening texture data: " +
-                                        package.exportsTable[i].objectName + "mipmap: " + m + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                                        package.exportsTable[i].objectName + "mipmap: " + m + " in package: " + GameData.packageFiles[i]);
                                     Console.Out.Flush();
                                 }
                                 else
                                 {
                                     Console.WriteLine("Error: Issue opening texture data: " +
-                                        package.exportsTable[i].objectName + "mipmap: " + m + " in package: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                                        package.exportsTable[i].objectName + "mipmap: " + m + " in package: " + GameData.packageFiles[i]);
                                 }
                                 continue;
                             }
@@ -2404,7 +2402,7 @@ namespace MassEffectModder
                 }
                 try
                 {
-                    using (FileStream fs = new FileStream(filesToUpdate[i], FileMode.Open, FileAccess.Read))
+                    using (FileStream fs = new FileStream(GameData.GamePath + filesToUpdate[i], FileMode.Open, FileAccess.Read))
                     {
                         fs.SeekEnd();
                         fs.Seek(-Package.MEMendFileMarker.Length, SeekOrigin.Current);
@@ -2499,7 +2497,6 @@ namespace MassEffectModder
                 {
                     int len = fs.ReadInt32();
                     string pkgPath = fs.ReadStringASCII(len);
-                    pkgPath = GameData.GamePath + pkgPath;
                     packages.Add(pkgPath);
                 }
                 Console.WriteLine("\nChecking for removed files since last game data scan...");
@@ -2509,12 +2506,12 @@ namespace MassEffectModder
                     {
                         if (ipc)
                         {
-                            Console.WriteLine("[IPC]ERROR_REMOVED_FILE " + GameData.RelativeGameData(packages[i]));
+                            Console.WriteLine("[IPC]ERROR_REMOVED_FILE " + packages[i]);
                             Console.Out.Flush();
                         }
                         else
                         {
-                            Console.WriteLine("File: " + GameData.RelativeGameData(packages[i]));
+                            Console.WriteLine("File: " + packages[i]);
                         }
                     }
                 }
@@ -2527,12 +2524,12 @@ namespace MassEffectModder
                     {
                         if (ipc)
                         {
-                            Console.WriteLine("[IPC]ERROR_ADDED_FILE " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                            Console.WriteLine("[IPC]ERROR_ADDED_FILE " + GameData.packageFiles[i]);
                             Console.Out.Flush();
                         }
                         else
                         {
-                            Console.WriteLine("File: " + GameData.RelativeGameData(GameData.packageFiles[i]));
+                            Console.WriteLine("File: " + GameData.packageFiles[i]);
                         }
                     }
                 }

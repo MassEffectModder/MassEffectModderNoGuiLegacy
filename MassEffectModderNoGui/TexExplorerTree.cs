@@ -205,7 +205,7 @@ namespace MassEffectModder
                 List<string> sortedFiles = new List<string>();
                 for (int i = 0; i < GameData.packageFiles.Count; i++)
                 {
-                    sortedFiles.Add(GameData.RelativeGameData(GameData.packageFiles[i]).ToLowerInvariant());
+                    sortedFiles.Add(GameData.packageFiles[i].ToLowerInvariant());
                 }
                 sortedFiles.Sort();
 
@@ -232,8 +232,8 @@ namespace MassEffectModder
                     int index = -1;
                     bool modified = true;
                     bool foundPkg = false;
-                    string package = GameData.RelativeGameData(GameData.packageFiles[i].ToLowerInvariant());
-                    long packageSize = new FileInfo(GameData.packageFiles[i]).Length;
+                    string package = GameData.packageFiles[i].ToLowerInvariant();
+                    long packageSize = new FileInfo(GameData.GamePath + GameData.packageFiles[i]).Length;
                     for (int p = 0; p < md5Entries.Length; p++)
                     {
                         if (package == md5Entries[p].path.ToLowerInvariant())
@@ -250,7 +250,7 @@ namespace MassEffectModder
                     if (foundPkg && modified)
                         modifiedFiles.Add(md5Entries[index].path);
                     else if (!foundPkg)
-                        addedFiles.Add(GameData.RelativeGameData(GameData.packageFiles[i]));
+                        addedFiles.Add(GameData.packageFiles[i]);
                 }
 
                 int lastProgress = -1;
@@ -329,7 +329,7 @@ namespace MassEffectModder
                         }
                         Console.Out.Flush();
                     }
-                    FindTextures(gameId, textures, GameData.RelativeGameData(GameData.packageFiles[i]), false, ipc);
+                    FindTextures(gameId, textures, GameData.packageFiles[i], false, ipc);
                 }
             }
 
@@ -463,9 +463,8 @@ namespace MassEffectModder
                     mem.WriteInt32(GameData.packageFiles.Count);
                     for (int i = 0; i < GameData.packageFiles.Count; i++)
                     {
-                        string s = GameData.RelativeGameData(GameData.packageFiles[i]);
-                        mem.WriteInt32(s.Length);
-                        mem.WriteStringASCII(s);
+                        mem.WriteInt32(GameData.packageFiles[i].Length);
+                        mem.WriteStringASCII(GameData.packageFiles[i]);
                     }
                 }
                 mem.SeekBegin();
