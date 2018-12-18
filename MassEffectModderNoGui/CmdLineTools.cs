@@ -2315,14 +2315,14 @@ namespace MassEffectModder
                         {
                             if (ipc)
                             {
-                                Console.WriteLine("[IPC]ERROR_MIPMAPS_NOT_REMOVED Empty mipmaps not removed in texture: " +
+                                Console.WriteLine("[IPC]ERROR_MIPMAPS_NOT_REMOVED Empty mipmap not removed in texture: " +
                                     package.exportsTable[e].objectName + " in package: " +
                                     GameData.packageFiles[i]);
                                 Console.Out.Flush();
                             }
                             else
                             {
-                                Console.WriteLine("ERROR: Empty mipmaps not removed in texture: " +
+                                Console.WriteLine("ERROR: Empty mipmap not removed in texture: " +
                                     package.exportsTable[e].objectName + " in package: " +
                                     GameData.packageFiles[i]);
                             }
