@@ -353,21 +353,32 @@ namespace MassEffectModder
                                    textures[k].list[j].packageName == basePkgName)
                                 {
                                     slaveTexture.linkToMaster = j;
-                                    slaveTexture.slave = true;
                                     textures[k].list[t] = slaveTexture;
                                     break;
                                 }
                             }
                         }
                     }
-                    bool foundWeakSlave = false;
-                    for (int w = 0; w < textures[k].list.Count; w++)
+
+                    bool foundSlave = false;
+                    for (int s = 0; s < textures[k].list.Count; s++)
                     {
-                        if (!textures[k].list[w].slave &&
-                             textures[k].list[w].weakSlave)
+                        if (textures[k].list[s].slave)
                         {
-                            foundWeakSlave = true;
+                            foundSlave = true;
                             break;
+                        }
+                    }
+                    bool foundWeakSlave = false;
+                    if (!foundSlave)
+                    {
+                        for (int w = 0; w < textures[k].list.Count; w++)
+                        {
+                            if (textures[k].list[w].weakSlave)
+                            {
+                                foundWeakSlave = true;
+                                break;
+                            }
                         }
                     }
                     if (foundWeakSlave)
