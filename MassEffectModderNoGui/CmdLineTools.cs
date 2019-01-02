@@ -386,7 +386,7 @@ namespace MassEffectModder
             list.AddRange(Directory.GetFiles(inputDir, "*.tga").Where(item => item.EndsWith(".tga", StringComparison.OrdinalIgnoreCase)));
             list.AddRange(Directory.GetFiles(inputDir, "*.jpg").Where(item => item.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)));
             list.AddRange(Directory.GetFiles(inputDir, "*.jpeg").Where(item => item.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase)));
-            list.Sort(new AsciiStringComparer());
+            list.Sort(StringComparer.OrdinalIgnoreCase);
 
             if (!Directory.Exists(outputDir))
                 Directory.CreateDirectory(outputDir);
@@ -475,7 +475,7 @@ namespace MassEffectModder
             ulong dstLen = 0;
             ulong numEntries = 0;
             List<string> list = Directory.GetFiles(inputDir, "*.tpf").Where(item => item.EndsWith(".tpf", StringComparison.OrdinalIgnoreCase)).ToList();
-            list.Sort(new AsciiStringComparer());
+            list.Sort(StringComparer.OrdinalIgnoreCase);
             files = list.ToArray();
 
             if (!Directory.Exists(outputDir))
@@ -567,7 +567,7 @@ namespace MassEffectModder
             string[] files = null;
             ulong numEntries = 0;
             List<string> list = Directory.GetFiles(inputDir, "*.mod").Where(item => item.EndsWith(".mod", StringComparison.OrdinalIgnoreCase)).ToList();
-            list.Sort(new AsciiStringComparer());
+            list.Sort(StringComparer.OrdinalIgnoreCase);
             files = list.ToArray();
 
             if (!Directory.Exists(outputDir))
@@ -701,7 +701,7 @@ namespace MassEffectModder
 
             string[] files = null;
             List<string> list = Directory.GetFiles(inputDir, "*.mem").Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
-            list.Sort(new AsciiStringComparer());
+            list.Sort(StringComparer.OrdinalIgnoreCase);
             files = list.ToArray();
 
             if (!Directory.Exists(outputDir))
@@ -1446,6 +1446,7 @@ namespace MassEffectModder
                 Console.Out.Flush();
             }
             List<string> modFiles = Directory.GetFiles(inputDir, "*.mem").Where(item => item.EndsWith(".mem", StringComparison.OrdinalIgnoreCase)).ToList();
+            modFiles.Sort(StringComparer.OrdinalIgnoreCase);
             if (modded)
             {
                 string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -1767,7 +1768,7 @@ namespace MassEffectModder
 
             List<string> files;
             files = Directory.GetFiles(inputDir, "*.dds").Where(item => item.EndsWith(".dds", StringComparison.OrdinalIgnoreCase)).ToList();
-            files.Sort(new AsciiStringComparer());
+            files.Sort(StringComparer.OrdinalIgnoreCase);
 
             for (int i = 0; i < files.Count; i++)
             {
