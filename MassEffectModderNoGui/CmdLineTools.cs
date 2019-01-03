@@ -810,7 +810,7 @@ namespace MassEffectModder
                                 name = fs.ReadStringASCIINull();
                                 crc = fs.ReadUInt32();
                             }
-                            else if (modFiles[i].tag == MipMaps.FileBinaryTag)
+                            else if (modFiles[i].tag == MipMaps.FileBinaryTag || modFiles[i].tag == MipMaps.FileXdeltaTag)
                             {
                                 name = modFiles[i].name;
                                 exportId = fs.ReadInt32();
@@ -1634,7 +1634,7 @@ namespace MassEffectModder
                                 name = fs.ReadStringASCIINull();
                                 crc = fs.ReadUInt32();
                             }
-                            else if (modFiles[l].tag == MipMaps.FileBinaryTag)
+                            else if (modFiles[l].tag == MipMaps.FileBinaryTag || modFiles[l].tag == MipMaps.FileXdeltaTag)
                             {
                                 name = modFiles[l].name;
                                 exportId = fs.ReadInt32();
