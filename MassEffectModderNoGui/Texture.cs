@@ -368,7 +368,7 @@ namespace MassEffectModder
 
         public byte[] getMipMapDataByIndex(int index)
         {
-            if (textureData == null || mipMapsList.Count == 0 || index < 0 || index > mipMapsList.Count)
+            if (textureData == null || mipMapsList.Count == 0 || index < 0 || index >= mipMapsList.Count)
                 return null;
 
             return getMipMapData(mipMapsList[index]);
